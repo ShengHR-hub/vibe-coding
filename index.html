@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>需求提案箱</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        ink: '#1c1c1e',
+                        soft: '#f2f2f7',
+                        card: '#ffffff',
+                        muted: '#8e8e93',
+                        tint: '#007aff',
+                        tintSoft: '#eef4ff',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { -webkit-tap-highlight-color: transparent; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .view { position: absolute; inset: 0; display: flex; flex-direction: column; opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
+        .view.active { opacity: 1; pointer-events: auto; position: relative; }
+        @keyframes toast-up { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes toast-fade { from { opacity: 1; } to { opacity: 0; } }
+        .toast-in { animation: toast-up 0.2s ease-out; }
+        .toast-out { animation: toast-fade 0.2s ease-in forwards; }
+        @keyframes bubble-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        .bubble-enter { animation: bubble-in 0.2s ease-out; }
+        .dot-pulse span { animation: dot-bounce 1.2s infinite ease-in-out both; }
+        .dot-pulse span:nth-child(2) { animation-delay: 0.16s; }
+        .dot-pulse span:nth-child(3) { animation-delay: 0.32s; }
+        @keyframes dot-bounce { 0%,80%,100%{transform:scale(0)} 40%{transform:scale(1)} }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; }
+        .auto-grow { overflow: hidden; resize: none; }
+    </style>
+</head>
+<body class="bg-soft text-ink antialiased font-sans">
+
+<div id="app" class="max-w-md mx-auto min-h-screen flex flex-col relative overflow-hidden">
+    <div id="toast" class="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 hidden"></div>
+
+    <header class="px-5 pt-8 pb-2 flex items-center gap-3 shrink-0">
+        <button id="backBtn" onclick="goBack()" class="hidden w-8 h-8 items-center justify-center rounded-full hover:bg-black/5 transition-colors">
+            <svg class="w-5 h-5 text-ink" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        <div>
+            <h1 id="headerTitle" class="text-xl font-semibold text-ink leading-tight">需求提案箱</h1>
+            <p id="headerSub" class="text-xs text-muted mt-0.5">说出你的想法，我来帮你实现。</p>
+        </div>
+    </header>
+
+    <div class="flex-1 relative px-5 pb-6">
+
+        <!-- ===== 直接提交 ===== -->
+        <div id="viewDirect" class="view active flex-col">
+            <textarea
+                id="ideaInput"
+                class="auto-grow w-full min-h-[220px] p-4 bg-card border-0 rounded-2xl text-[15px] leading-relaxed placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-tint/20 transition-shadow shadow-sm"
+                placeholder="比如：一个能把网页表格转成 Excel 的小工具"
+                maxlength="500"
+            ></textarea>
+            <div class="flex justify-end mt-1.5">
+                <span id="charCount" class="text-[11px] text-muted/50">0 / 500</span>
+            </div>
+            <button id="submitBtn" onclick="submitIdea()" class="mt-4 w-full bg-ink text-white font-medium py-3.5 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.97] transition-transform disabled:opacity-60 disabled:active:scale-100 shadow-sm">
+                <span id="submitText">提交想法</span>
+                <div id="submitSpinner" class="spinner hidden"></div>
+            </button>
+            <button onclick="switchView('viewAi')" class="mt-5 mx-auto flex items-center gap-1.5 text-sm text-muted hover:text-ink transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                不知道写什么？让 AI 帮你想
+            </button>
+            <button onclick="switchView('viewHistory')" class="mt-3 mx-auto text-xs text-muted/50 hover:text-muted transition-colors">
+                已提交的记录
+            </button>
+        </div>
+
+        <!-- ===== AI 对话 ===== -->
+        <div id="viewAi" class="view flex-col" style="padding-bottom: 0;">
+            <div id="chatBox" class="flex-1 bg-card rounded-2xl p-4 overflow-y-auto no-scrollbar flex flex-col gap-3 shadow-sm" style="min-height: 0; max-height: calc(100vh - 240px);"></div>
+            <div class="mt-3 flex gap-2 items-end">
+                <div class="flex-1 bg-card rounded-2xl shadow-sm flex items-end">
+                    <input id="chatInput" type="text"
+                        class="flex-1 bg-transparent px-4 py-3 text-[15px] focus:outline-none placeholder:text-muted/50"
+                        placeholder="说说你的想法..."
+                        onkeydown="if(event.key==='Enter')sendChat()"
+                        maxlength="200"
+                    >
+                </div>
+                <button id="chatSendBtn" onclick="sendChat()" class="bg-ink text-white w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 active:scale-[0.95] transition-transform disabled:opacity-50">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- ===== 历史记录 ===== -->
+        <div id="viewHistory" class="view flex-col">
+            <div id="historyList" class="flex-1 overflow-y-auto no-scrollbar flex flex-col gap-2.5" style="min-height: 0; max-height: calc(100vh - 200px);"></div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+// ==================== Supabase 初始化 ====================
+const SUPABASE_URL = 'https://qcittnjtchuzqnfsshli.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFjaXR0bmp0Y2h1enFuZnNzaGxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxOTQ1NDAsImV4cCI6MjA5NDc3MDU0MH0.twOHdqsqsXyN7MuMo9xkIO6FGD5tnD9wtQDDJFnJu3c';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ==================== 状态 ====================
+let chatMessages = [];
+let chatStep = 0;
+let currentView = 'viewDirect';
+let ideaCount = 0;
+
+// ==================== 工具 ====================
+function $(id) { return document.getElementById(id); }
+
+function escapeHtml(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+}
+
+function showToast(msg, type = 'success') {
+    const el = $('toast');
+    const bg = type === 'success' ? 'bg-ink' : 'bg-red-500';
+    el.innerHTML = `<div class="toast-in ${bg} text-white text-sm px-5 py-2.5 rounded-full shadow-lg">${escapeHtml(msg)}</div>`;
+    el.classList.remove('hidden');
+    setTimeout(() => {
+        const inner = el.querySelector('div');
+        inner.classList.replace('toast-in', 'toast-out');
+        setTimeout(() => el.classList.add('hidden'), 200);
+    }, 1800);
+}
+
+// ==================== 视图切换 ====================
+const viewTitles = {
+    viewDirect: { title: '需求提案箱', sub: '说出你的想法，我来帮你实现。', back: false },
+    viewAi: { title: 'AI 灵感助手', sub: '聊聊你的困扰，帮你理清需求。', back: true },
+    viewHistory: { title: '提交记录', sub: '共 {{n}} 条想法', back: true },
+};
+
+function switchView(viewId) {
+    const old = $(currentView);
+    const next = $(viewId);
+    if (old === next) return;
+    old.classList.remove('active');
+    next.classList.add('active');
+    currentView = viewId;
+
+    const cfg = viewTitles[viewId];
+    $('headerTitle').textContent = cfg.title;
+    $('headerSub').textContent = cfg.sub.replace('{{n}}', ideaCount);
+    $('backBtn').classList.toggle('hidden', !cfg.back);
+    $('backBtn').classList.toggle('flex', cfg.back);
+
+    if (viewId === 'viewAi' && chatMessages.length === 0) {
+        const text = '最近工作或学习里，有什么让你觉得特别重复、繁琐的事吗？';
+        appendAiMessage(text);
+        chatMessages.push({ role: 'ai', text });
+    }
+    if (viewId === 'viewHistory') loadAndRenderHistory();
+}
+
+function goBack() { switchView('viewDirect'); }
+
+// ==================== 提交 ====================
+async function submitIdea() {
+    const input = $('ideaInput');
+    const btn = $('submitBtn');
+    const text = input.value.trim();
+    if (!text) { showToast('请先输入你的想法', 'error'); return; }
+
+    btn.disabled = true;
+    $('submitText').textContent = '提交中';
+    $('submitSpinner').classList.remove('hidden');
+
+    try {
+        const { error } = await sb.from('ideas').insert({ content: text, source: 'direct' });
+        if (error) throw error;
+
+        input.value = '';
+        updateCharCount();
+        input.style.height = 'auto';
+        ideaCount++;
+        showToast('提交成功');
+    } catch (e) {
+        showToast('提交失败，请重试', 'error');
+        console.error(e);
+    } finally {
+        btn.disabled = false;
+        $('submitText').textContent = '提交想法';
+        $('submitSpinner').classList.add('hidden');
+    }
+}
+
+// ==================== 字数 ====================
+function updateCharCount() {
+    $('charCount').textContent = $('ideaInput').value.length + ' / 500';
+}
+$('ideaInput').addEventListener('input', updateCharCount);
+$('ideaInput').addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, window.innerHeight * 0.45) + 'px';
+});
+
+// ==================== 历史记录 ====================
+async function loadAndRenderHistory() {
+    const list = $('historyList');
+    list.innerHTML = `
+        <div class="flex-1 flex items-center justify-center">
+            <div class="spinner" style="border-color:rgba(0,0,0,0.1);border-top-color:#1c1c1e;width:24px;height:24px;"></div>
+        </div>`;
+
+    try {
+        const { data, error } = await sb.from('ideas').select('*').order('created_at', { ascending: false });
+        if (error) throw error;
+
+        ideaCount = data.length;
+        $('headerSub').textContent = `共 ${ideaCount} 条想法`;
+
+        if (data.length === 0) {
+            list.innerHTML = `
+                <div class="flex-1 flex flex-col items-center justify-center text-center py-16">
+                    <div class="w-12 h-12 rounded-full bg-muted/10 flex items-center justify-center mb-3">
+                        <svg class="w-6 h-6 text-muted/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                    </div>
+                    <p class="text-sm text-muted">还没有提交过想法</p>
+                    <p class="text-xs text-muted/50 mt-1">提交后会显示在这里</p>
+                </div>`;
+            return;
+        }
+
+        list.innerHTML = data.map((item, i) => {
+            const d = new Date(item.created_at);
+            const date = `${d.getMonth()+1}月${d.getDate()}日 ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+            const tag = item.source === 'ai';
+            return `
+                <div class="bg-card rounded-xl p-4 shadow-sm bubble-enter" style="animation-delay:${i*40}ms">
+                    <p class="text-[15px] text-ink leading-relaxed">${escapeHtml(item.content)}</p>
+                    <div class="flex items-center justify-between mt-3">
+                        <span class="text-[11px] text-muted/60">${date}</span>
+                        <div class="flex items-center gap-2">
+                            ${tag ? '<span class="text-[10px] text-tint bg-tintSoft px-2 py-0.5 rounded-full font-medium">AI</span>' : ''}
+                            <button onclick="deleteIdea(${item.id})" class="text-muted/30 hover:text-red-400 transition-colors p-0.5">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>`;
+        }).join('');
+    } catch (e) {
+        list.innerHTML = `
+            <div class="flex-1 flex flex-col items-center justify-center text-center py-16">
+                <p class="text-sm text-red-400">加载失败，请下拉刷新</p>
+                <button onclick="loadAndRenderHistory()" class="mt-3 text-xs text-muted underline">重试</button>
+            </div>`;
+        console.error(e);
+    }
+}
+
+async function deleteIdea(id) {
+    try {
+        const { error } = await sb.from('ideas').delete().eq('id', id);
+        if (error) throw error;
+        ideaCount--;
+        loadAndRenderHistory();
+        showToast('已删除');
+    } catch (e) {
+        showToast('删除失败', 'error');
+        console.error(e);
+    }
+}
+
+// ==================== AI 对话 ====================
+function appendAiMessage(text) {
+    const box = $('chatBox');
+    const div = document.createElement('div');
+    div.className = 'flex gap-2 bubble-enter';
+    div.innerHTML = `
+        <div class="w-7 h-7 rounded-full bg-soft flex items-center justify-center shrink-0 mt-0.5">
+            <svg class="w-3.5 h-3.5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        </div>
+        <div class="bg-soft rounded-2xl rounded-tl-md px-3.5 py-2.5 max-w-[80%] text-[15px] text-ink leading-relaxed whitespace-pre-wrap">${escapeHtml(text)}</div>`;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+}
+
+function appendUserMessage(text) {
+    const box = $('chatBox');
+    const div = document.createElement('div');
+    div.className = 'flex justify-end bubble-enter';
+    div.innerHTML = `
+        <div class="bg-ink text-white rounded-2xl rounded-tr-md px-3.5 py-2.5 max-w-[80%] text-[15px] leading-relaxed">${escapeHtml(text)}</div>`;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+}
+
+function appendLoading() {
+    const box = $('chatBox');
+    const div = document.createElement('div');
+    div.id = 'loadBubble';
+    div.className = 'flex gap-2 bubble-enter';
+    div.innerHTML = `
+        <div class="w-7 h-7 rounded-full bg-soft flex items-center justify-center shrink-0">
+            <svg class="w-3.5 h-3.5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        </div>
+        <div class="bg-soft rounded-2xl rounded-tl-md px-4 py-3 flex gap-1.5 items-center dot-pulse">
+            <span class="w-1.5 h-1.5 bg-muted rounded-full inline-block"></span>
+            <span class="w-1.5 h-1.5 bg-muted rounded-full inline-block"></span>
+            <span class="w-1.5 h-1.5 bg-muted rounded-full inline-block"></span>
+        </div>`;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+}
+
+function sendChat() {
+    const input = $('chatInput');
+    const btn = $('chatSendBtn');
+    const text = input.value.trim();
+    if (!text) return;
+
+    appendUserMessage(text);
+    chatMessages.push({ role: 'user', text });
+    input.value = '';
+
+    btn.disabled = true;
+    appendLoading();
+
+    setTimeout(() => {
+        const el = $('loadBubble');
+        if (el) el.remove();
+        btn.disabled = false;
+
+        const reply = generateAiReply(text);
+        appendAiMessage(reply.text);
+        chatMessages.push({ role: 'ai', text: reply.text });
+
+        if (reply.idea) {
+            setTimeout(() => {
+                sb.from('ideas').insert({ content: reply.idea, source: 'ai' }).then(({ error }) => {
+                    if (error) { showToast('提交失败', 'error'); console.error(error); }
+                    else { ideaCount++; showToast('已帮你提交需求'); }
+                });
+            }, 400);
+        }
+    }, 700 + Math.random() * 300);
+}
+
+// ==================== AI 回复逻辑 ====================
+function generateAiReply(userText) {
+    chatStep++;
+    if (chatStep === 1) {
+        const t = userText.toLowerCase();
+        let id = '', area = '';
+        if (/学生|上学|作业|课程|论文|考研/.test(t)) id = '学生';
+        else if (/上班|工作|公司|老板|客户|项目/.test(t)) id = '上班族';
+        if (/表格|excel|数据|报表/.test(t)) area = '数据处理';
+        else if (/文件|文档|pdf|word/.test(t)) area = '文档处理';
+        else if (/视频|字幕|音频/.test(t)) area = '音视频';
+        else if (/图片|照片|截图/.test(t)) area = '图片处理';
+        else if (/记|备忘|提醒|日程|待办/.test(t)) area = '记录管理';
+        else if (/重复|繁琐|麻烦/.test(t)) area = '自动化';
+        if (id && area) return { text: `作为${id}，${area}方面确实容易让人头疼。具体是哪个环节最烦？` };
+        if (id) return { text: `好的，你是${id}。那个让你觉得繁琐的事，大概是什么场景？处理文件、整理数据、还是别的？` };
+        if (area) return { text: `${area}方面我大概了解了。你是学生还是上班族？这样我能想得更具体。` };
+        return { text: '听起来挺困扰的。方便说下主要是在工作还是学习中遇到这个问题的吗？' };
+    }
+    if (chatStep === 2) {
+        const all = chatMessages.filter(m => m.role === 'user').map(m => m.text).join(' ') + ' ' + userText;
+        let idea = '';
+        if (/表格|excel/i.test(all)) {
+            if (/核对|对比|比较/.test(all)) idea = '自动比对两份表格差异并标出不同的小工具';
+            else if (/合并|汇总/.test(all)) idea = '多个 Excel 自动合并汇总小工具';
+            else if (/转换|转/.test(all)) idea = '网页表格一键转 Excel 小工具';
+            else idea = 'Excel 自动化处理小助手';
+        } else if (/字幕|视频/.test(all)) idea = '自动识别视频字幕并导出文本的小工具';
+        else if (/pdf|文档/.test(all)) idea = '批量文档格式转换小工具';
+        else if (/记|备忘|提醒/.test(all)) idea = '简洁的个人备忘与提醒小程序';
+        else if (/图片|照片/.test(all)) idea = '批量图片处理（压缩/裁剪/转格式）小工具';
+        else if (/重复|繁琐/.test(all)) idea = '自动化重复操作流程的小工具';
+        else idea = all.slice(0, 30).trim();
+        return { text: `我帮你理了一下，或许可以做一个「${idea}」。\n\n这个方向对你有用吗？`, idea };
+    }
+    if (chatStep >= 3) {
+        const t = userText.toLowerCase();
+        if (/是|对|好|可以|有用|行|嗯|不错/.test(t)) {
+            chatStep = 0;
+            return { text: '已帮你提交！可以随时点「已提交的记录」来回顾。还有别的想法吗？' };
+        }
+        if (/想要|希望|需要|做一个/.test(userText)) {
+            const idea = userText.length > 50 ? userText.slice(0, 50) + '...' : userText;
+            return { text: `好，那改成「${idea}」，可以吗？`, idea };
+        }
+        chatStep = 1;
+        return { text: '没关系，我们重新聊聊。你最想解决的具体问题是什么？' };
+    }
+    return { text: '有意思，能再具体说说吗？' };
+}
+
+// ==================== 键盘适配 ====================
+$('chatInput').addEventListener('focus', () => { setTimeout(() => $('chatBox').scrollTop = $('chatBox').scrollHeight, 300); });
+$('ideaInput').addEventListener('focus', () => { setTimeout(() => window.scrollTo(0, 0), 100); });
+
+// ==================== 页面加载时检查连接 ====================
+(async () => {
+    const { error } = await sb.from('ideas').select('id', { count: 'exact', head: true });
+    if (error) console.warn('Supabase 连接异常:', error.message);
+})();
+</script>
+
+</body>
+</html>
