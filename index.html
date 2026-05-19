@@ -116,11 +116,24 @@ const SUPABASE_URL = 'https://qcittnjtchuzqnfsshli.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFjaXR0bmp0Y2h1enFuZnNzaGxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxOTQ1NDAsImV4cCI6MjA5NDc3MDU0MH0.twOHdqsqsXyN7MuMo9xkIO6FGD5tnD9wtQDDJFnJu3c';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// ==================== 配置 ====================
+const MIMO_URL = 'https://token-plan-cn.xiaomimimo.com/anthropic';
+const MIMO_KEY = 'tp-c6o130njwoqih2djnj3yufm9rmbpljgqxygsc5v9o9pze2ho';
+const MIMO_SYSTEM = `你是一个贴心的灵感挖掘助手。用户可能只有一个模糊的痛点，你需要通过简短的聊天（1-2个问题），帮他们构思出一个具体的小程序或网站点子。
+
+规则：
+1. 先问身份（学生/上班族）和日常烦恼
+2. 再追问具体场景
+3. 当你理解了用户需求后，用一句话总结成一个具体的小工具点子，格式为「一个xxx的小工具/小程序」
+4. 总结完后询问用户是否满意
+5. 用户确认后回复「好的，已帮你记下这个需求！」
+6. 对话要简短、温暖、不超过3轮`;
+
 // ==================== 状态 ====================
 let chatMessages = [];
-let chatStep = 0;
 let currentView = 'viewDirect';
 let ideaCount = 0;
+let mimoMessages = []; // MiMo 对话上下文
 
 // ==================== 工具 ====================
 function $(id) { return document.getElementById(id); }
@@ -165,9 +178,10 @@ function switchView(viewId) {
     $('backBtn').classList.toggle('flex', cfg.back);
 
     if (viewId === 'viewAi' && chatMessages.length === 0) {
-        const text = '最近工作或学习里，有什么让你觉得特别重复、繁琐的事吗？';
+        const text = '你好呀～最近工作或学习里，有什么让你觉得特别重复、繁琐的事吗？';
         appendAiMessage(text);
         chatMessages.push({ role: 'ai', text });
+        mimoMessages.push({ role: 'assistant', content: text });
     }
     if (viewId === 'viewHistory') loadAndRenderHistory();
 }
@@ -324,7 +338,7 @@ function appendLoading() {
     box.scrollTop = box.scrollHeight;
 }
 
-function sendChat() {
+async function sendChat() {
     const input = $('chatInput');
     const btn = $('chatSendBtn');
     const text = input.value.trim();
@@ -332,80 +346,63 @@ function sendChat() {
 
     appendUserMessage(text);
     chatMessages.push({ role: 'user', text });
+    mimoMessages.push({ role: 'user', content: text });
     input.value = '';
 
     btn.disabled = true;
     appendLoading();
 
-    setTimeout(() => {
+    try {
+        const res = await fetch(MIMO_URL + '/v1/messages', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': MIMO_KEY,
+                'anthropic-version': '2023-06-01'
+            },
+            body: JSON.stringify({
+                model: 'MiMo',
+                max_tokens: 500,
+                system: MIMO_SYSTEM,
+                messages: mimoMessages
+            })
+        });
+
+        if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(`API ${res.status}: ${errText}`);
+        }
+
+        const data = await res.json();
+        const aiText = (data.content && data.content[0] && data.content[0].text) || '抱歉，我暂时无法回复。';
+        mimoMessages.push({ role: 'assistant', content: aiText });
+
         const el = $('loadBubble');
         if (el) el.remove();
-        btn.disabled = false;
+        appendAiMessage(aiText);
+        chatMessages.push({ role: 'ai', text: aiText });
 
-        const reply = generateAiReply(text);
-        appendAiMessage(reply.text);
-        chatMessages.push({ role: 'ai', text: reply.text });
-
-        if (reply.idea) {
+        // 检测 AI 是否确认了需求（包含特定关键词则自动提交）
+        if (/已帮你记下|已提交|帮你提交|已帮你总结/.test(aiText)) {
+            // 从 AI 回复中提取点子
+            const match = aiText.match(/「(.+?)」/);
+            const idea = match ? match[1] : mimoMessages.filter(m => m.role === 'user').slice(-1)[0]?.content || text;
             setTimeout(() => {
-                sb.from('ideas').insert({ content: reply.idea, source: 'ai' }).then(({ error }) => {
+                sb.from('ideas').insert({ content: idea, source: 'ai' }).then(({ error }) => {
                     if (error) { showToast('提交失败', 'error'); console.error(error); }
                     else { ideaCount++; showToast('已帮你提交需求'); }
                 });
             }, 400);
         }
-    }, 700 + Math.random() * 300);
-}
 
-// ==================== AI 回复逻辑 ====================
-function generateAiReply(userText) {
-    chatStep++;
-    if (chatStep === 1) {
-        const t = userText.toLowerCase();
-        let id = '', area = '';
-        if (/学生|上学|作业|课程|论文|考研/.test(t)) id = '学生';
-        else if (/上班|工作|公司|老板|客户|项目/.test(t)) id = '上班族';
-        if (/表格|excel|数据|报表/.test(t)) area = '数据处理';
-        else if (/文件|文档|pdf|word/.test(t)) area = '文档处理';
-        else if (/视频|字幕|音频/.test(t)) area = '音视频';
-        else if (/图片|照片|截图/.test(t)) area = '图片处理';
-        else if (/记|备忘|提醒|日程|待办/.test(t)) area = '记录管理';
-        else if (/重复|繁琐|麻烦/.test(t)) area = '自动化';
-        if (id && area) return { text: `作为${id}，${area}方面确实容易让人头疼。具体是哪个环节最烦？` };
-        if (id) return { text: `好的，你是${id}。那个让你觉得繁琐的事，大概是什么场景？处理文件、整理数据、还是别的？` };
-        if (area) return { text: `${area}方面我大概了解了。你是学生还是上班族？这样我能想得更具体。` };
-        return { text: '听起来挺困扰的。方便说下主要是在工作还是学习中遇到这个问题的吗？' };
+    } catch (e) {
+        const el = $('loadBubble');
+        if (el) el.remove();
+        appendAiMessage('网络开了个小差，请再试一次。');
+        console.error('MiMo API 错误:', e);
+    } finally {
+        btn.disabled = false;
     }
-    if (chatStep === 2) {
-        const all = chatMessages.filter(m => m.role === 'user').map(m => m.text).join(' ') + ' ' + userText;
-        let idea = '';
-        if (/表格|excel/i.test(all)) {
-            if (/核对|对比|比较/.test(all)) idea = '自动比对两份表格差异并标出不同的小工具';
-            else if (/合并|汇总/.test(all)) idea = '多个 Excel 自动合并汇总小工具';
-            else if (/转换|转/.test(all)) idea = '网页表格一键转 Excel 小工具';
-            else idea = 'Excel 自动化处理小助手';
-        } else if (/字幕|视频/.test(all)) idea = '自动识别视频字幕并导出文本的小工具';
-        else if (/pdf|文档/.test(all)) idea = '批量文档格式转换小工具';
-        else if (/记|备忘|提醒/.test(all)) idea = '简洁的个人备忘与提醒小程序';
-        else if (/图片|照片/.test(all)) idea = '批量图片处理（压缩/裁剪/转格式）小工具';
-        else if (/重复|繁琐/.test(all)) idea = '自动化重复操作流程的小工具';
-        else idea = all.slice(0, 30).trim();
-        return { text: `我帮你理了一下，或许可以做一个「${idea}」。\n\n这个方向对你有用吗？`, idea };
-    }
-    if (chatStep >= 3) {
-        const t = userText.toLowerCase();
-        if (/是|对|好|可以|有用|行|嗯|不错/.test(t)) {
-            chatStep = 0;
-            return { text: '已帮你提交！可以随时点「已提交的记录」来回顾。还有别的想法吗？' };
-        }
-        if (/想要|希望|需要|做一个/.test(userText)) {
-            const idea = userText.length > 50 ? userText.slice(0, 50) + '...' : userText;
-            return { text: `好，那改成「${idea}」，可以吗？`, idea };
-        }
-        chatStep = 1;
-        return { text: '没关系，我们重新聊聊。你最想解决的具体问题是什么？' };
-    }
-    return { text: '有意思，能再具体说说吗？' };
 }
 
 // ==================== 键盘适配 ====================
