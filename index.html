@@ -361,7 +361,7 @@ async function sendChat() {
                 'anthropic-version': '2023-06-01'
             },
             body: JSON.stringify({
-                model: 'MiMo',
+                model: 'mimo-v2.5-pro',
                 max_tokens: 500,
                 system: MIMO_SYSTEM,
                 messages: mimoMessages
@@ -374,7 +374,8 @@ async function sendChat() {
         }
 
         const data = await res.json();
-        const aiText = (data.content && data.content[0] && data.content[0].text) || '抱歉，我暂时无法回复。';
+        const textBlock = data.content && data.content.find(c => c.type === 'text');
+        const aiText = (textBlock && textBlock.text) || '抱歉，我暂时无法回复。';
         mimoMessages.push({ role: 'assistant', content: aiText });
 
         const el = $('loadBubble');
