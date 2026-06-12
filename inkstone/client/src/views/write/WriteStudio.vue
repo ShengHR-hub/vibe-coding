@@ -84,7 +84,7 @@ onUnmounted(() => {
 <style scoped>
 .studio-layout {
   display: flex;
-  height: calc(100vh - 64px - 2rem);
+  height: calc(100vh - 80px - 2rem);
   gap: 1rem;
   padding: 1rem;
   max-width: 1400px;

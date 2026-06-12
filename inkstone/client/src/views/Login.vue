@@ -42,7 +42,7 @@ async function handleLogin() {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: calc(100vh - 64px - 6rem);
+  min-height: calc(100vh - 80px - 6rem);
 }
 .auth-card {
   padding: var(--space-2xl);

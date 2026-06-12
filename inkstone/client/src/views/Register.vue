@@ -44,7 +44,7 @@ async function handleRegister() {
 </script>
 
 <style scoped>
-.auth-page { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 64px - 6rem); }
+.auth-page { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 80px - 6rem); }
 .auth-card { padding: var(--space-2xl); width: 100%; max-width: 400px; }
 .auth-card h2 { text-align: center; margin-bottom: var(--space-xl); font-size: 1.5rem; }
 form { display: flex; flex-direction: column; gap: var(--space-md); }

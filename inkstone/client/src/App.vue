@@ -27,9 +27,10 @@ useUserStore()
   flex-direction: column;
   position: relative;
   z-index: 1;
+  background: var(--bg-primary);
 }
 .main-content {
   flex: 1;
-  padding-top: 64px;
+  padding-top: 80px;
 }
 </style>

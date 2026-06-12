@@ -50,4 +50,6 @@
   /* 字体 */
   --font-sans: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
   --font-serif: 'Noto Serif SC', 'SimSun', serif;
+  --font-calligraphy: 'Ma Shan Zheng', 'STKaiti', 'KaiTi', cursive;
+  --font-display: 'Playfair Display', 'Noto Serif SC', 'SimSun', serif;
 }

@@ -175,7 +175,7 @@ function fmt(d) { if (!d) return ''; return d.slice(0, 16).replace('T', ' ') }
 <style scoped>
 .reader-container { min-height: 100vh; }
 .reader-toolbar {
-  position: sticky; top: 64px; z-index: 50;
+  position: sticky; top: 80px; z-index: 50;
   display: flex; justify-content: space-between; align-items: center;
   padding: 0.5rem 1.5rem;
   background: var(--bg-primary);

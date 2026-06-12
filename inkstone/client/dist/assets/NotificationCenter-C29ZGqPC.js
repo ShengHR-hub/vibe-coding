@@ -1,1 +1,0 @@
-import{_ as o,o as a,c as s,a as t}from"./index-BaG8ey6P.js";const c={},n={class:"page-container"};function r(_,e){return a(),s("div",n,[...e[0]||(e[0]=[t("h2",null,"消息中心",-1),t("p",{class:"placeholder-text"},"此模块将在任务11中实现",-1)])])}const l=o(c,[["render",r],["__scopeId","data-v-fdb18015"]]);export{l as default};
