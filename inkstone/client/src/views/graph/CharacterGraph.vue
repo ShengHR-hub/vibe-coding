@@ -106,48 +106,56 @@ async function loadTimeline() {
 
 function renderGraph() {
   if (!graphRef.value || !graphData.value) return
-  const el = graphRef.value
-  const old = echarts.getInstanceByDom(el)
-  if (old) old.dispose()
-  const chart = echarts.init(el)
+  if (typeof echarts === 'undefined') {
+    console.warn('echarts CDN not loaded')
+    return
+  }
+  try {
+    const el = graphRef.value
+    const old = echarts.getInstanceByDom(el)
+    if (old) old.dispose()
+    const chart = echarts.init(el)
 
-  const categories = [
-    { name: '主角', itemStyle: { color: '#c4a35a' } },
-    { name: '配角', itemStyle: { color: '#a0a0b0' } },
-    { name: '反派', itemStyle: { color: '#e0556a' } },
-  ]
+    const categories = [
+      { name: '主角', itemStyle: { color: '#c4a35a' } },
+      { name: '配角', itemStyle: { color: '#a0a0b0' } },
+      { name: '反派', itemStyle: { color: '#e0556a' } },
+    ]
 
-  chart.setOption({
-    tooltip: {
-      formatter: (p) => p.dataType === 'node'
-        ? `<b>${p.name}</b><br/>${p.data.description || ''}<br/>类别: ${p.data.category}`
-        : `${p.data.source} → ${p.data.target}<br/>${p.data.label || ''}`
-    },
-    legend: [{ data: categories.map(c => c.name), textStyle: { color: '#9b97b0' } }],
-    series: [{
-      type: 'graph',
-      layout: 'force',
-      roam: true,
-      draggable: true,
-      categories,
-      data: graphData.value.nodes.map(n => ({
-        name: n.name,
-        category: n.category || '配角',
-        description: n.description || '',
-        symbolSize: n.category === '主角' ? 40 : 28,
-      })),
-      edges: graphData.value.edges.map(e => ({
-        source: e.source,
-        target: e.target,
-        label: { show: true, formatter: e.label || '', color: '#6b6780', fontSize: 11 },
-      })),
-      force: { repulsion: 300, edgeLength: [100, 250] },
-      label: { show: true, color: '#e8e6f0', fontSize: 12 },
-      lineStyle: { color: 'rgba(196,163,90,0.3)', curveness: 0.2 },
-    }],
-    backgroundColor: 'transparent',
-  })
-  window.addEventListener('resize', () => chart.resize())
+    chart.setOption({
+      tooltip: {
+        formatter: (p) => p.dataType === 'node'
+          ? `<b>${p.name}</b><br/>${p.data.description || ''}<br/>类别: ${p.data.category}`
+          : `${p.data.source} → ${p.data.target}<br/>${p.data.label || ''}`
+      },
+      legend: [{ data: categories.map(c => c.name), textStyle: { color: '#9b97b0' } }],
+      series: [{
+        type: 'graph',
+        layout: 'force',
+        roam: true,
+        draggable: true,
+        categories,
+        data: graphData.value.nodes.map(n => ({
+          name: n.name,
+          category: n.category || '配角',
+          description: n.description || '',
+          symbolSize: n.category === '主角' ? 40 : 28,
+        })),
+        edges: graphData.value.edges.map(e => ({
+          source: e.source,
+          target: e.target,
+          label: { show: true, formatter: e.label || '', color: '#6b6780', fontSize: 11 },
+        })),
+        force: { repulsion: 300, edgeLength: [100, 250] },
+        label: { show: true, color: '#e8e6f0', fontSize: 12 },
+        lineStyle: { color: 'rgba(196,163,90,0.3)', curveness: 0.2 },
+      }],
+      backgroundColor: 'transparent',
+    })
+    window.addEventListener('resize', () => chart.resize())
+  } catch (e) {
+    console.error('Graph render failed:', e)
+  }
 }
 </script>
 

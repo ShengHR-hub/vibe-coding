@@ -64,6 +64,7 @@ watch(() => props.damping, (v) => { if (v !== undefined && shader) shader.setMou
   position: relative;
   height: 100%;
   width: 100%;
+  pointer-events: none;
 }
 
 .shadertoy-container :deep(canvas) {

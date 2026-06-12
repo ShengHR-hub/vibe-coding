@@ -19,9 +19,10 @@
         <span v-else class="comp down">本月 {{ overview.comparison.month_change }} 字</span>
       </div>
 
-      <section class="chart-section glass-card" v-if="barData.length">
+      <section class="chart-section glass-card">
         <h3>月度写作量</h3>
-        <div ref="barRef" class="chart-box"></div>
+        <div v-if="barData.length === 0" class="center muted">暂无数据，开始写作后将自动记录</div>
+        <div v-else ref="barRef" class="chart-box"></div>
       </section>
 
       <section class="chart-section glass-card">
@@ -115,15 +116,17 @@ async function fetchAll() {
       api.get('/api/stats/sessions?page_size=10'),
     ])
     if (ov.code === 0) overview.value = ov.data
-    if (bar.code === 0) barData.value = bar.data.months
+    if (bar.code === 0) { barData.value = bar.data.months; console.log('月度写作量 API:', bar.data.months) }
+    else { console.warn('月度写作量 API error:', bar.code, bar.msg) }
     if (heat.code === 0) heatmapData.value = heat.data.days
     if (sess.code === 0) sessions.value = sess.data.items
+    loading.value = false
     await nextTick()
     renderBarChart()
   } catch {
     errorMsg.value = '加载失败'
+    loading.value = false
   }
-  loading.value = false
 
   loadStyle()
   loadReport()
@@ -145,21 +148,29 @@ async function loadReport() {
 
 function renderBarChart() {
   if (!barRef.value || !barData.value.length) return
-  const el = barRef.value
-  const chart = echarts.init(el)
-  chart.setOption({
-    tooltip: { trigger: 'axis' },
-    grid: { left: '3%', right: '3%', top: 10, bottom: 20 },
-    xAxis: { type: 'category', data: barData.value.map(d => d.month), axisLabel: { color: '#9b97b0' } },
-    yAxis: { type: 'value', axisLabel: { color: '#9b97b0' }, splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } } },
-    series: [{
-      type: 'bar', data: barData.value.map(d => d.words),
-      itemStyle: { color: '#c4a35a', borderRadius: [4, 4, 0, 0] },
-      barMaxWidth: 32,
-    }],
-    backgroundColor: 'transparent',
-  })
-  window.addEventListener('resize', () => chart.resize())
+  if (typeof echarts === 'undefined') {
+    console.warn('echarts CDN not loaded')
+    return
+  }
+  try {
+    const el = barRef.value
+    const chart = echarts.init(el)
+    chart.setOption({
+      tooltip: { trigger: 'axis' },
+      grid: { left: '3%', right: '3%', top: 10, bottom: 20 },
+      xAxis: { type: 'category', data: barData.value.map(d => d.month), axisLabel: { color: '#9b97b0' } },
+      yAxis: { type: 'value', axisLabel: { color: '#9b97b0' }, splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } } },
+      series: [{
+        type: 'bar', data: barData.value.map(d => d.words),
+        itemStyle: { color: '#c4a35a', borderRadius: [4, 4, 0, 0] },
+        barMaxWidth: 32,
+      }],
+      backgroundColor: 'transparent',
+    })
+    window.addEventListener('resize', () => chart.resize())
+  } catch (e) {
+    console.error('Bar chart render failed:', e)
+  }
 }
 
 function renderRadarChart() {

@@ -9,7 +9,7 @@ def create_app():
     app.config.from_object(Config)
     app.secret_key = Config.SECRET_KEY
 
-    CORS(app, supports_credentials=True, origins=['http://localhost:5173', 'http://localhost:5174'])
+    CORS(app, supports_credentials=True, origins=['http://localhost:5173'])
 
     from routes import register_blueprints
     register_blueprints(app)

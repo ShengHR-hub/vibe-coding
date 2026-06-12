@@ -1,1 +1,0 @@
-import{_ as n,b as a,c as o,g as t,d as r}from"./index-Cq_UuRBg.js";const i={key:0,class:"spinner-overlay"},c={__name:"LoadingSpinner",props:{visible:{type:Boolean,default:!0}},setup(s){return(p,e)=>s.visible?(a(),o("div",i,[...e[0]||(e[0]=[t("div",{class:"spinner"},null,-1)])])):r("",!0)}},d=n(c,[["__scopeId","data-v-af995414"]]);export{d as L};

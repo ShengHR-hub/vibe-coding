@@ -111,17 +111,6 @@ input:focus, textarea:focus, select:focus {
   padding: var(--space-xl);
 }
 
-/* 页面转场 */
-.page-enter-active,
-.page-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-.page-enter-from,
-.page-leave-to {
-  opacity: 0;
-  transform: translateY(8px);
-}
-
 /* 滚动条 */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }

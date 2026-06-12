@@ -1,6 +1,5 @@
 <template>
   <div class="home-fullpage" ref="container">
-    <SilkBackground :hue="220" :saturation="0.3" :brightness="0.6" :speed="0.8" />
     <FluidCursor />
 
     <!-- 浮动装饰光点 -->
@@ -317,7 +316,6 @@
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import SilkBackground from '../components/SilkBackground.vue'
 import FluidCursor from '../components/FluidCursor.vue'
 
 gsap.registerPlugin(ScrollTrigger)
@@ -540,7 +538,6 @@ onMounted(() => {
 
 onUnmounted(() => {
   stTriggers.forEach(st => st.kill())
-  ScrollTrigger.getAll().forEach(st => st.kill())
   unbindTilt()
 })
 </script>
@@ -548,10 +545,6 @@ onUnmounted(() => {
 <style scoped>
 .home-fullpage {
   position: relative; z-index: 1;
-  background: var(--bg-primary);
-}
-.home-fullpage :deep(.silk-bg) {
-  position: fixed; top: 0; right: 0; bottom: 0; left: 0;
 }
 
 /* ====== 浮动装饰 ====== */

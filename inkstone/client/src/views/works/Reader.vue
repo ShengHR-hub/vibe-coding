@@ -15,8 +15,8 @@
           <option :value="18">大字</option>
           <option :value="22">特大</option>
         </select>
-        <button v-if="userStore.isLoggedIn" class="btn btn-ghost btn-sm" @click="$router.push(`/graph/${work.work_id}`)">知识图谱</button>
-        <button v-if="userStore.isLoggedIn" class="btn btn-ghost btn-sm" @click="$router.push(`/review/${work.work_id}`)">AI 书评</button>
+        <span v-if="userStore.isLoggedIn" class="btn btn-ghost btn-sm" @click="goToGraph()">知识图谱</span>
+        <span v-if="userStore.isLoggedIn" class="btn btn-ghost btn-sm" @click="goToReview()">AI 书评</span>
         <select v-model="bgColor" class="font-select">
           <option value="#0f0f1a">暗色</option>
           <option value="#f5f0e8">米色</option>
@@ -89,11 +89,12 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { api } from '../../api/index.js'
 import { useUserStore } from '../../stores/user.js'
 
 const route = useRoute()
+const router = useRouter()
 const userStore = useUserStore()
 const work = ref(null)
 const chapters = ref([])
@@ -166,6 +167,14 @@ async function submitComment(parentId) {
   submitting.value = false
 }
 
+function goToGraph() {
+  console.log('[Reader] goToGraph clicked, work_id:', work.value?.work_id)
+  if (work.value) router.push(`/graph/${work.value.work_id}`)
+}
+function goToReview() {
+  console.log('[Reader] goToReview clicked, work_id:', work.value?.work_id)
+  if (work.value) router.push(`/review/${work.value.work_id}`)
+}
 function typeLabel(t) {
   return { novel: '小说', poetry: '诗歌', essay: '散文', script: '剧本' }[t] || t
 }
