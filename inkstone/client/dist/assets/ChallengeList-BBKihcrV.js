@@ -1,0 +1,1 @@
+import{_ as s,o as t,c as o,a}from"./index-BaG8ey6P.js";const c={},n={class:"page-container"};function r(l,e){return t(),o("div",n,[...e[0]||(e[0]=[a("h2",null,"写作挑战",-1),a("p",{class:"placeholder-text"},"此模块将在任务10中实现",-1)])])}const d=s(c,[["render",r],["__scopeId","data-v-2e160aa0"]]);export{d as default};

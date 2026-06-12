@@ -1,0 +1,1 @@
+import{_ as t,o as c,c as s,a}from"./index-BaG8ey6P.js";const o={},r={class:"page-container"};function n(_,e){return c(),s("div",r,[...e[0]||(e[0]=[a("h2",null,"知识图谱",-1),a("p",{class:"placeholder-text"},"此模块将在任务8中实现",-1)])])}const l=t(o,[["render",n],["__scopeId","data-v-eed68ca1"]]);export{l as default};

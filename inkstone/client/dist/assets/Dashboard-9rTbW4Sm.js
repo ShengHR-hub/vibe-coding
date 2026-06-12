@@ -1,0 +1,1 @@
+import{_ as s,o,c as t,a}from"./index-BaG8ey6P.js";const c={},r={class:"page-container"};function n(_,e){return o(),t("div",r,[...e[0]||(e[0]=[a("h2",null,"写作数据洞察",-1),a("p",{class:"placeholder-text"},"此模块将在任务7中实现",-1)])])}const l=s(c,[["render",n],["__scopeId","data-v-a159672c"]]);export{l as default};

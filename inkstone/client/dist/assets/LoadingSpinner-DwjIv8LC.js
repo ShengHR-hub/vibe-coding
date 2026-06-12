@@ -1,0 +1,1 @@
+import{_ as a,o as n,c as o,a as t,m as r}from"./index-BaG8ey6P.js";const i={key:0,class:"spinner-overlay"},c={__name:"LoadingSpinner",props:{visible:{type:Boolean,default:!0}},setup(s){return(p,e)=>s.visible?(n(),o("div",i,[...e[0]||(e[0]=[t("div",{class:"spinner"},null,-1)])])):r("",!0)}},_=a(c,[["__scopeId","data-v-af995414"]]);export{_ as L};
