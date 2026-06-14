@@ -112,6 +112,7 @@ function updateMobile() {
 }
 
 function goTo(idx) {
+  if (!cardCount.value) return
   let diff = idx - activeIndex.value
   if (diff === 0) return
   // 走最短路径：超过半圈就反向
@@ -130,11 +131,13 @@ function goTo(idx) {
 }
 
 function next() {
+  if (!cardCount.value) return
   activeIndex.value = (activeIndex.value + 1) % cardCount.value
   rotateBy(-angleStep.value)
 }
 
 function prev() {
+  if (!cardCount.value) return
   activeIndex.value = (activeIndex.value - 1 + cardCount.value) % cardCount.value
   rotateBy(angleStep.value)
 }
@@ -314,6 +317,7 @@ watch(() => props.poems, (val) => {
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   color: var(--text-muted);
   cursor: pointer;
   display: flex;

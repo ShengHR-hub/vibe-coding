@@ -70,6 +70,63 @@ def create_work():
     return ok({'work_id': work_id}, msg='作品创建成功')
 
 
+@works_bp.post('/save')
+@login_required
+def save_work():
+    """保存作品（创建或更新），支持章节内容更新"""
+    data = request.get_json()
+    user_id = session['user_id']
+    work_id = data.get('work_id')
+    title = (data.get('title') or '未命名作品').strip()
+    content = (data.get('content') or '').strip()
+    chapter_id = data.get('chapter_id')
+    chapter_title = (data.get('chapter_title') or '').strip()
+
+    if work_id:
+        # 更新现有作品
+        work = query('SELECT * FROM works WHERE work_id = %s AND user_id = %s', (work_id, user_id), one=True)
+        if not work:
+            return fail('作品不存在', code=404)
+
+        # 更新作品标题
+        execute('UPDATE works SET title = %s WHERE work_id = %s', (title, work_id))
+
+        # 更新章节内容
+        if chapter_id:
+            wc = len(re.sub(r'\s', '', content)) if content else 0
+            execute('UPDATE chapters SET content = %s, title = %s, word_count = %s WHERE chapter_id = %s AND work_id = %s',
+                    (content, chapter_title, wc, chapter_id, work_id))
+            # 更新总字数
+            total_wc = query('SELECT COALESCE(SUM(word_count), 0) as wc FROM chapters WHERE work_id = %s', (work_id,), one=True)['wc']
+            execute('UPDATE works SET word_count = %s WHERE work_id = %s', (total_wc, work_id))
+        elif content:
+            # 没有 chapter_id 时，更新第一个章节
+            first_ch = query('SELECT chapter_id FROM chapters WHERE work_id = %s ORDER BY chapter_no LIMIT 1', (work_id,), one=True)
+            if first_ch:
+                wc = len(re.sub(r'\s', '', content))
+                execute('UPDATE chapters SET content = %s, word_count = %s WHERE chapter_id = %s',
+                        (content, wc, first_ch['chapter_id']))
+                total_wc = query('SELECT COALESCE(SUM(word_count), 0) as wc FROM chapters WHERE work_id = %s', (work_id,), one=True)['wc']
+                execute('UPDATE works SET word_count = %s WHERE work_id = %s', (total_wc, work_id))
+
+        check_achievements(user_id)
+        return ok({'work_id': work_id}, msg='保存成功')
+    else:
+        # 创建新作品
+        work_id = execute(
+            'INSERT INTO works (user_id, title, type, summary, tags) VALUES (%s, %s, %s, %s, %s)',
+            (user_id, title, 'novel', '', '')
+        )
+        wc = len(re.sub(r'\s', '', content)) if content else 0
+        execute(
+            'INSERT INTO chapters (work_id, chapter_no, title, content, word_count) VALUES (%s, 1, %s, %s, %s)',
+            (work_id, '第一章', content, wc)
+        )
+        execute('UPDATE works SET word_count = %s WHERE work_id = %s', (wc, work_id))
+        check_achievements(user_id)
+        return ok({'work_id': work_id}, msg='作品创建成功')
+
+
 @works_bp.get('/public/<int:work_id>')
 def get_public_work(work_id):
     work = query(
@@ -281,6 +338,82 @@ def rollback_version(work_id, version_id):
     execute('UPDATE works SET word_count = %s WHERE work_id = %s', (total_wc, work_id))
 
     return ok(msg='已回退到指定版本')
+
+
+@works_bp.post('/<int:work_id>/chapters')
+@login_required
+def create_chapter(work_id):
+    work = query('SELECT work_id FROM works WHERE work_id = %s AND user_id = %s', (work_id, session['user_id']), one=True)
+    if not work:
+        return fail('作品不存在', code=404)
+
+    data = request.get_json() or {}
+    title = (data.get('title') or '').strip()
+    max_no = query('SELECT COALESCE(MAX(chapter_no), 0) as m FROM chapters WHERE work_id = %s', (work_id,), one=True)['m']
+    chapter_no = max_no + 1
+    if not title:
+        title = f'第{_cn(chapter_no)}章'
+
+    chapter_id = execute(
+        'INSERT INTO chapters (work_id, chapter_no, title, content, word_count) VALUES (%s, %s, %s, %s, 0)',
+        (work_id, chapter_no, title, '')
+    )
+    return ok({'chapter_id': chapter_id, 'chapter_no': chapter_no, 'title': title}, msg='章节已创建')
+
+
+def _cn(n):
+    """数字转中文：1→一，2→二..."""
+    cn = '零一二三四五六七八九十'
+    if 1 <= n <= 10:
+        return cn[n]
+    if 11 <= n <= 19:
+        return '十' + cn[n - 10]
+    if n == 20:
+        return '二十'
+    return str(n)
+
+
+@works_bp.delete('/<int:work_id>/chapters/<int:chapter_id>')
+@login_required
+def delete_chapter(work_id, chapter_id):
+    work = query('SELECT work_id FROM works WHERE work_id = %s AND user_id = %s', (work_id, session['user_id']), one=True)
+    if not work:
+        return fail('作品不存在', code=404)
+
+    ch = query('SELECT chapter_id FROM chapters WHERE chapter_id = %s AND work_id = %s', (chapter_id, work_id), one=True)
+    if not ch:
+        return fail('章节不存在', code=404)
+
+    execute('DELETE FROM chapters WHERE chapter_id = %s', (chapter_id,))
+
+    # 重排 chapter_no
+    remaining = query('SELECT chapter_id FROM chapters WHERE work_id = %s ORDER BY chapter_no', (work_id,))
+    for i, r in enumerate(remaining, 1):
+        execute('UPDATE chapters SET chapter_no = %s WHERE chapter_id = %s', (i, r['chapter_id']))
+
+    # 更新总字数
+    total_wc = query('SELECT COALESCE(SUM(word_count), 0) as wc FROM chapters WHERE work_id = %s', (work_id,), one=True)['wc']
+    execute('UPDATE works SET word_count = %s WHERE work_id = %s', (total_wc, work_id))
+
+    return ok(msg='章节已删除')
+
+
+@works_bp.put('/<int:work_id>/chapters/reorder')
+@login_required
+def reorder_chapters(work_id):
+    work = query('SELECT work_id FROM works WHERE work_id = %s AND user_id = %s', (work_id, session['user_id']), one=True)
+    if not work:
+        return fail('作品不存在', code=404)
+
+    data = request.get_json()
+    order = data.get('order') or []
+    if not order:
+        return fail('请提供排序列表')
+
+    for i, ch_id in enumerate(order, 1):
+        execute('UPDATE chapters SET chapter_no = %s WHERE chapter_id = %s AND work_id = %s', (i, ch_id, work_id))
+
+    return ok(msg='排序已更新')
 
 
 @works_bp.put('/<int:work_id>/status')

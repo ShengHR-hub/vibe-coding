@@ -64,6 +64,7 @@ def chat_completion_stream(messages, temperature=0.7, max_tokens=2048):
         verify=False
     )
     resp.raise_for_status()
+    resp.encoding = 'utf-8'
     for line in resp.iter_lines(decode_unicode=True):
         if not line:
             continue

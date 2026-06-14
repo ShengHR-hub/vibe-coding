@@ -5,7 +5,7 @@ from utils.mimos import chat_completion, chat_completion_stream
 from utils.prompt_builder import (
     build_continue, build_inspire, build_outline,
     build_character, build_polish, build_prompt_suggestion,
-    build_chat_system
+    build_chat_system, build_diagnose
 )
 import json, uuid, traceback
 
@@ -44,7 +44,7 @@ def ai_continue():
             yield f'data: {json.dumps({"error": "续写生成失败，请稍后再试"}, ensure_ascii=False)}\n\n'
         yield 'data: [DONE]\n\n'
 
-    return Response(generate(), mimetype='text/event-stream')
+    return Response(generate(), mimetype='text/event-stream; charset=utf-8')
 
 
 @write_bp.post('/inspire')
@@ -176,4 +176,26 @@ def ai_chat():
             yield f'data: {json.dumps({"error": "对话生成失败，请稍后再试"}, ensure_ascii=False)}\n\n'
         yield 'data: [DONE]\n\n'
 
-    return Response(generate(), mimetype='text/event-stream')
+    return Response(generate(), mimetype='text/event-stream; charset=utf-8')
+
+
+@write_bp.post('/diagnose')
+@login_required
+def ai_diagnose():
+    data = request.get_json()
+    content = (data.get('content') or '').strip()
+    if not content:
+        return fail('请提供需要诊断的文字')
+
+    if len(content) < 50:
+        return fail('文字太短，至少需要50字才能进行诊断')
+
+    messages = build_diagnose(content)
+    try:
+        result = chat_completion(messages)
+    except Exception:
+        return fail('诊断失败，请稍后再试')
+    conv_key = str(uuid.uuid4())
+    _save_conv(conv_key, 'user', f'[诊断] {content[:200]}...')
+    _save_conv(conv_key, 'assistant', result)
+    return ok({'diagnosis': result})

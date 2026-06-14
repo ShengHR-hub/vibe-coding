@@ -28,6 +28,7 @@ CREATE TABLE works (
     cover_image VARCHAR(500) DEFAULT '',
     tags VARCHAR(500) DEFAULT '',
     status ENUM('draft', 'published', 'private') DEFAULT 'draft',
+    serialization_status ENUM('serializing', 'completed', 'paused') DEFAULT 'serializing',
     views INT DEFAULT 0,
     likes_count INT DEFAULT 0,
     comments_count INT DEFAULT 0,
@@ -46,6 +47,7 @@ CREATE TABLE works (
 CREATE TABLE chapters (
     chapter_id INT AUTO_INCREMENT PRIMARY KEY,
     work_id INT NOT NULL,
+    volume_id INT DEFAULT NULL,
     chapter_no INT NOT NULL,
     title VARCHAR(200) DEFAULT '',
     content LONGTEXT,
@@ -313,4 +315,31 @@ CREATE TABLE submission_likes (
     FOREIGN KEY (submission_id) REFERENCES daily_submissions(submission_id) ON DELETE CASCADE,
     UNIQUE KEY uk_sub_like (user_id, submission_id),
     INDEX idx_sub_likes (submission_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 23. 卷表（出版连载）
+CREATE TABLE volumes (
+    volume_id INT AUTO_INCREMENT PRIMARY KEY,
+    work_id INT NOT NULL,
+    volume_no INT NOT NULL,
+    title VARCHAR(200) DEFAULT '',
+    summary TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (work_id) REFERENCES works(work_id) ON DELETE CASCADE,
+    INDEX idx_volumes_work (work_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 24. 角色扮演角色表
+CREATE TABLE rp_characters (
+    char_id INT AUTO_INCREMENT PRIMARY KEY,
+    work_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    personality TEXT,
+    background TEXT,
+    speaking_style TEXT,
+    avatar VARCHAR(500) DEFAULT '',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (work_id) REFERENCES works(work_id) ON DELETE CASCADE,
+    INDEX idx_rp_chars_work (work_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

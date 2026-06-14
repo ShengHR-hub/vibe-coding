@@ -23,6 +23,7 @@
       </div>
       <div class="header-right">
         <span class="word-badge">{{ writingStore.wordCount }}<small> 字</small></span>
+        <PomodoroTimer @complete="onPomodoroComplete" />
         <button class="header-btn" @click="toggleFocus" title="专注模式">
           <span class="hbtn-icon">⛶</span>
         </button>
@@ -32,10 +33,54 @@
       </div>
     </header>
 
-    <!-- ====== 主体：编辑器 + AI 面板 ====== -->
+    <!-- ====== 主体：章节栏 + 编辑器 + AI 面板 ====== -->
     <div class="studio-body">
+      <!-- 章节侧边栏 -->
+      <aside class="chapter-sidebar glass-card" :class="{ collapsed: sidebarCollapsed }" v-show="!isFocusMode">
+        <div class="sidebar-header">
+          <span class="sidebar-title" v-if="!sidebarCollapsed">章节</span>
+          <button class="sidebar-toggle" @click="sidebarCollapsed = !sidebarCollapsed" :title="sidebarCollapsed ? '展开' : '折叠'">
+            {{ sidebarCollapsed ? '»' : '«' }}
+          </button>
+        </div>
+        <div class="sidebar-list" v-if="!sidebarCollapsed">
+          <div
+            v-for="(ch, idx) in writingStore.chapters"
+            :key="ch.chapter_id"
+            class="chapter-item"
+            :class="{ active: ch.chapter_id === writingStore.activeChapterId }"
+            draggable="true"
+            @click="onChapterClick(ch.chapter_id)"
+            @dragstart="onDragStart(idx)"
+            @dragover.prevent
+            @drop="onDrop(idx)"
+            @contextmenu.prevent="onChapterContext($event, ch)"
+          >
+            <span class="ch-num">{{ idx + 1 }}</span>
+            <span class="ch-title">{{ ch.title || `第${idx + 1}章` }}</span>
+            <span class="ch-wc">{{ ch.word_count || 0 }}</span>
+          </div>
+          <button class="add-chapter-btn" @click="onAddChapter">+ 新增章节</button>
+        </div>
+        <!-- 右键菜单 -->
+        <div v-if="contextMenu.visible" class="context-menu" :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px' }" @click.stop>
+          <div class="ctx-item" @click="startRename">重命名</div>
+          <div class="ctx-item ctx-danger" @click="onDeleteChapter">删除</div>
+        </div>
+      </aside>
+
       <!-- 编辑器 -->
       <div class="editor-panel">
+        <!-- 章节标题 -->
+        <div class="chapter-title-bar" v-if="writingStore.chapters.length > 0">
+          <input
+            class="chapter-title-input"
+            :value="writingStore.getActiveChapterTitle()"
+            @input="onChapterTitleInput($event.target.value)"
+            @blur="onChapterTitleBlur"
+            placeholder="章节标题"
+          />
+        </div>
         <textarea
           ref="editorRef"
           class="editor-area"
@@ -97,6 +142,8 @@ import PromptPanel from './PromptPanel.vue'
 import PoemPanel from './PoemPanel.vue'
 import ChatPanel from './ChatPanel.vue'
 import MaterialPanel from './MaterialPanel.vue'
+import DiagnosePanel from './DiagnosePanel.vue'
+import PomodoroTimer from '../../components/PomodoroTimer.vue'
 
 const writingStore = useWritingStore()
 
@@ -114,6 +161,7 @@ const tabs = [
   { key: 'poem', label: '诗词', icon: ' ' },
   { key: 'material', label: '素材', icon: ' ' },
   { key: 'prompt', label: '提示', icon: '✎' },
+  { key: 'diagnose', label: '诊断', icon: '⚕' },
 ]
 
 const componentMap = {
@@ -126,6 +174,7 @@ const componentMap = {
   poem: PoemPanel,
   material: MaterialPanel,
   prompt: PromptPanel,
+  diagnose: DiagnosePanel,
 }
 const activeComponent = computed(() => componentMap[activeTab.value])
 
@@ -141,6 +190,83 @@ function onTabBeforeEnter(el) {
 }
 function onTabEnter(el) {
   gsap.to(el, { opacity: 1, x: 0, duration: 0.3, ease: 'power2.out' })
+}
+
+// ---- 章节管理 ----
+const sidebarCollapsed = ref(false)
+const contextMenu = ref({ visible: false, x: 0, y: 0, chapter: null })
+let dragIdx = null
+
+async function onChapterClick(chapterId) {
+  if (chapterId === writingStore.activeChapterId) return
+  // 先保存当前章节到服务器，防止切换后丢失修改
+  if (writingStore.activeChapterId && writingStore.content !== lastSavedContent) {
+    await saveDraft()
+  }
+  await writingStore.switchChapter(chapterId)
+  lastSavedContent = writingStore.content
+}
+
+function onDragStart(idx) { dragIdx = idx }
+function onDrop(idx) {
+  if (dragIdx === null || dragIdx === idx) return
+  const ids = writingStore.chapters.map(c => c.chapter_id)
+  const [moved] = ids.splice(dragIdx, 1)
+  ids.splice(idx, 0, moved)
+  writingStore.reorderChapters(ids)
+  dragIdx = null
+}
+
+async function onAddChapter() {
+  await writingStore.addChapter()
+}
+
+function onChapterContext(e, ch) {
+  contextMenu.value = { visible: true, x: e.clientX, y: e.clientY, chapter: ch }
+  document.addEventListener('click', closeContextMenu, { once: true })
+}
+
+function closeContextMenu() {
+  contextMenu.value.visible = false
+}
+
+function startRename() {
+  const ch = contextMenu.value.chapter
+  if (!ch) return
+  const newTitle = prompt('章节标题', ch.title)
+  if (newTitle !== null && newTitle.trim()) {
+    ch.title = newTitle.trim()
+    if (ch.chapter_id === writingStore.activeChapterId) {
+      saveDraft()
+    }
+  }
+  closeContextMenu()
+}
+
+async function onDeleteChapter() {
+  const ch = contextMenu.value.chapter
+  if (!ch) return
+  if (writingStore.chapters.length <= 1) {
+    alert('至少保留一个章节')
+    closeContextMenu()
+    return
+  }
+  if (!confirm(`确定删除「${ch.title}」吗？`)) {
+    closeContextMenu()
+    return
+  }
+  await writingStore.removeChapter(ch.chapter_id)
+  closeContextMenu()
+}
+
+function onChapterTitleInput(val) {
+  writingStore.setActiveChapterTitle(val)
+}
+
+function onChapterTitleBlur() {
+  if (writingStore.activeChapterId) {
+    saveDraft()
+  }
 }
 
 // ---- 编辑器 ----
@@ -235,12 +361,19 @@ async function saveDraft() {
       title: writingStore.title || '未命名作品',
       content: writingStore.content,
       work_id: writingStore.currentWorkId || null,
+      chapter_id: writingStore.activeChapterId || null,
+      chapter_title: writingStore.getActiveChapterTitle() || '',
     }
     const res = await api.post('/api/works/save', payload)
     if (res.code === 0) {
       writingStore.currentWorkId = res.data?.work_id || writingStore.currentWorkId
       lastSavedContent = writingStore.content
       lastSavedTitle = writingStore.title
+      // 更新当前章节的字数
+      if (writingStore.activeChapterId) {
+        const ch = writingStore.chapters.find(c => c.chapter_id === writingStore.activeChapterId)
+        if (ch) ch.word_count = writingStore.content.replace(/\s/g, '').length
+      }
       saveStatus.value = 'saved'
     } else {
       saveStatus.value = 'unsaved'
@@ -309,11 +442,28 @@ function flushStats() {
   }
 }
 
-onMounted(() => {
+function onPomodoroComplete({ duration }) {
+  flushStats()
+  lastTick = Date.now()
+  lastSentCount = writingStore.wordCount
+}
+
+onMounted(async () => {
   checkMobile()
   window.addEventListener('resize', checkMobile)
   window.addEventListener('keydown', onGlobalKeydown)
   startStatsTimer()
+  // 如果已有作品ID，加载章节列表
+  if (writingStore.currentWorkId) {
+    await writingStore.loadChapters(writingStore.currentWorkId)
+  }
+})
+
+// 监听 currentWorkId 变化，首次保存后自动加载章节
+watch(() => writingStore.currentWorkId, async (newId) => {
+  if (newId && writingStore.chapters.length === 0) {
+    await writingStore.loadChapters(newId)
+  }
 })
 
 onActivated(() => {
@@ -451,9 +601,150 @@ onUnmounted(() => {
 
 /* ====== 主体 ====== */
 .studio-body {
-  flex: 1; display: flex; gap: 1rem;
+  flex: 1; display: flex; gap: 0.75rem;
   min-height: 0; overflow: hidden;
 }
+
+/* ====== 章节侧边栏 ====== */
+.chapter-sidebar {
+  width: 200px; flex-shrink: 0;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  transition: width 0.3s ease;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(196, 163, 90, 0.08);
+  background: rgba(255, 255, 255, 0.025);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.chapter-sidebar.collapsed { width: 40px; }
+
+.sidebar-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid rgba(196, 163, 90, 0.08);
+  flex-shrink: 0;
+}
+.sidebar-title {
+  font-size: 0.75rem; font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.sidebar-toggle {
+  background: none; border: none;
+  color: var(--text-muted); font-size: 0.8rem;
+  cursor: pointer; padding: 2px 6px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+.sidebar-toggle:hover {
+  color: var(--accent-primary);
+  background: rgba(196, 163, 90, 0.08);
+}
+
+.sidebar-list {
+  flex: 1; overflow-y: auto; padding: 0.35rem;
+}
+
+.chapter-item {
+  display: flex; align-items: center; gap: 0.4rem;
+  padding: 0.45rem 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 2px;
+}
+.chapter-item:hover {
+  background: rgba(196, 163, 90, 0.06);
+}
+.chapter-item.active {
+  background: rgba(196, 163, 90, 0.1);
+  border-left: 2px solid var(--accent-primary);
+}
+.ch-num {
+  font-size: 0.65rem; font-weight: 700;
+  color: var(--accent-primary); opacity: 0.5;
+  min-width: 14px;
+}
+.chapter-item.active .ch-num { opacity: 1; }
+.ch-title {
+  flex: 1; font-size: 0.78rem;
+  color: var(--text-secondary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.chapter-item.active .ch-title { color: var(--text-primary); }
+.ch-wc {
+  font-size: 0.6rem; color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.add-chapter-btn {
+  width: 100%;
+  padding: 0.45rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  background: none; border: 1px dashed rgba(196, 163, 90, 0.15);
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 0.3rem;
+  transition: all 0.2s;
+}
+.add-chapter-btn:hover {
+  color: var(--accent-primary);
+  border-color: rgba(196, 163, 90, 0.3);
+  background: rgba(196, 163, 90, 0.04);
+}
+
+/* 右键菜单 */
+.context-menu {
+  position: fixed;
+  background: rgba(20, 20, 35, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 4px;
+  z-index: 999;
+  min-width: 120px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+.ctx-item {
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.ctx-item:hover {
+  background: rgba(196, 163, 90, 0.1);
+  color: var(--text-primary);
+}
+.ctx-danger:hover {
+  background: rgba(220, 60, 60, 0.12);
+  color: #e55;
+}
+
+/* 章节标题栏 */
+.chapter-title-bar {
+  padding: 0.3rem 0;
+  flex-shrink: 0;
+}
+.chapter-title-input {
+  width: 100%;
+  font-family: var(--font-serif);
+  font-size: 0.95rem; font-weight: 600;
+  color: var(--text-primary);
+  background: transparent; border: none;
+  border-bottom: 1px solid transparent;
+  padding: 4px 0; outline: none;
+  transition: border-color 0.2s;
+}
+.chapter-title-input:focus {
+  border-bottom-color: rgba(196, 163, 90, 0.3);
+}
+.chapter-title-input::placeholder { color: var(--text-muted); }
 
 /* 编辑器 */
 .editor-panel {
@@ -507,7 +798,7 @@ onUnmounted(() => {
 }
 .ai-tabs {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   border-bottom: 1px solid rgba(196, 163, 90, 0.08);
   padding: 0.25rem; flex-shrink: 0;
   background: rgba(255, 255, 255, 0.02);
@@ -553,6 +844,7 @@ onUnmounted(() => {
 /* ====== 专注模式 ====== */
 .focus-mode { padding: 0; }
 .focus-mode .studio-body { gap: 0; }
+.focus-mode .chapter-sidebar { display: none; }
 .focus-mode .editor-panel { padding: 0; }
 .focus-mode .editor-area {
   border-radius: 0; border: none;
@@ -616,6 +908,7 @@ onUnmounted(() => {
   .ai-panel.mobile-open { transform: translateX(0); }
   .mobile-toggle { display: flex; }
   .work-title { width: 120px; }
+  .chapter-sidebar { display: none; }
   .focus-mode .editor-area { padding: 2rem 1.5rem; font-size: 1.05rem; }
 }
 @media (max-width: 480px) {

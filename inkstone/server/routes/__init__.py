@@ -14,6 +14,8 @@ def register_blueprints(app):
     from routes.materials import materials_bp
     from routes.daily import daily_bp
     from routes.rankings import rankings_bp
+    from routes.serialize import serialize_bp
+    from routes.rp import rp_bp
 
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(write_bp, url_prefix='/api/write')
@@ -30,3 +32,5 @@ def register_blueprints(app):
     app.register_blueprint(materials_bp, url_prefix='/api/materials')
     app.register_blueprint(daily_bp, url_prefix='/api/daily')
     app.register_blueprint(rankings_bp, url_prefix='/api/rankings')
+    app.register_blueprint(serialize_bp, url_prefix='/api/serialize')
+    app.register_blueprint(rp_bp, url_prefix='/api/rp')

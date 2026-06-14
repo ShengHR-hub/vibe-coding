@@ -17,17 +17,29 @@
         </select>
         <span v-if="userStore.isLoggedIn" class="btn btn-ghost btn-sm" @click="goToGraph()">知识图谱</span>
         <span v-if="userStore.isLoggedIn" class="btn btn-ghost btn-sm" @click="goToReview()">AI 书评</span>
+        <span class="btn btn-ghost btn-sm" @click="sharePosterVisible = true">分享</span>
         <span class="btn btn-ghost btn-sm" @click="handleExport">导出</span>
+        <span v-if="userStore.isLoggedIn && work.user_id === userStore.user?.user_id" class="btn btn-ghost btn-sm" @click="$router.push(`/works/${work.work_id}/volumes`)">卷管理</span>
+        <span v-if="userStore.isLoggedIn" class="btn btn-ghost btn-sm" @click="$router.push(`/rp/${work.work_id}`)">角色扮演</span>
       </div>
     </div>
 
     <div class="reader-content" :style="{ fontSize: fontSize + 'px' }">
-      <div v-if="work.type === 'novel'" class="chapter-nav">
-        <select v-model="activeChapterIdx" class="chapter-select">
-          <option v-for="(ch, i) in chapters" :key="ch.chapter_id" :value="i">
+      <div v-if="work.type === 'novel'" class="chapter-nav" ref="chapterNavRef">
+        <div class="chapter-select" @click="chapterDropdownOpen = !chapterDropdownOpen">
+          <span>{{ chapters[activeChapterIdx]?.title || `第${activeChapterIdx + 1}章` }}</span>
+          <span class="dropdown-arrow">{{ chapterDropdownOpen ? '▲' : '▼' }}</span>
+        </div>
+        <div v-if="chapterDropdownOpen" class="dropdown-list">
+          <div
+            v-for="(ch, i) in chapters" :key="ch.chapter_id"
+            class="dropdown-item"
+            :class="{ active: i === activeChapterIdx }"
+            @click="activeChapterIdx = i; chapterDropdownOpen = false"
+          >
             {{ ch.title || `第${ch.chapter_no}章` }}
-          </option>
-        </select>
+          </div>
+        </div>
       </div>
 
       <h1 class="work-title">{{ work.title }}</h1>
@@ -81,13 +93,15 @@
     </div>
   </div>
   <div v-else-if="errorMsg" class="page-container center">{{ errorMsg }}</div>
+  <SharePoster :visible="sharePosterVisible" :work-id="work?.work_id" @close="sharePosterVisible = false" />
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../../api/index.js'
 import { useUserStore } from '../../stores/user.js'
+import SharePoster from '../../components/SharePoster.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -104,6 +118,9 @@ const newComment = ref('')
 const replyContent = ref('')
 const replyingTo = ref(null)
 const submitting = ref(false)
+const sharePosterVisible = ref(false)
+const chapterDropdownOpen = ref(false)
+const chapterNavRef = ref(null)
 
 const renderedContent = computed(() => {
   const ch = chapters.value[activeChapterIdx.value]
@@ -114,7 +131,14 @@ const renderedContent = computed(() => {
     .replace(/\n/g, '<br>')
 })
 
+function onDocClick(e) {
+  if (chapterNavRef.value && !chapterNavRef.value.contains(e.target)) {
+    chapterDropdownOpen.value = false
+  }
+}
+
 onMounted(async () => {
+  document.addEventListener('click', onDocClick)
   const res = await api.get(`/api/works/public/${route.params.id}`)
   if (res.code === 0) {
     work.value = res.data.work
@@ -127,6 +151,10 @@ onMounted(async () => {
   }
 })
 
+onUnmounted(() => {
+  document.removeEventListener('click', onDocClick)
+})
+
 async function loadComments() {
   const res = await api.get(`/api/interactions/comments/${route.params.id}`)
   if (res.code === 0) comments.value = res.data.comments
@@ -137,7 +165,7 @@ async function toggleLike() {
   const res = await api.post('/api/interactions/like', { work_id: work.value.work_id })
   if (res.code === 0) {
     liked.value = res.data.liked
-    work.value.likes_count += res.data.liked ? 1 : -1
+    work.value.likes_count = (work.value.likes_count || 0) + (res.data.liked ? 1 : -1)
   }
 }
 
@@ -194,11 +222,19 @@ function fmt(d) { if (!d) return ''; return d.slice(0, 16).replace('T', ' ') }
 .toolbar-actions .active { color: var(--accent-warm); }
 .font-select {
   padding: 4px 8px; font-size: 0.75rem;
-  background: var(--bg-glass); color: var(--text-secondary);
-  border: 1px solid var(--border-glass); border-radius: var(--radius-sm);
-  outline: none;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid rgba(196, 163, 90, 0.15);
+  border-radius: var(--radius-sm);
+  outline: none; cursor: pointer;
+  transition: border-color 0.2s;
 }
+.font-select:hover { border-color: rgba(196, 163, 90, 0.3); }
 .font-select:focus { border-color: var(--accent-primary); }
+.font-select option {
+  background: var(--bg-primary, #1a1a2e);
+  color: var(--text-primary);
+}
 .reader-content {
   max-width: 720px; margin: 2rem auto; padding: 3rem 2.5rem;
   border-radius: var(--radius-lg); min-height: 60vh; line-height: 2;
@@ -212,12 +248,43 @@ function fmt(d) { if (!d) return ''; return d.slice(0, 16).replace('T', ' ') }
     0px 8px 24px rgba(17, 17, 26, 0.05),
     0px 16px 56px rgba(17, 17, 26, 0.05);
 }
-.chapter-nav { margin-bottom: var(--space-xl); }
+.chapter-nav { margin-bottom: var(--space-xl); position: relative; }
 .chapter-select {
   padding: 8px 14px; font-size: 0.9rem; width: 100%;
-  background: transparent; color: inherit;
-  border: 1px solid var(--border-glass);
-  border-radius: var(--radius-sm); outline: none;
+  background: rgba(200, 200, 210, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  color: #222;
+  border: 1px solid rgba(196, 163, 90, 0.15);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color 0.2s;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.chapter-select:hover { border-color: rgba(196, 163, 90, 0.3); }
+.dropdown-arrow { font-size: 0.7rem; opacity: 0.5; }
+.dropdown-list {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+  max-height: 400px; overflow-y: auto;
+  border: 1px solid rgba(196, 163, 90, 0.12);
+  border-radius: var(--radius-sm);
+  z-index: 100;
+  background: rgba(200, 200, 210, 0.92);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+.dropdown-item {
+  padding: 8px 14px; font-size: 0.88rem;
+  color: #222;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.dropdown-item:hover {
+  background: rgba(196, 163, 90, 0.15);
+}
+.dropdown-item.active {
+  color: var(--accent-primary);
+  font-weight: 600;
 }
 .work-title { font-size: 2rem; margin-bottom: var(--space-md); font-family: var(--font-serif); letter-spacing: 0.05em; }
 .work-info { display: flex; gap: var(--space-lg); font-size: 0.85rem; color: var(--text-muted); margin-bottom: var(--space-2xl); }

@@ -4,6 +4,9 @@
       <button class="btn btn-ghost" @click="$router.back()">&larr; 返回</button>
       <div class="header-actions">
         <button class="btn btn-outline btn-sm" @click="$router.push(`/works/${work.work_id}/edit`)">编辑</button>
+        <button v-if="work.type === 'novel'" class="btn btn-ghost btn-sm" @click="$router.push(`/works/${work.work_id}/volumes`)">卷管理</button>
+        <button class="btn btn-ghost btn-sm" @click="$router.push(`/read/${work.work_id}`)">阅读</button>
+        <button class="btn btn-ghost btn-sm" @click="sharePosterVisible = true">分享</button>
         <button class="btn btn-ghost btn-sm" @click="handleExport">导出</button>
         <button class="btn btn-ghost btn-sm" @click="confirmDelete">删除</button>
       </div>
@@ -38,18 +41,21 @@
     </div>
   </div>
   <div v-else-if="error" class="page-container center">{{ error }}</div>
+  <SharePoster :visible="sharePosterVisible" :work-id="work?.work_id" @close="sharePosterVisible = false" />
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../../api/index.js'
+import SharePoster from '../../components/SharePoster.vue'
 
 const route = useRoute()
 const router = useRouter()
 const work = ref(null)
 const chapters = ref([])
 const error = ref('')
+const sharePosterVisible = ref(false)
 
 onMounted(async () => {
   const res = await api.get(`/api/works/${route.params.id}`)
