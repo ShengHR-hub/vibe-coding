@@ -17,15 +17,11 @@
         </select>
         <span v-if="userStore.isLoggedIn" class="btn btn-ghost btn-sm" @click="goToGraph()">知识图谱</span>
         <span v-if="userStore.isLoggedIn" class="btn btn-ghost btn-sm" @click="goToReview()">AI 书评</span>
-        <select v-model="bgColor" class="font-select">
-          <option value="#0f0f1a">暗色</option>
-          <option value="#f5f0e8">米色</option>
-          <option value="#ffffff">白色</option>
-        </select>
+        <span class="btn btn-ghost btn-sm" @click="handleExport">导出</span>
       </div>
     </div>
 
-    <div class="reader-content" :style="{ fontSize: fontSize + 'px', background: bgColor, color: bgColor === '#0f0f1a' ? '#e8e6f0' : '#333' }">
+    <div class="reader-content" :style="{ fontSize: fontSize + 'px' }">
       <div v-if="work.type === 'novel'" class="chapter-nav">
         <select v-model="activeChapterIdx" class="chapter-select">
           <option v-for="(ch, i) in chapters" :key="ch.chapter_id" :value="i">
@@ -103,7 +99,6 @@ const errorMsg = ref('')
 const liked = ref(false)
 const favorited = ref(false)
 const fontSize = ref(16)
-const bgColor = ref('#0f0f1a')
 const activeChapterIdx = ref(0)
 const newComment = ref('')
 const replyContent = ref('')
@@ -171,6 +166,10 @@ function goToGraph() {
   console.log('[Reader] goToGraph clicked, work_id:', work.value?.work_id)
   if (work.value) router.push(`/graph/${work.value.work_id}`)
 }
+async function handleExport() {
+  const res = await api.download(`/api/works/${work.value.work_id}/export`)
+  if (res.code !== 0) alert(res.msg || '导出失败')
+}
 function goToReview() {
   console.log('[Reader] goToReview clicked, work_id:', work.value?.work_id)
   if (work.value) router.push(`/review/${work.value.work_id}`)
@@ -187,28 +186,58 @@ function fmt(d) { if (!d) return ''; return d.slice(0, 16).replace('T', ' ') }
   position: sticky; top: 80px; z-index: 50;
   display: flex; justify-content: space-between; align-items: center;
   padding: 0.5rem 1.5rem;
-  background: var(--bg-primary);
-  border-bottom: 1px solid var(--border-glass);
+  background: var(--glass-bg, rgba(255, 255, 255, 0.04));
+  backdrop-filter: blur(var(--glass-blur, 16px));
+  border-bottom: 1px solid var(--glass-border, rgba(255, 255, 255, 0.06));
 }
 .toolbar-actions { display: flex; gap: var(--space-sm); align-items: center; }
 .toolbar-actions .active { color: var(--accent-warm); }
-.font-select { padding: 2px 6px; font-size: 0.75rem; }
-.reader-content { max-width: 720px; margin: 2rem auto; padding: 3rem 2rem; border-radius: var(--radius-lg); min-height: 60vh; line-height: 2; }
+.font-select {
+  padding: 4px 8px; font-size: 0.75rem;
+  background: var(--bg-glass); color: var(--text-secondary);
+  border: 1px solid var(--border-glass); border-radius: var(--radius-sm);
+  outline: none;
+}
+.font-select:focus { border-color: var(--accent-primary); }
+.reader-content {
+  max-width: 720px; margin: 2rem auto; padding: 3rem 2.5rem;
+  border-radius: var(--radius-lg); min-height: 60vh; line-height: 2;
+  background: var(--glass-bg, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.06));
+  backdrop-filter: blur(var(--glass-blur, 16px));
+  box-shadow:
+    0 0 2px 1px color-mix(in oklch, canvastext, #0000 90%) inset,
+    0 0 10px 4px color-mix(in oklch, canvastext, #0000 95%) inset,
+    0px 4px 16px rgba(17, 17, 26, 0.05),
+    0px 8px 24px rgba(17, 17, 26, 0.05),
+    0px 16px 56px rgba(17, 17, 26, 0.05);
+}
 .chapter-nav { margin-bottom: var(--space-xl); }
-.chapter-select { padding: 6px 12px; font-size: 0.9rem; width: 100%; }
-.work-title { font-size: 2rem; margin-bottom: var(--space-md); }
+.chapter-select {
+  padding: 8px 14px; font-size: 0.9rem; width: 100%;
+  background: transparent; color: inherit;
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm); outline: none;
+}
+.work-title { font-size: 2rem; margin-bottom: var(--space-md); font-family: var(--font-serif); letter-spacing: 0.05em; }
 .work-info { display: flex; gap: var(--space-lg); font-size: 0.85rem; color: var(--text-muted); margin-bottom: var(--space-2xl); }
-.chapter-content p { margin-bottom: 1em; text-indent: 2em; }
+.chapter-content :deep(p) { margin-bottom: 1em; text-indent: 2em; }
 hr { border: none; border-top: 1px solid var(--border-glass); margin: var(--space-2xl) 0; }
 
-.comments-section h3 { margin-bottom: var(--space-lg); }
+.comments-section h3 { margin-bottom: var(--space-lg); color: var(--accent-primary); }
 .comment-form { display: flex; gap: var(--space-sm); margin-bottom: var(--space-lg); }
-.comment-form textarea { flex: 1; padding: 8px; font-size: 0.9rem; resize: vertical; }
+.comment-form textarea {
+  flex: 1; padding: 10px; font-size: 0.9rem; resize: vertical;
+  background: transparent; color: inherit;
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm); outline: none;
+}
+.comment-form textarea:focus { border-color: var(--accent-primary); }
 .reply-form { margin: var(--space-sm) 0 var(--space-sm) var(--space-xl); }
 .comment { padding: var(--space-md) 0; border-bottom: 1px solid var(--border-glass); }
 .comment.reply { margin-left: var(--space-xl); }
 .comment-header { display: flex; align-items: center; gap: var(--space-sm); margin-bottom: var(--space-sm); font-size: 0.85rem; }
-.comment-avatar { width: 24px; height: 24px; border-radius: 50%; background: var(--accent-purple); color: white; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; }
+.comment-avatar { width: 26px; height: 26px; border-radius: 50%; background: var(--accent-purple); color: white; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; }
 .comment p { font-size: 0.9rem; }
 .replies { margin-top: var(--space-sm); }
 .muted { color: var(--text-muted); font-size: 0.85rem; }

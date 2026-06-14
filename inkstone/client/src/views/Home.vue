@@ -13,7 +13,7 @@
     </div>
 
     <div class="scroll-indicator" ref="indicator">
-      <span class="indicator-dot" v-for="i in totalSections" :key="i" :class="{ active: currentSection === i - 1 }"></span>
+      <span class="indicator-dot" v-for="i in totalSections" :key="i" :class="{ active: currentSection === i - 1 }" @click="scrollToSection(i - 1)"></span>
     </div>
 
     <!-- ====== 1. Hero ====== -->
@@ -21,8 +21,8 @@
       <div class="section-inner">
         <div class="hero-glow-ring"></div>
         <p class="hero-overline">Inkstone</p>
-        <h1 class="hero-title" ref="heroTitle">让每个字<br>都有灵魂</h1>
-        <p class="hero-subtitle">Where every word finds its soul</p>
+        <MorphingText :texts="heroTexts" class="hero-morphing" />
+        <p class="hero-subtitle">Where ink blooms into art</p>
         <div class="hero-divider"></div>
         <p class="hero-desc">墨池是一个 AI 驱动的全品类创作平台，融合前沿大语言模型与<br>优雅的写作体验，覆盖小说、诗歌、散文、剧本、自媒体等创作场景。</p>
         <div class="hero-cta">
@@ -276,7 +276,22 @@
       </div>
     </section>
 
-    <!-- ====== 10. 成就 & 成长体系 ====== -->
+    <!-- ====== 10. 每日精选诗词 ====== -->
+    <section class="fp-section section-featured">
+      <div class="section-inner">
+        <p class="sec-tag">Daily Picks <span class="tag-cn">每日精选</span></p>
+        <h2 class="sec-heading">Poetry<br>Inspirations</h2>
+        <p class="sec-subtitle">
+          每日精选古典诗词，为你的创作注入千年文韵。<br>
+          轮播自动切换，悬停暂停，点击卡片沉浸阅读。
+        </p>
+        <div class="featured-wrapper">
+          <FeaturedPoemsCarousel :poems="featuredPoems" />
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== 11. 成就 & 成长体系 ====== -->
     <section class="fp-section section-achievements">
       <div class="section-inner">
         <p class="sec-tag">Growth <span class="tag-cn">成长</span></p>
@@ -295,7 +310,7 @@
       </div>
     </section>
 
-    <!-- ====== 11. CTA ====== -->
+    <!-- ====== 12. CTA ====== -->
     <section class="fp-section section-cta">
       <div class="section-inner">
         <h2 class="sec-heading cta-heading">Ready to<br>Create?</h2>
@@ -317,14 +332,18 @@ import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import FluidCursor from '../components/FluidCursor.vue'
+import FeaturedPoemsCarousel from '../components/FeaturedPoemsCarousel.vue'
+import MorphingText from '../components/MorphingText.vue'
+import { api } from '../api/index.js'
 
 gsap.registerPlugin(ScrollTrigger)
 
-const totalSections = 11
+const totalSections = 12
 const currentSection = ref(0)
 const container = ref(null)
 const indicator = ref(null)
-const heroTitle = ref(null)
+const featuredPoems = ref([])
+const heroTexts = ['以墨为池', '字字生花', '让文字自由生长']
 
 const stats = [
   { num: 7, label: 'AI 核心能力', desc: '覆盖创作全流程' },
@@ -359,35 +378,6 @@ const levels = [
 let stTriggers = []
 let tiltCleanups = []
 
-function splitHeroChars() {
-  const el = heroTitle.value
-  if (!el) return
-  // 保留 <br> 标签，只拆分文本节点
-  const parts = []
-  el.childNodes.forEach(node => {
-    if (node.nodeType === 3) {
-      // 文本节点：逐字拆分
-      node.textContent.split('').forEach(char => {
-        parts.push({ type: 'char', text: char })
-      })
-    } else {
-      // <br> 元素
-      parts.push({ type: 'br' })
-    }
-  })
-  el.innerHTML = ''
-  parts.forEach(p => {
-    if (p.type === 'br') {
-      el.appendChild(document.createElement('br'))
-    } else {
-      const span = document.createElement('span')
-      span.className = 'hero-char'
-      span.textContent = p.text
-      span.style.display = 'inline-block'
-      el.appendChild(span)
-    }
-  })
-}
 
 function animateCounters() {
   document.querySelectorAll('.stat-num').forEach(el => {
@@ -433,11 +423,21 @@ function unbindTilt() {
   tiltCleanups = []
 }
 
-onMounted(() => {
-  nextTick(() => {
-    // 拆分 Hero 文字为逐字
-    splitHeroChars()
+function scrollToSection(idx) {
+  const sections = document.querySelectorAll('.fp-section')
+  if (sections[idx]) {
+    sections[idx].scrollIntoView({ behavior: 'smooth' })
+  }
+}
 
+onMounted(async () => {
+  // 获取每日精选诗词
+  try {
+    const res = await api.get('/api/poems/featured?count=7')
+    if (res.code === 0) featuredPoems.value = res.data.poems
+  } catch {}
+
+  nextTick(() => {
     const sectionsEl = document.querySelectorAll('.fp-section')
 
     sectionsEl.forEach((section, i) => {
@@ -445,20 +445,15 @@ onMounted(() => {
       const isHero = i === 0
       const isSplit = section.classList.contains('section-feature-detail')
       const isCommunity = section.classList.contains('section-community')
+      const isFeatured = section.classList.contains('section-featured')
       const isAchievements = section.classList.contains('section-achievements')
 
       if (isHero) {
-        // === Hero: 逐字飞入 + 分层浮现 ===
+        // === Hero: 分层浮现 ===
         tl.fromTo('.hero-overline', { y: 16, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: 'power3.out' })
         tl.fromTo('.hero-glow-ring', { scale: 0.3, opacity: 0 }, { scale: 1, opacity: 0.5, duration: 2, ease: 'elastic.out(1, 0.6)' }, '-=0.2')
-        // 逐字动画
-        tl.fromTo('.hero-char', {
-          y: 60, opacity: 0, rotateX: -90,
-        }, {
-          y: 0, opacity: 1, rotateX: 0,
-          duration: 0.7, stagger: 0.04, ease: 'back.out(1.7)',
-        }, '-=0.5')
-        tl.fromTo('.hero-subtitle', { opacity: 0 }, { opacity: 1, duration: 0.7 }, '-=0.2')
+        tl.fromTo('.hero-morphing', { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, ease: 'power3.out' }, '-=1.5')
+        tl.fromTo('.hero-subtitle', { opacity: 0 }, { opacity: 1, duration: 0.7 }, '-=0.3')
         tl.fromTo('.hero-divider', { scaleX: 0, opacity: 0 }, { scaleX: 1, opacity: 1, duration: 0.8, ease: 'power3.inOut' }, '-=0.3')
         tl.fromTo('.hero-desc, .hero-cta', { y: 16, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, stagger: 0.1, ease: 'power3.out' }, '-=0.2')
         tl.fromTo('.hero-hint', { opacity: 0 }, { opacity: 1, duration: 0.4 }, '-=0.1')
@@ -488,6 +483,18 @@ onMounted(() => {
           y: 0, opacity: 1, scale: 1, rotateY: 0,
           duration: 0.8, stagger: 0.1, ease: 'back.out(1.5)',
         }, '-=0.15')
+      } else if (isFeatured) {
+        tl.fromTo('.section-featured .sec-tag, .section-featured .sec-heading, .section-featured .sec-subtitle', {
+          y: 30, opacity: 0,
+        }, {
+          y: 0, opacity: 1, duration: 0.5, stagger: 0.08, ease: 'power3.out',
+        })
+        tl.fromTo('.featured-wrapper', {
+          y: 60, opacity: 0, scale: 0.92,
+        }, {
+          y: 0, opacity: 1, scale: 1,
+          duration: 1, ease: 'power3.out',
+        }, '-=0.2')
       } else if (isAchievements) {
         tl.fromTo('.section-achievements .sec-tag, .section-achievements .sec-heading, .section-achievements .sec-subtitle', {
           y: 30, opacity: 0,
@@ -585,6 +592,10 @@ onUnmounted(() => {
   width: 7px; height: 7px; border-radius: 50%;
   background: rgba(255,255,255,0.12);
   transition: all 0.4s ease;
+  cursor: pointer;
+}
+.indicator-dot:hover {
+  background: rgba(196,163,90,0.4);
 }
 .indicator-dot.active {
   background: var(--accent-primary);
@@ -637,19 +648,9 @@ onUnmounted(() => {
   color: var(--accent-primary); text-transform: uppercase;
   opacity: 0.8; margin-bottom: 1.5rem; position: relative;
 }
-.hero-title {
-  font-family: var(--font-serif);
-  font-size: clamp(3rem, 6vw, 5rem); font-weight: 700;
-  line-height: 1.2; letter-spacing: 0.03em;
-  background: linear-gradient(180deg, #f0ead8 0%, #c4a35a 30%, #9b7d3c 60%, #6b5428 100%);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  background-clip: text;
-  filter: drop-shadow(0 0 24px rgba(196,163,90,0.15));
-  margin-bottom: 1.25rem; position: relative;
-}
-.hero-char {
-  display: inline-block;
-  will-change: transform, opacity;
+.hero-morphing {
+  margin-bottom: 1.25rem;
+  filter: drop-shadow(0 0 30px rgba(196,163,90,0.2));
 }
 .hero-subtitle {
   font-family: var(--font-display);
@@ -901,6 +902,13 @@ onUnmounted(() => {
 }
 .level-name { font-size: 0.95rem; font-weight: 600; color: var(--text-primary); letter-spacing: 0.05em; position: relative; z-index: 1; }
 .level-exp { font-size: 0.75rem; color: var(--text-muted); position: relative; z-index: 1; }
+
+/* ====== 每日精选 ====== */
+.featured-wrapper {
+  margin-top: 2.5rem;
+  max-width: 900px;
+  margin-inline: auto;
+}
 
 /* ====== CTA ====== */
 .cta-heading { font-size: clamp(3rem, 6vw, 5rem); margin-bottom: 1rem; }

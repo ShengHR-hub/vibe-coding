@@ -244,3 +244,73 @@ CREATE TABLE relay_segments (
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     INDEX idx_relay_challenge (challenge_id, segment_order)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 18. 诗词素材表
+CREATE TABLE poems (
+    poem_id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(200) NOT NULL,
+    author VARCHAR(100) NOT NULL,
+    dynasty VARCHAR(50) DEFAULT '',
+    content TEXT NOT NULL,
+    category VARCHAR(50) NOT NULL,
+    source VARCHAR(100) DEFAULT '',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_poem_category (category),
+    INDEX idx_poem_author (author)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 19. 写作素材表
+CREATE TABLE materials (
+    material_id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(200) NOT NULL,
+    content TEXT NOT NULL,
+    category VARCHAR(50) NOT NULL,
+    tags VARCHAR(500) DEFAULT '',
+    source VARCHAR(100) DEFAULT '',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_mat_category (category)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 20. 每日练习题目表
+CREATE TABLE daily_prompts (
+    prompt_id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(200) NOT NULL,
+    description TEXT NOT NULL,
+    type ENUM('micro_fiction', 'poetry', 'dialogue', 'description', 'continuation') NOT NULL,
+    word_min INT DEFAULT 50,
+    word_max INT DEFAULT 300,
+    difficulty ENUM('easy', 'medium', 'hard') DEFAULT 'medium',
+    tags VARCHAR(500) DEFAULT '',
+    active_date DATE DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_prompt_date (active_date),
+    INDEX idx_prompt_type (type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 21. 每日练习提交表
+CREATE TABLE daily_submissions (
+    submission_id INT AUTO_INCREMENT PRIMARY KEY,
+    prompt_id INT NOT NULL,
+    user_id INT NOT NULL,
+    content TEXT NOT NULL,
+    word_count INT DEFAULT 0,
+    likes_count INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (prompt_id) REFERENCES daily_prompts(prompt_id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    UNIQUE KEY uk_submission (prompt_id, user_id),
+    INDEX idx_sub_prompt (prompt_id),
+    INDEX idx_sub_user (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 22. 练习点赞表
+CREATE TABLE submission_likes (
+    like_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    submission_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (submission_id) REFERENCES daily_submissions(submission_id) ON DELETE CASCADE,
+    UNIQUE KEY uk_sub_like (user_id, submission_id),
+    INDEX idx_sub_likes (submission_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

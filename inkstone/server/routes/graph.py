@@ -31,7 +31,7 @@ def get_characters(work_id):
             result = result.split('\n', 1)[1].rsplit('\n', 1)[0]
         graph_data = json.loads(result)
         return ok({'graph': graph_data, 'work_title': work['title']})
-    except (json.JSONDecodeError, Exception):
+    except (json.JSONDecodeError, KeyError, ValueError):
         return fail('角色分析失败，请稍后再试')
 
 
@@ -64,5 +64,5 @@ def get_timeline(work_id):
             result = result.split('\n', 1)[1].rsplit('\n', 1)[0]
         events = json.loads(result)
         return ok({'timeline': events, 'work_title': work['title']})
-    except (json.JSONDecodeError, Exception):
+    except (json.JSONDecodeError, KeyError, ValueError):
         return fail('时间线分析失败，请稍后再试')

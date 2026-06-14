@@ -10,6 +10,10 @@ def register_blueprints(app):
     from routes.users import users_bp
     from routes.notifications import notifications_bp
     from routes.review import review_bp
+    from routes.poems import poems_bp
+    from routes.materials import materials_bp
+    from routes.daily import daily_bp
+    from routes.rankings import rankings_bp
 
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(write_bp, url_prefix='/api/write')
@@ -22,3 +26,7 @@ def register_blueprints(app):
     app.register_blueprint(users_bp, url_prefix='/api/users')
     app.register_blueprint(notifications_bp, url_prefix='/api/notifications')
     app.register_blueprint(review_bp, url_prefix='/api/review')
+    app.register_blueprint(poems_bp, url_prefix='/api/poems')
+    app.register_blueprint(materials_bp, url_prefix='/api/materials')
+    app.register_blueprint(daily_bp, url_prefix='/api/daily')
+    app.register_blueprint(rankings_bp, url_prefix='/api/rankings')

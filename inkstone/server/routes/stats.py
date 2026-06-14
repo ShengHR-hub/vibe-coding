@@ -30,7 +30,7 @@ def overview():
     from datetime import date, timedelta
     d = date.today()
     streak = 0
-    while True:
+    for _ in range(365):
         s = query(
             'SELECT 1 FROM writing_sessions WHERE user_id = %s AND session_date = %s LIMIT 1',
             (user_id, d), one=True)
@@ -133,7 +133,7 @@ def style_analysis():
             result = result.split('\n', 1)[1].rsplit('\n', 1)[0]
         style_data = json.loads(result)
         return ok({'style': style_data})
-    except (json.JSONDecodeError, Exception):
+    except (json.JSONDecodeError, KeyError, ValueError):
         return fail('风格分析失败，请稍后再试')
 
 

@@ -33,9 +33,11 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '../../api/index.js'
+import { useUserStore } from '../../stores/user.js'
 import LoadingSpinner from '../../components/LoadingSpinner.vue'
 
 const router = useRouter()
+const userStore = useUserStore()
 
 const items = ref([])
 const loading = ref(true)
@@ -71,7 +73,9 @@ async function handleClick(n) {
   if (!n.is_read) {
     await markOne(n)
   }
-  if (n.related_id) {
+  if (n.type === 'achievement') {
+    if (userStore.user?.user_id) router.push({ path: `/profile/${userStore.user.user_id}`, query: { tab: 'achievements' } })
+  } else if (n.related_id) {
     const routes = { follow: 'profile', comment: 'read', reply: 'read', like: 'read', favorite: 'read' }
     const path = routes[n.type] || 'read'
     router.push(path === 'profile' ? `/profile/${n.related_id}` : `/read/${n.related_id}`)
@@ -95,7 +99,7 @@ async function markAllRead() {
 }
 
 function typeIcon(t) {
-  return { comment: '💬', reply: '↩️', like: '❤️', follow: '👤', favorite: '⭐' }[t] || '🔔'
+  return { comment: '💬', reply: '↩️', like: '❤️', follow: '👤', favorite: '⭐', achievement: '🏆' }[t] || '🔔'
 }
 
 function fmtTime(t) {

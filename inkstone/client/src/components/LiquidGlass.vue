@@ -1,20 +1,91 @@
 <template>
-  <div ref="liquidGlassRoot" class="liquid-glass-effect" :style="baseStyle">
+  <div
+    ref="liquidGlassRoot"
+    class="liquid-glass-effect"
+    :style="baseStyle"
+  >
     <div class="liquid-slot">
       <slot />
     </div>
-    <svg class="liquid-filter-svg" xmlns="http://www.w3.org/2000/svg">
+
+    <svg
+      class="liquid-filter-svg"
+      xmlns="http://www.w3.org/2000/svg"
+    >
       <defs>
-        <filter id="displacementFilter" color-interpolation-filters="sRGB">
-          <feImage x="0" y="0" width="100%" height="100%" :href="displacementDataUri" result="map" />
-          <feDisplacementMap id="redchannel" in="SourceGraphic" in2="map" :xChannelSelector="xChannel" :yChannelSelector="yChannel" :scale="scale + rOffset" result="dispRed" />
-          <feColorMatrix in="dispRed" type="matrix" values="1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0" result="red" />
-          <feDisplacementMap id="greenchannel" in="SourceGraphic" in2="map" :xChannelSelector="xChannel" :yChannelSelector="yChannel" :scale="scale + gOffset" result="dispGreen" />
-          <feColorMatrix in="dispGreen" type="matrix" values="0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0" result="green" />
-          <feDisplacementMap id="bluechannel" in="SourceGraphic" in2="map" :xChannelSelector="xChannel" :yChannelSelector="yChannel" :scale="scale + bOffset" result="dispBlue" />
-          <feColorMatrix in="dispBlue" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 1 0" result="blue" />
-          <feBlend in="red" in2="green" mode="screen" result="rg" />
-          <feBlend in="rg" in2="blue" mode="screen" result="output" />
+        <filter
+          :id="filterId"
+          x="-30%"
+          y="-30%"
+          width="160%"
+          height="160%"
+          color-interpolation-filters="sRGB"
+        >
+          <feImage
+            x="0"
+            y="0"
+            width="100%"
+            height="100%"
+            :href="displacementDataUri"
+            result="map"
+          />
+          <feDisplacementMap
+            id="redchannel"
+            in="SourceGraphic"
+            in2="map"
+            :xChannelSelector="xChannel"
+            :yChannelSelector="yChannel"
+            :scale="scale + rOffset"
+            result="dispRed"
+          />
+          <feColorMatrix
+            in="dispRed"
+            type="matrix"
+            values="1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0"
+            result="red"
+          />
+          <feDisplacementMap
+            id="greenchannel"
+            in="SourceGraphic"
+            in2="map"
+            :xChannelSelector="xChannel"
+            :yChannelSelector="yChannel"
+            :scale="scale + gOffset"
+            result="dispGreen"
+          />
+          <feColorMatrix
+            in="dispGreen"
+            type="matrix"
+            values="0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0"
+            result="green"
+          />
+          <feDisplacementMap
+            id="bluechannel"
+            in="SourceGraphic"
+            in2="map"
+            :xChannelSelector="xChannel"
+            :yChannelSelector="yChannel"
+            :scale="scale + bOffset"
+            result="dispBlue"
+          />
+          <feColorMatrix
+            in="dispBlue"
+            type="matrix"
+            values="0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 1 0"
+            result="blue"
+          />
+          <feBlend
+            in="red"
+            in2="green"
+            mode="screen"
+            result="rg"
+          />
+          <feBlend
+            in="rg"
+            in2="blue"
+            mode="screen"
+            result="output"
+          />
           <feGaussianBlur :stdDeviation="displace" />
         </filter>
       </defs>
@@ -25,6 +96,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, reactive } from "vue"
 
+let _uid = 0
 const props = defineProps({
   radius: { type: Number, default: 16 },
   border: { type: Number, default: 0.07 },
@@ -42,6 +114,7 @@ const props = defineProps({
   frost: { type: Number, default: 0.05 },
 })
 
+const filterId = `liquid-glass-${++_uid}`
 const liquidGlassRoot = ref(null)
 const dimensions = reactive({ width: 0, height: 0 })
 let observer = null
@@ -49,11 +122,12 @@ let observer = null
 const baseStyle = computed(() => ({
   "--frost": props.frost,
   "border-radius": `${props.radius}px`,
+  "backdrop-filter": `url(#${filterId})`,
+  "-webkit-backdrop-filter": `url(#${filterId})`,
 }))
 
 const displacementImage = computed(() => {
-  const border = Math.min(dimensions.width, dimensions.height) * (props.border * 0.5)
-  const yBorder = Math.min(dimensions.width, dimensions.height) * (props.border * 0.5)
+  const b = Math.min(dimensions.width, dimensions.height) * (props.border * 0.5)
   const w = dimensions.width
   const h = dimensions.height
   return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
@@ -68,7 +142,7 @@ const displacementImage = computed(() => {
     <rect x="0" y="0" width="${w}" height="${h}" fill="black"/>
     <rect x="0" y="0" width="${w}" height="${h}" rx="${props.radius}" fill="url(#red)"/>
     <rect x="0" y="0" width="${w}" height="${h}" rx="${props.radius}" fill="url(#blue)" style="mix-blend-mode: ${props.blend}"/>
-    <rect x="${border}" y="${yBorder}" width="${w - border * 2}" height="${h - border * 2}" rx="${props.radius}" fill="hsl(0 0% ${props.lightness}% / ${props.alpha})" style="filter:blur(${props.blur}px)"/>
+    <rect x="${b}" y="${b}" width="${w - b * 2}" height="${h - b * 2}" rx="${props.radius}" fill="hsl(0 0% ${props.lightness}% / ${props.alpha})" style="filter:blur(${props.blur}px)"/>
   </svg>`
 })
 
@@ -107,7 +181,6 @@ onUnmounted(() => {
   opacity: 1;
   border-radius: inherit;
   color-scheme: dark;
-  backdrop-filter: url(#displacementFilter);
   background: hsl(0 0% 0% / var(--frost, 0.05));
   box-shadow:
     0 0 2px 1px color-mix(in oklch, canvastext, #0000 90%) inset,

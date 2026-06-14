@@ -4,6 +4,7 @@
       <button class="btn btn-ghost" @click="$router.back()">&larr; 返回</button>
       <div class="header-actions">
         <button class="btn btn-outline btn-sm" @click="$router.push(`/works/${work.work_id}/edit`)">编辑</button>
+        <button class="btn btn-ghost btn-sm" @click="handleExport">导出</button>
         <button class="btn btn-ghost btn-sm" @click="confirmDelete">删除</button>
       </div>
     </div>
@@ -59,6 +60,11 @@ onMounted(async () => {
     error.value = res.msg
   }
 })
+
+async function handleExport() {
+  const res = await api.download(`/api/works/${work.value.work_id}/export`)
+  if (res.code !== 0) alert(res.msg || '导出失败')
+}
 
 async function confirmDelete() {
   if (!confirm('确定删除这个作品吗？此操作不可撤销。')) return

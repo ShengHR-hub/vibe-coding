@@ -4,7 +4,8 @@ from utils.helpers import ok, fail, login_required
 from utils.mimos import chat_completion, chat_completion_stream
 from utils.prompt_builder import (
     build_continue, build_inspire, build_outline,
-    build_character, build_polish, build_prompt_suggestion
+    build_character, build_polish, build_prompt_suggestion,
+    build_chat_system
 )
 import json, uuid, traceback
 
@@ -140,3 +141,39 @@ def ai_prompt():
     _save_conv(conv_key, 'user', context)
     _save_conv(conv_key, 'assistant', result)
     return ok({'suggestions': result})
+
+
+@write_bp.post('/chat')
+@login_required
+def ai_chat():
+    data = request.get_json()
+    message = (data.get('message') or '').strip()
+    history = data.get('history') or []  # [{role, content}, ...]
+    session_key = (data.get('session_key') or '').strip() or str(uuid.uuid4())
+
+    if not message:
+        return fail('请输入消息')
+
+    # Build multi-turn messages: system + history + new user message
+    messages = [build_chat_system()]
+    for h in history[-50:]:  # Keep last 50 turns to avoid token limit
+        role = h.get('role', 'user')
+        if role in ('user', 'assistant'):
+            messages.append({'role': role, 'content': h.get('content', '')})
+    messages.append({'role': 'user', 'content': message})
+
+    _save_conv(session_key, 'user', message)
+
+    def generate():
+        full = ''
+        try:
+            for chunk in chat_completion_stream(messages):
+                full += chunk
+                yield f'data: {json.dumps({"chunk": chunk, "session_key": session_key}, ensure_ascii=False)}\n\n'
+            _save_conv(session_key, 'assistant', full)
+        except Exception:
+            traceback.print_exc()
+            yield f'data: {json.dumps({"error": "对话生成失败，请稍后再试"}, ensure_ascii=False)}\n\n'
+        yield 'data: [DONE]\n\n'
+
+    return Response(generate(), mimetype='text/event-stream')

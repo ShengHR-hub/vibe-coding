@@ -1,6 +1,6 @@
 from flask import Blueprint, request, session
 from database.db import query, execute
-from utils.helpers import ok, fail, login_required, _fmt
+from utils.helpers import ok, fail, login_required, _fmt, check_achievements
 from routes.notifications import create_notification
 
 interactions_bp = Blueprint('interactions', __name__)
@@ -56,6 +56,8 @@ def create_comment():
     if work_author and work_author['user_id'] != session['user_id']:
         create_notification(work_author['user_id'], 'comment',
                             f'{username} 评论了你的作品', work_id)
+    if work_author:
+        check_achievements(work_author['user_id'])
 
     # Notify parent comment author (if replying)
     if parent_id:
@@ -90,9 +92,11 @@ def toggle_like():
         execute('UPDATE works SET likes_count = likes_count + 1 WHERE work_id = %s', (work_id,))
 
         work_author = query('SELECT user_id FROM works WHERE work_id = %s', (work_id,), one=True)
-        if work_author and work_author['user_id'] != user_id:
-            create_notification(work_author['user_id'], 'like',
-                                f'{session.get("username", "某人")} 赞了你的作品', work_id)
+        if work_author:
+            if work_author['user_id'] != user_id:
+                create_notification(work_author['user_id'], 'like',
+                                    f'{session.get("username", "某人")} 赞了你的作品', work_id)
+            check_achievements(work_author['user_id'])
 
         return ok({'liked': True}, msg='点赞成功')
 
@@ -123,6 +127,8 @@ def toggle_favorite():
         if work_author and work_author['user_id'] != user_id:
             create_notification(work_author['user_id'], 'favorite',
                                 f'{session.get("username", "某人")} 收藏了你的作品', work_id)
+        if work_author:
+            check_achievements(work_author['user_id'])
 
         return ok({'favorited': True}, msg='收藏成功')
 

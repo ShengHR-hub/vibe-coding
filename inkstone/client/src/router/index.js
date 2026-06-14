@@ -17,6 +17,10 @@ const routes = [
   { path: '/profile/:id', name: 'Profile', component: () => import('../views/user/Profile.vue') },
   { path: '/notifications', name: 'Notifications', component: () => import('../views/notifications/NotificationCenter.vue'), meta: { auth: true } },
   { path: '/review/:work_id', name: 'Review', component: () => import('../views/review/ReviewPage.vue'), meta: { auth: true } },
+  { path: '/poems', name: 'Poems', component: () => import('../views/poems/PoemLibrary.vue') },
+  { path: '/materials', name: 'Materials', component: () => import('../views/materials/MaterialLibrary.vue') },
+  { path: '/daily', name: 'Daily', component: () => import('../views/daily/DailyPractice.vue') },
+  { path: '/rankings', name: 'Rankings', component: () => import('../views/rankings/Rankings.vue') },
 ]
 
 const router = createRouter({

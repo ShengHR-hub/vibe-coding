@@ -1,7 +1,7 @@
-from flask import Blueprint, request, session
-import re, json
+from flask import Blueprint, request, session, Response
+import re, json, urllib.parse
 from database.db import query, execute
-from utils.helpers import ok, fail, login_required, _fmt
+from utils.helpers import ok, fail, login_required, _fmt, check_achievements
 
 works_bp = Blueprint('works', __name__)
 
@@ -66,6 +66,7 @@ def create_work():
     )
     execute('UPDATE works SET word_count = %s WHERE work_id = %s', (wc, work_id))
 
+    check_achievements(user_id)
     return ok({'work_id': work_id}, msg='作品创建成功')
 
 
@@ -98,6 +99,69 @@ def get_public_work(work_id):
         favorited = f is not None
 
     return ok({'work': work, 'chapters': chapters, 'liked': liked, 'favorited': favorited})
+
+
+TYPE_NAMES = {'novel': '小说', 'poetry': '诗歌', 'essay': '散文', 'script': '剧本'}
+
+
+@works_bp.get('/<int:work_id>/export')
+@login_required
+def export_work(work_id):
+    work = query(
+        'SELECT w.*, u.username FROM works w JOIN users u ON w.user_id = u.user_id WHERE w.work_id = %s',
+        (work_id,), one=True
+    )
+    if not work:
+        return fail('作品不存在', code=404)
+
+    # Allow owner to export any status, others only published
+    is_owner = 'user_id' in session and session['user_id'] == work['user_id']
+    if work['status'] != 'published' and not is_owner:
+        return fail('作品不存在', code=404)
+
+    chapters = query(
+        'SELECT title, content, chapter_no FROM chapters WHERE work_id = %s ORDER BY chapter_no',
+        (work_id,)
+    )
+
+    type_name = TYPE_NAMES.get(work['type'], work['type'])
+    tags = work.get('tags', '')
+
+    lines = [
+        f"# {work['title']}",
+        f"作者：{work['username']}",
+        f"类型：{type_name}",
+    ]
+    if tags:
+        lines.append(f"标签：{tags}")
+    if work.get('summary'):
+        lines.append(f"简介：{work['summary']}")
+    lines.append('')
+    lines.append('—' * 20)
+    lines.append('')
+
+    for ch in chapters:
+        ch_title = ch['title'] or f"第{ch['chapter_no']}章"
+        lines.append(f"## {ch_title}")
+        lines.append('')
+        if ch['content']:
+            lines.append(ch['content'])
+        lines.append('')
+        lines.append('—' * 20)
+        lines.append('')
+
+    content = '\n'.join(lines)
+    filename = f"{work['title']}.txt"
+    encoded = urllib.parse.quote(filename)
+
+    return Response(
+        content,
+        mimetype='text/plain; charset=utf-8',
+        headers={
+            'Content-Disposition': f"attachment; filename*=UTF-8''{encoded}",
+            'Content-Type': 'text/plain; charset=utf-8',
+        }
+    )
 
 
 @works_bp.get('/<int:work_id>')
@@ -158,6 +222,7 @@ def update_work(work_id):
         total_wc = query('SELECT COALESCE(SUM(word_count), 0) as wc FROM chapters WHERE work_id = %s', (work_id,), one=True)['wc']
         execute('UPDATE works SET word_count = %s WHERE work_id = %s', (total_wc, work_id))
 
+    check_achievements(session['user_id'])
     return ok(msg='保存成功')
 
 
@@ -231,4 +296,5 @@ def toggle_status(work_id):
         return fail('无效的状态')
 
     execute('UPDATE works SET status = %s WHERE work_id = %s', (new_status, work_id))
+    check_achievements(session['user_id'])
     return ok({'status': new_status}, msg='状态已更新')

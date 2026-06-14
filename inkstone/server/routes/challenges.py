@@ -1,6 +1,6 @@
 from flask import Blueprint, request, session
 from database.db import query, execute
-from utils.helpers import ok, fail, login_required, _fmt
+from utils.helpers import ok, fail, login_required, _fmt, check_achievements
 
 challenges_bp = Blueprint('challenges', __name__)
 
@@ -137,6 +137,7 @@ def checkin(challenge_id):
             'UPDATE challenge_participants SET checkin_days = checkin_days + 1, progress = progress + %s WHERE participant_id = %s',
             (word_count, participant['participant_id'])
         )
+        check_achievements(user_id)
         return ok(msg='打卡成功')
 
 

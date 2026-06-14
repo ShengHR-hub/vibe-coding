@@ -33,7 +33,7 @@ def generate_review():
         messages = build_book_review(f"《{work['title']}》\n类型: {work['type']}\n标签: {work.get('tags','')}\n\n正文:\n{combined}")
         result = chat_completion(messages, temperature=0.7, max_tokens=1024)
         return ok({'review': result, 'work_title': work['title']})
-    except (json.JSONDecodeError, Exception):
+    except (json.JSONDecodeError, KeyError, ValueError):
         return fail('书评生成失败，请稍后再试')
 
 
@@ -105,7 +105,7 @@ def recommend():
         ''', params)
 
         return ok({'items': rows, 'reason': ai_rec.get('reason', ''), 'source': 'ai'})
-    except (json.JSONDecodeError, Exception):
+    except (json.JSONDecodeError, KeyError, ValueError):
         return fail('推荐生成失败，请稍后再试')
 
 

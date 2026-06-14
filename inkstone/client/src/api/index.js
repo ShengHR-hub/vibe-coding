@@ -27,6 +27,27 @@ export const api = {
   put: (url, body) => request(url, { method: 'PUT', body }),
   delete: (url) => request(url, { method: 'DELETE' }),
 
+  async download(url, fallbackName) {
+    try {
+      const resp = await fetch(BASE + url, { credentials: 'include' })
+      if (!resp.ok) return { code: resp.status, msg: '下载失败' }
+      const blob = await resp.blob()
+      const dispo = resp.headers.get('Content-Disposition') || ''
+      const match = dispo.match(/filename\*=UTF-8''(.+?)(?:;|$)/)
+      const filename = match ? decodeURIComponent(match[1]) : (fallbackName || 'download')
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(a.href)
+      return { code: 0 }
+    } catch {
+      return { code: -1, msg: '网络错误，请检查连接' }
+    }
+  },
+
   async upload(file) {
     const formData = new FormData()
     formData.append('file', file)
@@ -57,7 +78,8 @@ export const api = {
       const reader = resp.body.getReader()
       const decoder = new TextDecoder()
       let buffer = ''
-      while (true) {
+      let finished = false
+      while (!finished) {
         const { done, value } = await reader.read()
         if (done) break
         buffer += decoder.decode(value, { stream: true })
@@ -66,7 +88,7 @@ export const api = {
         for (const line of lines) {
           if (line.startsWith('data:')) {
             const chunk = line.slice(5).trim()
-            if (chunk === '[DONE]') break
+            if (chunk === '[DONE]') { finished = true; break }
             if (onChunk) onChunk(chunk)
           }
         }

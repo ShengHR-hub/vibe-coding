@@ -1,6 +1,6 @@
 from flask import Blueprint, request, session
 from database.db import query, execute
-from utils.helpers import ok, fail, login_required, _fmt
+from utils.helpers import ok, fail, login_required, _fmt, check_achievements
 from routes.notifications import create_notification
 import os, uuid
 
@@ -104,10 +104,16 @@ def upload_file():
     if file.content_type not in ALLOWED_TYPES:
         return fail('仅支持 PNG/JPG/GIF/WebP 图片')
 
+    # Read content and check actual size
+    file_bytes = file.read()
+    if len(file_bytes) > MAX_UPLOAD_SIZE:
+        return fail(f'文件过大，最大允许 {MAX_UPLOAD_SIZE // (1024*1024)}MB')
+
     os.makedirs(UPLOAD_DIR, exist_ok=True)
     filename = f"{uuid.uuid4().hex}.{ext}"
     filepath = os.path.join(UPLOAD_DIR, filename)
-    file.save(filepath)
+    with open(filepath, 'wb') as f:
+        f.write(file_bytes)
 
     return ok(data={'url': f'/uploads/{filename}'})
 
@@ -154,6 +160,8 @@ def toggle_follow():
         create_notification(following_id, 'follow',
                             f'{session.get("username", "某人")} 关注了你',
                             related_id=follower_id)
+
+        check_achievements(following_id)
 
         return ok({'following': True}, msg='关注成功')
 
@@ -254,12 +262,15 @@ def list_user_favorites(user_id):
 def list_achievements():
     user_id = session['user_id']
 
+    # Check for any missed unlocks
+    check_achievements(user_id)
+
     # All achievement definitions
     all_achievements = query('SELECT * FROM achievements ORDER BY condition_value')
 
     # User's unlocked achievements
-    unlocked = query('SELECT achievement_id FROM user_achievements WHERE user_id = %s', (user_id,))
-    unlocked_ids = {u['achievement_id'] for u in unlocked}
+    unlocked = query('SELECT achievement_id, unlocked_at FROM user_achievements WHERE user_id = %s', (user_id,))
+    unlocked_map = {u['achievement_id']: _fmt(u['unlocked_at']) for u in unlocked}
 
     # User stats for progress calculation
     total_words = query('SELECT COALESCE(SUM(word_count), 0) as wc FROM works WHERE user_id = %s', (user_id,), one=True)['wc']
@@ -299,8 +310,8 @@ def list_achievements():
             'condition_type': ct,
             'condition_value': target,
             'current': current,
-            'unlocked': ach['achievement_id'] in unlocked_ids,
-            'unlocked_at': None  # Could be filled from user_achievements
+            'unlocked': ach['achievement_id'] in unlocked_map,
+            'unlocked_at': unlocked_map.get(ach['achievement_id'])
         })
 
     return ok({'achievements': result})

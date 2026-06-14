@@ -12,6 +12,10 @@
       <div class="nav-links">
         <router-link to="/write" class="nav-item">写作</router-link>
         <router-link to="/explore" class="nav-item">广场</router-link>
+        <router-link to="/poems" class="nav-item">诗词</router-link>
+        <router-link to="/materials" class="nav-item">素材</router-link>
+        <router-link to="/daily" class="nav-item">练习</router-link>
+        <router-link to="/rankings" class="nav-item">排行</router-link>
         <router-link to="/challenges" class="nav-item">挑战</router-link>
       </div>
     </LiquidGlass>
@@ -104,7 +108,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-evenly;
   padding: 6px 10px;
-  width: 300px;
+  width: 530px;
 }
 
 .nav-item {

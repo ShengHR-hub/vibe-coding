@@ -239,6 +239,9 @@ const tabs = [
 
 onMounted(async () => {
   const uid = route.params.id
+  if (route.query.tab && tabs.some(t => t.key === route.query.tab)) {
+    activeTab.value = route.query.tab
+  }
   const res = await api.get(`/api/users/${uid}`)
   if (res.code === 0) {
     profile.value = res.data

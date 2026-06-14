@@ -94,6 +94,9 @@ import OutlinePanel from './OutlinePanel.vue'
 import CharacterPanel from './CharacterPanel.vue'
 import PolishPanel from './PolishPanel.vue'
 import PromptPanel from './PromptPanel.vue'
+import PoemPanel from './PoemPanel.vue'
+import ChatPanel from './ChatPanel.vue'
+import MaterialPanel from './MaterialPanel.vue'
 
 const writingStore = useWritingStore()
 
@@ -107,6 +110,9 @@ const tabs = [
   { key: 'outline', label: '大纲', icon: '≡' },
   { key: 'character', label: '角色', icon: '♛' },
   { key: 'polish', label: '润色', icon: '♦' },
+  { key: 'chat', label: '对话', icon: ' ' },
+  { key: 'poem', label: '诗词', icon: ' ' },
+  { key: 'material', label: '素材', icon: ' ' },
   { key: 'prompt', label: '提示', icon: '✎' },
 ]
 
@@ -116,6 +122,9 @@ const componentMap = {
   outline: OutlinePanel,
   character: CharacterPanel,
   polish: PolishPanel,
+  chat: ChatPanel,
+  poem: PoemPanel,
+  material: MaterialPanel,
   prompt: PromptPanel,
 }
 const activeComponent = computed(() => componentMap[activeTab.value])
@@ -497,18 +506,19 @@ onUnmounted(() => {
   border-left: 1px solid rgba(196, 163, 90, 0.06);
 }
 .ai-tabs {
-  display: flex; border-bottom: 1px solid rgba(196, 163, 90, 0.08);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-bottom: 1px solid rgba(196, 163, 90, 0.08);
   padding: 0.25rem; flex-shrink: 0;
-  overflow-x: auto;
   background: rgba(255, 255, 255, 0.02);
   gap: 2px;
 }
 .ai-tab {
-  display: flex; align-items: center; gap: 5px;
-  padding: 9px 10px; font-size: 0.82rem;
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  padding: 7px 6px; font-size: 0.78rem;
   color: var(--text-muted); background: none;
   border: none; border-bottom: 2px solid transparent;
-  border-radius: 8px 8px 0 0;
+  border-radius: 6px 6px 0 0;
   cursor: pointer; transition: all 0.25s ease;
   white-space: nowrap;
   position: relative;

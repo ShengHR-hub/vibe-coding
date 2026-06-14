@@ -87,6 +87,8 @@ def seed_works():
         (user_ids[3], '流浪地球纪事', 'script', '太阳即将毁灭，人类带着地球踏上两千五百年的流浪之旅。舞台剧本改编。', '科幻,灾难,剧本', 'draft'),
         # user 5 — JK罗琳
         (user_ids[4], '魔法部秘档', 'script', '在霍格沃茨之外，魔法部的公务员们也有自己的冒险。一部关于官僚、魔法与友情的情景喜剧剧本。', '奇幻,喜剧,魔法', 'published'),
+        (user_ids[4], '霍格沃茨的秋天', 'novel', '霍格沃茨新学期开始了。一个来自麻瓜家庭的新生发现了一本古老的魔法日记，日记里记载着一个被遗忘的黑魔法秘密。', '奇幻,魔法,校园', 'published'),
+        (user_ids[4], '创作手记', 'essay', '从咖啡馆里的涂鸦到全球畅销书，一个关于想象力如何变成文字的故事。关于写作、魔法与坚持的随笔集。', '随笔,创作,人生', 'published'),
     ]
 
     # Chapters for each work (work index in works_data → chapters)
@@ -98,7 +100,8 @@ def seed_works():
         [('第一章·死囚', '天宝三载，正月十四。长安城一百零八坊笼罩在冬日的薄雾中。大理寺的死牢里，张小敬睁开眼，听见了远处的爆竹声。上元节快到了。他本应在三日后问斩，但今天，一个意外的访客改变了一切。'),
          ('第二章·靖安司', '李必站在靖安司的沙盘前，长安城的微缩模型在烛光下静静卧着。二十四岁的少年名士，太子党的核心人物——他只有十二个时辰来阻止一场足以毁灭长安的阴谋。而他唯一的选择，是一个死囚。'),
          ('第三章·狼卫', '狼卫已潜入长安。他们是突厥的精锐，为复仇而来。张小敬循着线索穿过平康坊的烟花巷、西市的胡商摊位，每一步都踩在刀尖上。他发现这场阴谋的规模远超想象——有人想在长安城点燃一场大火。')],
-        None,  # 蜀道行 (draft, no chapters)
+        [('上篇·入蜀', '噫吁嚱，危乎高哉！蜀道之难，难于上青天！蚕丛及鱼凫，开国何茫然！尔来四万八千岁，不与秦塞通人烟。西当太白有鸟道，可以横绝峨眉巅。地崩山摧壮士死，然后天梯石栈相钩连。'),
+         ('下篇·出蜀', '朝避猛虎，夕避长蛇。磨牙吮血，杀人如麻。锦城虽云乐，不如早还家。蜀道之难，难于上青天，侧身西望长咨嗟！归去来兮，田园将芜胡不归？'),],
         [('第一章·归来的渡边', '三十七岁的渡边坐在新宿的一家爵士酒吧里，听到了那段熟悉的旋律。Norwegian Wood。十三年了，他以为自己早已忘记，但音乐响起的那一刻，一切都回来了。'),
          ('第二章·阿美寮的来信', '一封没有署名的信寄到了渡边的公寓。信纸上只有一句话："我在阿美寮，等你。"邮戳是神户。渡边知道是谁——只有一个人会这样写信。'),
          ('第三章·再会', '阿美寮的疗养院依旧被森林包围。渡边在门口站了很久，阳光透过树叶的缝隙落在他的肩上。然后直子走了出来。她瘦了很多，但眼神不再空洞。他们相视一笑，像两个在黑暗中摸索多年终于找到出口的人。')],
@@ -106,11 +109,17 @@ def seed_works():
         [('第一章·神宫外苑', '从神宫外苑到查尔斯河畔，二十五年。每天清晨五点起床，穿上跑鞋，推开门。不是为了比赛，不是为了健康——只是需要那段空白的时间，让思绪自由漂流。'), ('第二章·查尔斯河', '在波士顿的那几年，我住在查尔斯河附近。秋天的河面倒映着两岸的红叶，晨跑的人三三两两。有时候会想起村上春树——另一个在查尔斯河畔跑步的作家，只不过他已经离开了，而我刚刚到来。')],
         [('第一章·另一个白流苏', '白流苏在镜前梳妆。窗外是上海的黄昏，电车叮当作响。她看着镜中的自己——一个离婚的女人，寄居在亲戚家的客厅里。范柳原的出现是一个意外，但意外有时候就是命运的另一个名字。'), ('第二章·浅水湾', '浅水湾的旅店面向大海。白流苏和范柳原在这里度过了七天。他们谈情说爱，也谈战争与逃亡。范柳原说整个香港都会陷落，但她笑着说至少他们还有七天。'), ('第三章·倾城之后', '香港真的陷落了。炮火中的倾城之恋，反而让两人的手牵得更紧。他们在废墟中举行了最简单的婚礼——没有宾客，只有她和范柳原，还有一轮见证了一切的月亮。')],
         [('吃食', '上海人讲究吃。蟹粉小笼、腌笃鲜、糟钵斗，每一样都有每一样的讲究。张爱玲说她记得小时候家里的厨子能做一桌子好菜，但后来那些味道都随着时局散了。'), ('衣着', '旗袍是最懂女人的衣服。它包裹着身体，却把所有线条都暗示出来。旧上海的太太小姐们，每人都有几件像样的旗袍。'), ('街景', '电车叮当作响，黄包车夫在街角等客。弄堂里飘出油烟气，远处传来外滩的汽笛声。这就是上海——一个永远在告别又永远在重逢的城市。')],
-        None,  # 红玫瑰 (private)
+        [('红玫瑰', '也许每一个男子全都有过这样的两个女人，至少两个。娶了红玫瑰，久而久之，红的变了墙上的一抹蚊子血，白的还是"床前明月光"；娶了白玫瑰，白的便是衣服上沾的一粒饭黏子，红的却是心口上一颗朱砂痣。'),
+         ('白玫瑰', '振保的生命里有两个女人，一个是他的红玫瑰，一个是他的白玫瑰。一个是他的妻，一个是他的情妇。他觉得他是对的。可是在某个失眠的夜里，他忽然不确定了。'),],
         [('第一幕·面壁者', '联合国大会厅。罗辑在刺眼的灯光下被宣布为第四位面壁者。他不明白为什么是自己。只是一个普通的天体物理学家，普通的丈夫，普通的父亲。直到那个声音在他脑海中响起：面壁者，你的任务是欺骗全人类。'), ('第二幕·黑暗森林', '宇宙就是一座黑暗森林，每个文明都是带枪的猎人。罗辑终于理解了这句话的含义。他站在冰封的湖面上，对着虚空说出那个坐标——这是一个赌注，赌的是两个文明不敢互相暴露。他赌赢了。')],
         [('第一章·林云的球状闪电', '林云少校第一次向我展示球状闪电时，我们站在戈壁滩上，四周是烧焦的沙砾。她说球状闪电不是气象现象，而是一种宏观量子态。她的眼睛里有电光闪烁，那一刻我就知道，这个秘密会改变一切。'), ('第二章·新概念武器', '球状闪电本质上是一种宏观量子效应——它可以在任何地方出现，穿透任何已知的防御材料。如果能控制它，它将是人类历史上最可怕的武器。林云想用它来结束战争。而我只想用它来保护所爱的人。')],
-        None,  # 流浪地球纪事 (draft)
+        [('第一幕·启航', '联合政府大厅。全球直播。太阳即将在四百年内毁灭，人类做出了最疯狂的决定——带着地球一起逃离太阳系。一万座行星发动机同时点火，地球缓缓加速。告别了，太阳系。'),
+         ('第二幕·地下城', '地球停转后，地面温度降至零下八十四度。人类搬入地下城。在这里，没有白天黑夜，只有人造的光。孩子们在课本上读到"天空是蓝色的"，但没有人亲眼见过。'),],
         [('第一幕·魔法部大厅', '魔法部的中庭，喷泉在清晨的阳光下闪烁。赫敏·格兰杰推开部长办公室的门，发现一份关于霍格沃茨魔法生物保护区的紧急提案——是由一个叫纽特·斯卡曼德的人发来的。办公室生活，开始了。'), ('第二幕·霍格沃茨调查', '赫敏和纽特一起来到霍格沃茨。城堡的走廊在烛光下显得格外神秘。禁林边缘出现了异常的魔法波动——一种从未被记录的魔法生物正在觉醒。如果处理不当，整个保护区都可能被毁掉。')],
+        [('第一章·日记', '艾琳在霍格沃茨的旧书店里发现了一本泛黄的日记。扉页上只写了一行字："致未来的你——不要打开最后一页。"她当然打开了。从那天起，奇怪的事情开始发生在她身上。'),
+         ('第二章·密室之声', '地下室的墙壁在低语。艾琳发现日记的前任主人是五十年前的一名学生，他在探索密室时失踪了。而那个密室，据说就在霍格沃茨的某个角落里。')],
+        [('从咖啡馆到出版社', '一切始于爱丁堡的一家小咖啡馆。我在那里写下了第一个句子："哈利波特是一个男孩。"那时候我还不知道，这个句子会改变我的人生。'),
+         ('关于想象力', '想象力是人类最强大的魔法。它能让你在一间小小的房间里，创造出整个宇宙。写作就是把想象力变成文字的魔法。每一个作家都是一个魔法师。')],
     ]
 
     work_ids = []
@@ -136,6 +145,12 @@ def seed_works():
             execute('UPDATE works SET word_count = %s WHERE work_id = %s', (total_wc, wid))
 
     print(f'Seeded {len(work_ids)} works, {chapter_count} chapters.')
+
+    # Set views for published works
+    for i, (uid, title, wtype, summary, tags, status) in enumerate(works_data):
+        if status == 'published' and work_ids[i]:
+            views = random.randint(100, 5000)
+            execute('UPDATE works SET views = %s WHERE work_id = %s', (views, work_ids[i]))
 
 
 def seed_challenges():
@@ -390,6 +405,166 @@ def seed_relay_segments():
     print(f'Seeded {len(segments)} relay segments.')
 
 
+def seed_reply_comments():
+    """Add nested reply comments and pinned comments."""
+    existing = query('SELECT COUNT(*) as cnt FROM comments WHERE parent_id IS NOT NULL')
+    if existing[0]['cnt'] > 0:
+        print('Reply comments already seeded.')
+        return
+
+    comments = query('SELECT comment_id, work_id, user_id, content FROM comments ORDER BY comment_id')
+    if len(comments) < 5:
+        print('Not enough comments for replies.')
+        return
+
+    users = [r['user_id'] for r in query('SELECT user_id FROM users')]
+    replies = [
+        '谢谢你的鼓励！会继续努力的。',
+        '哈哈，你太客气了。',
+        '说得好，我也有同感。',
+        '感谢反馈，下次改进！',
+        '这个建议很有价值，谢谢！',
+    ]
+    count = 0
+    # Add 1-2 replies to the first 5 comments
+    for c in comments[:5]:
+        reply_user = random.choice([u for u in users if u != c['user_id']])
+        rid = execute(
+            'INSERT INTO comments (work_id, user_id, parent_id, content) VALUES (%s, %s, %s, %s)',
+            (c['work_id'], reply_user, c['comment_id'], random.choice(replies))
+        )
+        execute('UPDATE works SET comments_count = comments_count + 1 WHERE work_id = %s', (c['work_id'],))
+        count += 1
+        if random.random() > 0.5:
+            reply_user2 = random.choice([u for u in users if u != reply_user])
+            execute(
+                'INSERT INTO comments (work_id, user_id, parent_id, content) VALUES (%s, %s, %s, %s)',
+                (c['work_id'], reply_user2, c['comment_id'], random.choice(replies))
+            )
+            execute('UPDATE works SET comments_count = comments_count + 1 WHERE work_id = %s', (c['work_id'],))
+            count += 1
+
+    # Pin one comment
+    first_comment = comments[0]
+    execute('UPDATE comments SET is_pinned = TRUE WHERE comment_id = %s', (first_comment['comment_id'],))
+
+    print(f'Seeded {count} reply comments + 1 pinned comment.')
+
+
+def seed_comment_likes():
+    """Add likes on comments."""
+    if _exists('comment_likes'):
+        print('Comment likes already seeded.')
+        return
+
+    comments = query('SELECT comment_id, user_id FROM comments LIMIT 20')
+    users = [r['user_id'] for r in query('SELECT user_id FROM users')]
+    count = 0
+    for c in comments:
+        n_likes = random.randint(0, 3)
+        likers = random.sample([u for u in users if u != c['user_id']], min(n_likes, len(users) - 1))
+        for uid in likers:
+            execute('INSERT IGNORE INTO comment_likes (user_id, comment_id) VALUES (%s, %s)', (uid, c['comment_id']))
+            count += 1
+    print(f'Seeded {count} comment likes.')
+
+
+def seed_work_versions():
+    """Create version snapshots for some works."""
+    if _exists('work_versions'):
+        print('Work versions already seeded.')
+        return
+
+    works = query("SELECT work_id FROM works WHERE status = 'published' LIMIT 5")
+    count = 0
+    for w in works:
+        chapters = query('SELECT * FROM chapters WHERE work_id = %s ORDER BY chapter_no', (w['work_id'],))
+        if not chapters:
+            continue
+        work_row = query('SELECT * FROM works WHERE work_id = %s', (w['work_id'],), one=True)
+        snapshot = {
+            'work': {k: (v.isoformat() if hasattr(v, 'isoformat') else v) for k, v in work_row.items()},
+            'chapters': [{k: (v.isoformat() if hasattr(v, 'isoformat') else v) for k, v in ch.items()} for ch in chapters]
+        }
+        import json
+        execute(
+            'INSERT INTO work_versions (work_id, content_json, word_count) VALUES (%s, %s, %s)',
+            (w['work_id'], json.dumps(snapshot, ensure_ascii=False), work_row['word_count'])
+        )
+        count += 1
+    print(f'Seeded {count} work versions.')
+
+
+def seed_ai_conversations():
+    """Create sample AI conversation history."""
+    if _exists('ai_conversations'):
+        print('AI conversations already seeded.')
+        return
+
+    import uuid
+    users = [r['user_id'] for r in query('SELECT user_id FROM users')][:3]
+    conversations = [
+        [
+            ('user', '请帮我续写一段古风小说的开头，关于一个少年在长安城的夜晚。'),
+            ('assistant', '长安城的夜，像一匹展开的黑缎，缀满了银色的星子。少年站在朱雀大街的尽头，听着远处传来的更鼓声。他叫李长风，今年十六岁，身上穿着一件洗得发白的青衫。这是他第一次独自来到长安。身上的银两已经花光了，但他不在乎。因为他知道，今夜过后，一切都将不同。'),
+        ],
+        [
+            ('user', '帮我写一首关于秋天的五言绝句。'),
+            ('assistant', '秋风起萧瑟，\n落叶满长安。\n雁过寒云远，\n孤灯照夜阑。'),
+        ],
+        [
+            ('user', '我的小说主角是一个失忆的侦探，帮我构思一下故事大纲。'),
+            ('assistant', '故事大纲：\n1. 开篇：侦探在医院醒来，发现自己失去了过去三年的记忆。桌上放着一张照片，照片里是他和一个陌生女人。\n2. 发现：他回到自己的事务所，发现三年前他接了一个案子——一个富商的失踪案。案子记录不完整，似乎被人刻意删除过。\n3. 追查：他开始调查那个照片里的女人，发现她是富商的妻子，而她也失踪了。\n4. 真相：他逐渐发现，自己在失忆前已经接近真相——富商并没有失踪，而是被人谋杀了。凶手就藏在他身边。\n5. 高潮：他发现自己失忆的原因并非意外，而是有人故意让他忘记。'),
+        ],
+    ]
+
+    count = 0
+    for uid in users:
+        for conv in conversations[:random.randint(1, 3)]:
+            session_key = str(uuid.uuid4())
+            for role, content in conv:
+                execute(
+                    'INSERT INTO ai_conversations (user_id, session_key, role, content) VALUES (%s, %s, %s, %s)',
+                    (uid, session_key, role, content)
+                )
+                count += 1
+    print(f'Seeded {count} AI conversations.')
+
+
+def seed_user_achievements():
+    """Unlock achievements for users who meet the conditions."""
+    if query('SELECT COUNT(*) as cnt FROM user_achievements')[0]['cnt'] > 0:
+        print('User achievements already seeded.')
+        return
+
+    achievements = query('SELECT * FROM achievements')
+    users = [r['user_id'] for r in query('SELECT user_id FROM users')]
+    count = 0
+
+    for uid in users:
+        stats = {
+            'word_count': query('SELECT COALESCE(SUM(word_count), 0) as v FROM works WHERE user_id = %s', (uid,), one=True)['v'],
+            'likes': query('SELECT COALESCE(SUM(likes_count), 0) as v FROM works WHERE user_id = %s', (uid,), one=True)['v'],
+            'comments': query('SELECT COALESCE(SUM(comments_count), 0) as v FROM works WHERE user_id = %s', (uid,), one=True)['v'],
+            'works': query("SELECT COUNT(*) as v FROM works WHERE user_id = %s AND status = 'published'", (uid,), one=True)['v'],
+            'checkin_days': query('''
+                SELECT COUNT(DISTINCT checkin_date) as v FROM challenge_checkins cc
+                JOIN challenge_participants cp ON cc.participant_id = cp.participant_id
+                WHERE cp.user_id = %s
+            ''', (uid,), one=True)['v'],
+            'followers': query('SELECT COUNT(*) as v FROM follows WHERE following_id = %s', (uid,), one=True)['v'],
+        }
+
+        for ach in achievements:
+            current = stats.get(ach['condition_type'], 0)
+            if current >= ach['condition_value']:
+                execute('INSERT IGNORE INTO user_achievements (user_id, achievement_id) VALUES (%s, %s)',
+                        (uid, ach['achievement_id']))
+                count += 1
+
+    print(f'Seeded {count} user achievements.')
+
+
 if __name__ == '__main__':
     print('Seeding Inkstone database...')
     seed_achievements()
@@ -400,6 +575,24 @@ if __name__ == '__main__':
     seed_checkins()
     seed_sessions()
     seed_interactions()
+    seed_reply_comments()
+    seed_comment_likes()
+    seed_work_versions()
+    seed_ai_conversations()
     seed_notifications()
     seed_relay_segments()
+    seed_user_achievements()
+
+    # Import poems library
+    from scripts.crawl_poems import import_poems
+    import_poems()
+
+    # Import materials library
+    from scripts.seed_materials import import_materials
+    import_materials()
+
+    # Import daily prompts
+    from scripts.seed_daily_prompts import import_daily_prompts
+    import_daily_prompts()
+
     print('Seeding complete!')
