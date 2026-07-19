@@ -124,6 +124,21 @@ def build_chat_system():
     }
 
 
+def build_summary(chapter_title, chapter_content):
+    """生成章节摘要的 prompt"""
+    return [
+        {'role': 'system', 'content': (
+            '你是一位文学编辑。请为以下章节生成简洁的摘要，要求：\n'
+            '1. 概括章节的主要情节和关键事件\n'
+            '2. 提及重要角色和他们的行动\n'
+            '3. 如果有重要的对话或冲突，简要说明\n'
+            '4. 控制在 100-200 字\n'
+            '5. 用中文撰写，语言流畅自然'
+        )},
+        {'role': 'user', 'content': f'章节标题：{chapter_title}\n\n章节内容：\n{chapter_content[:5000]}'}
+    ]
+
+
 def build_rp_extract(work_content):
     return [
         {'role': 'system', 'content': (

@@ -41,7 +41,6 @@ def chat_completion(messages, temperature=0.7, max_tokens=2048):
         headers=_headers(),
         json=_build_body(messages, temperature, max_tokens),
         timeout=120,
-        verify=False
     )
     resp.raise_for_status()
     data = resp.json()
@@ -61,7 +60,6 @@ def chat_completion_stream(messages, temperature=0.7, max_tokens=2048):
         json={**_build_body(messages, temperature, max_tokens), 'stream': True},
         timeout=120,
         stream=True,
-        verify=False
     )
     resp.raise_for_status()
     resp.encoding = 'utf-8'

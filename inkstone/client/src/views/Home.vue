@@ -2,6 +2,16 @@
   <div class="home-fullpage" ref="container">
     <FluidCursor />
 
+    <!-- 左上角墨池标志 -->
+    <div class="corner-area">
+      <InkstoneLogo />
+    </div>
+
+    <!-- 右上角用户区域 -->
+    <div class="user-area">
+      <UserMenu />
+    </div>
+
     <!-- 浮动装饰光点 -->
     <div class="floating-orbs">
       <span class="f-orb f-orb-1"></span>
@@ -24,11 +34,25 @@
         <MorphingText :texts="heroTexts" class="hero-morphing" />
         <p class="hero-subtitle">Where ink blooms into art</p>
         <div class="hero-divider"></div>
-        <p class="hero-desc">墨池是一个 AI 驱动的全品类创作平台，融合前沿大语言模型与<br>优雅的写作体验，覆盖小说、诗歌、散文、剧本、自媒体等创作场景。</p>
-        <div class="hero-cta">
-          <router-link to="/write" class="cta-btn cta-primary">
-            <span>Start Writing</span>
-            <span class="cta-arrow">&rarr;</span>
+        <p class="hero-desc">墨池是一个 AI 驱动的读写一体化平台，涵盖 AI 写作工作室、沉浸式阅读系统、<br>出版连载、角色扮演、社区互动、挑战赛、数据仪表盘等 28 个功能模块。</p>
+        <div class="hero-portals">
+          <router-link to="/write" class="portal-card portal-write">
+            <span class="portal-en">Writing</span>
+            <span class="portal-title">开始写作</span>
+            <span class="portal-sub">AI 续写 · 灵感激发 · 角色塑造</span>
+            <span class="portal-line"></span>
+          </router-link>
+          <router-link to="/library?from=reading" class="portal-card portal-read">
+            <span class="portal-en">Reading</span>
+            <span class="portal-title">开始阅读</span>
+            <span class="portal-sub">书库探索 · 沉浸阅读 · 批注打卡</span>
+            <span class="portal-line"></span>
+          </router-link>
+          <router-link to="/explore" class="portal-card portal-community">
+            <span class="portal-en">Community</span>
+            <span class="portal-title">社区广场</span>
+            <span class="portal-sub">发现作品 · 互动交流 · 排行榜</span>
+            <span class="portal-line"></span>
           </router-link>
         </div>
         <p class="hero-hint">Scroll to explore</p>
@@ -40,10 +64,10 @@
     <section class="fp-section section-overview">
       <div class="section-inner">
         <p class="sec-tag">Overview <span class="tag-cn">概览</span></p>
-        <h2 class="sec-heading">一站式<br>智能创作空间</h2>
+        <h2 class="sec-heading">读写一体<br>智能创作空间</h2>
         <p class="sec-subtitle">
-          墨池将 AI 深度融入创作的每一个环节——从灵感捕捉到最终发布，<br>
-          你只需专注创意本身，其余交给 AI。
+          28 个功能模块覆盖创作与阅读的每一个环节——从 AI 辅助写作到沉浸式阅读，<br>
+          从社区互动到数据驱动的成长体系，读与写在这里深度融合。
         </p>
         <div class="stat-row">
           <div class="stat-card" v-for="s in stats" :key="s.label">
@@ -55,21 +79,22 @@
       </div>
     </section>
 
-    <!-- ====== 3. AI 续写 ====== -->
+    <!-- ====== 3. AI 写作工作室 ====== -->
     <section class="fp-section section-feature-detail">
       <div class="section-inner split-layout">
         <div class="split-text">
           <span class="feature-badge">01</span>
-          <h2 class="sec-heading">Smart<br>Continuation</h2>
-          <h3 class="feature-cn-title">智能续写</h3>
+          <h2 class="sec-heading">AI Writing<br>Studio</h2>
+          <h3 class="feature-cn-title">AI 写作工作室</h3>
           <p class="feature-long-desc">
-            不只是简单的文本补全。墨池的智能续写引擎会深度理解你的上下文语境、角色设定和文风特征，生成与原文高度一致的高质量续写内容。支持小说、散文、诗歌、剧本等多种文体，通过 SSE 流式响应让你实时看到 AI 创作的过程。
+            7 大 AI 能力覆盖创作全流程。智能续写通过 SSE 流式响应实时生成，支持多种文风；灵感激发从关键词挖掘故事创意；大纲规划自动生成分章结构；角色塑造构建五维立体人物；润色优化提供四种模式；文字诊断从七个维度深度分析；AI 对话助手随时讨论创意。
           </p>
           <ul class="feature-points">
-            <li>上下文感知，保持文风、人称、时代背景一致</li>
-            <li>SSE 流式输出，实时查看 AI 生成过程</li>
-            <li>支持随时中断、调整方向，人机协作而非单向输出</li>
-            <li>自动保存对话历史，随时回溯修改</li>
+            <li>智能续写：上下文感知 + SSE 流式 + 多文风支持</li>
+            <li>灵感激发 / 大纲规划 / 角色塑造：从构思到成型</li>
+            <li>润色优化（4 模式）+ 文字诊断（7 维度分析）</li>
+            <li>AI 对话助手：多轮讨论创意，自动保存历史</li>
+            <li>章节摘要生成：一键提炼章节核心内容</li>
           </ul>
         </div>
         <div class="split-visual">
@@ -85,18 +110,25 @@
       </div>
     </section>
 
-    <!-- ====== 4. 灵感激发 ====== -->
+    <!-- ====== 4. 沉浸式阅读系统 ====== -->
     <section class="fp-section section-feature-detail">
       <div class="section-inner split-layout reverse">
         <div class="split-visual">
           <div class="visual-card shimmer-card">
-            <span class="visual-icon">☆</span>
+            <span class="visual-icon"> </span>
             <div class="visual-demo">
-              <div class="inspo-grid">
-                <span class="inspo-tag">赛博朋克 + 唐代宫廷</span>
-                <span class="inspo-tag">AI 觉醒与自我意识</span>
-                <span class="inspo-tag">双主角镜像叙事</span>
-                <span class="inspo-tag">末世废墟中的希望</span>
+              <div class="reading-demo">
+                <div class="rd-progress">
+                  <span class="rd-label">阅读进度</span>
+                  <div class="rd-bar"><div class="rd-fill" style="width:68%"></div></div>
+                  <span class="rd-pct">68%</span>
+                </div>
+                <div class="rd-tools">
+                  <span class="rd-tag">  书签</span>
+                  <span class="rd-tag">  批注</span>
+                  <span class="rd-tag">✨ 好句</span>
+                  <span class="rd-tag">  打卡</span>
+                </div>
               </div>
             </div>
             <div class="card-shimmer"></div>
@@ -104,47 +136,50 @@
         </div>
         <div class="split-text">
           <span class="feature-badge">02</span>
-          <h2 class="sec-heading">Inspiration<br>Engine</h2>
-          <h3 class="feature-cn-title">灵感激发</h3>
+          <h2 class="sec-heading">Immersive<br>Reading</h2>
+          <h3 class="feature-cn-title">沉浸式阅读系统</h3>
           <p class="feature-long-desc">
-            每个创作者都会遇到瓶颈。灵感激发引擎是你的随身创意伙伴——输入一个模糊的想法，它能生成完整的角色设定、世界观框架、情节转折方案。从简单构思到包含人物关系图谱和章节大纲的完整策划，只需一键。
+            完整的阅读体验闭环。个人书架管理想读、在读、已读书籍；阅读进度精确到章节和滚动百分比，自动同步书架状态；书签标记精彩段落，批注记录阅读感悟，好句标记可一键同步到写作素材库。还有阅读打卡、阅读目标、阅读热力图、年度阅读报告等丰富的数据追踪。
           </p>
           <ul class="feature-points">
-            <li>角色设定生成：外貌、性格、背景故事、动机弧线</li>
-            <li>世界观构建：时代背景、社会结构、魔法/科技体系</li>
-            <li>情节转折：冲突设计、高潮编排、多结局方案</li>
-            <li>创作提示库：海量精选 prompt，覆盖各类文体场景</li>
+            <li>个人书架：分组管理 + 自定义书单 + 批量操作</li>
+            <li>阅读进度：章节级追踪 + 自动流转（想读→在读→已读）</li>
+            <li>书签 / 批注 / 好句标记：完整的阅读笔记体系</li>
+            <li>阅读打卡 + 热力图 + 目标设定 + 年度报告</li>
+            <li>好句一键同步到写作素材库，读写深度融合</li>
           </ul>
         </div>
       </div>
     </section>
 
-    <!-- ====== 5. 大纲规划 ====== -->
+    <!-- ====== 5. 书库与出版连载 ====== -->
     <section class="fp-section section-feature-detail">
       <div class="section-inner split-layout">
         <div class="split-text">
           <span class="feature-badge">03</span>
-          <h2 class="sec-heading">Outline<br>Architect</h2>
-          <h3 class="feature-cn-title">大纲规划</h3>
+          <h2 class="sec-heading">Library &<br>Serialization</h2>
+          <h3 class="feature-cn-title">书库与出版连载</h3>
           <p class="feature-long-desc">
-            长篇创作最大的挑战是结构。大纲规划器能智能分析你的创作主题，自动生成多层级章节大纲——从卷、篇、章到节，每一层都有清晰的内容指引。你可以拖拽调整结构、增删节点，AI 实时更新建议。
+            双轨书库系统——用户创作的作品与外部导入的书籍统一管理。支持 TXT 文件上传自动解析章节，书库排行榜多维度推荐，AI 基于阅读偏好智能推荐同类书籍。出版连载系统支持卷管理、章节分配、连载状态切换，满足长篇连载需求。
           </p>
           <ul class="feature-points">
-            <li>多层级大纲自动生成，从宏观结构到微观段落</li>
-            <li>拖拽式结构调整，AI 实时同步更新内容建议</li>
-            <li>支持导入/导出，与主流写作工具兼容</li>
-            <li>进度追踪：每个章节完成度一目了然</li>
+            <li>双轨书库：用户创作 + 外部导入，统一搜索浏览</li>
+            <li>TXT 上传自动解析：正则识别章节标题 + 编码检测</li>
+            <li>书库排行榜：热门 / 评分 / 最新，多维度推荐</li>
+            <li>出版连载：卷管理 + 章节分配 + 连载/完结/暂停状态</li>
+            <li>AI 推荐：基于阅读偏好分析推荐同类热门书籍</li>
           </ul>
         </div>
         <div class="split-visual">
           <div class="visual-card shimmer-card">
-            <span class="visual-icon">≡</span>
+            <span class="visual-icon"> </span>
             <div class="outline-tree">
-              <div class="ot-item ot-l1">卷一 · 启程</div>
-              <div class="ot-item ot-l2">第1章 · 离别</div>
-              <div class="ot-item ot-l3">场景：火车站送别</div>
-              <div class="ot-item ot-l2">第2章 · 旅途</div>
-              <div class="ot-item ot-l1">卷二 · 抵达</div>
+              <div class="ot-item ot-l1">  书库浏览</div>
+              <div class="ot-item ot-l2">  热门排行 · 评分排行</div>
+              <div class="ot-item ot-l2">  TXT 上传 · 自动解析</div>
+              <div class="ot-item ot-l1">  出版连载</div>
+              <div class="ot-item ot-l2">卷管理 · 章节分配</div>
+              <div class="ot-item ot-l2">连载中 / 已完结 / 暂停</div>
             </div>
             <div class="card-shimmer"></div>
           </div>
@@ -152,7 +187,7 @@
       </div>
     </section>
 
-    <!-- ====== 6. 角色塑造 ====== -->
+    <!-- ====== 6. 角色系统与角色扮演 ====== -->
     <section class="fp-section section-feature-detail">
       <div class="section-inner split-layout reverse">
         <div class="split-visual">
@@ -176,45 +211,50 @@
         </div>
         <div class="split-text">
           <span class="feature-badge">04</span>
-          <h2 class="sec-heading">Character<br>Builder</h2>
-          <h3 class="feature-cn-title">角色塑造</h3>
+          <h2 class="sec-heading">Character &<br>Role Play</h2>
+          <h3 class="feature-cn-title">角色系统与角色扮演</h3>
           <p class="feature-long-desc">
-            扁平的角色是故事的致命伤。角色塑造器从外貌、性格、背景、动机、成长弧线五个维度帮你构建有血有肉的立体人物。AI 基于人格心理学模型分析角色行为逻辑，确保人物的每一步选择都有迹可循。
+            角色系统不止于设定卡片。AI 可从作品文本中自动提取角色设定，生成人物关系图谱和剧情时间线。角色扮演功能让你与笔下的角色进行沉浸式对话——AI 严格保持角色性格和说话风格，帮你检验人物的一致性，发现性格中的盲点。
           </p>
           <ul class="feature-points">
-            <li>五维角色建模：外貌 / 性格 / 背景 / 动机 / 弧线</li>
-            <li>人格心理学驱动，行为逻辑自洽</li>
-            <li>角色关系图谱：自动生成人物之间的关联与冲突</li>
-            <li>角色对话模拟：用你的角色进行对话测试一致性</li>
+            <li>AI 角色提取：从作品文本自动提取角色设定（最多 8 个）</li>
+            <li>角色关系图谱：AI 分析人物关联与冲突，可视化展示</li>
+            <li>剧情时间线：按章节提取关键事件，梳理故事脉络</li>
+            <li>角色扮演聊天：SSE 流式对话，严格保持角色人格</li>
+            <li>角色设定五维：外貌 / 性格 / 背景 / 动机 / 说话风格</li>
           </ul>
         </div>
       </div>
     </section>
 
-    <!-- ====== 7. 润色优化 ====== -->
+    <!-- ====== 7. 挑战赛与每日练习 ====== -->
     <section class="fp-section section-feature-detail">
       <div class="section-inner split-layout">
         <div class="split-text">
           <span class="feature-badge">05</span>
-          <h2 class="sec-heading">Polish &amp;<br>Refine</h2>
-          <h3 class="feature-cn-title">润色优化</h3>
+          <h2 class="sec-heading">Challenges &amp;<br>Daily Practice</h2>
+          <h3 class="feature-cn-title">挑战赛与每日练习</h3>
           <p class="feature-long-desc">
-            初稿是矿石，润色是冶炼。墨池的润色引擎不止于语法纠错——它会分析你的文笔风格，在保留你独特声音的前提下提升文字质感。从用词精准度、句式变化到篇章节奏，AI 提供多维度优化建议。
+            写作是需要坚持的习惯。挑战赛系统提供 30 天写作马拉松、古风诗词挑战、科幻微小说大赛等多种活动，每日打卡记录进度，接龙段落让多人协作创作。每日练习提供精选题目（微小说、诗歌、对话、描写、续写），提交后参与社区投票排行。
           </p>
           <ul class="feature-points">
-            <li>语法修正 + 用词优化 + 句式多样化，三合一</li>
-            <li>尊重作者风格，不做模板化替换</li>
-            <li>可调节润色力度：轻微修饰 / 深度改写</li>
-            <li>逐句对比模式：修改前后并排展示，一目了然</li>
+            <li>挑战赛：参与 / 每日打卡 / 进度追踪 / 接龙创作</li>
+            <li>每日练习：5 种题型 + 字数要求 + 难度分级</li>
+            <li>练习提交与社区投票，点赞排行</li>
+            <li>连续打卡天数统计，培养写作习惯</li>
           </ul>
         </div>
         <div class="split-visual">
           <div class="visual-card shimmer-card">
-            <span class="visual-icon">♦</span>
+            <span class="visual-icon"> </span>
             <div class="visual-demo">
-              <p class="demo-line prompt">他很快地走到了那个很大的房子前面。</p>
-              <div class="polish-arrow">↓</div>
-              <p class="demo-line ai">他快步走到那座宏伟的老宅前，月光正爬上斑驳的墙壁。</p>
+              <div class="outline-tree">
+                <div class="ot-item ot-l1">  30天写作马拉松</div>
+                <div class="ot-item ot-l2">每日打卡 · 进度追踪</div>
+                <div class="ot-item ot-l1">  每日练习</div>
+                <div class="ot-item ot-l2">微小说 · 诗歌 · 对话</div>
+                <div class="ot-item ot-l2">描写 · 续写 · 社区投票</div>
+              </div>
             </div>
             <div class="card-shimmer"></div>
           </div>
@@ -222,45 +262,50 @@
       </div>
     </section>
 
-    <!-- ====== 8. 提示词库 ====== -->
+    <!-- ====== 8. 数据仪表盘与 AI 分析 ====== -->
     <section class="fp-section section-feature-detail">
       <div class="section-inner split-layout reverse">
         <div class="split-visual">
           <div class="visual-card shimmer-card">
-            <span class="visual-icon">✎</span>
-            <div class="prompt-list">
-              <div class="prompt-item" v-for="p in samplePrompts" :key="p">
-                <span class="prompt-dot"></span>
-                <span>{{ p }}</span>
-              </div>
+            <span class="visual-icon"> </span>
+            <div class="outline-tree">
+              <div class="ot-item ot-l1">  写作数据仪表盘</div>
+              <div class="ot-item ot-l2">总字数 · 连续天数 · 日均产出</div>
+              <div class="ot-item ot-l2">年度热力图 · 月度趋势</div>
+              <div class="ot-item ot-l1">  AI 风格分析</div>
+              <div class="ot-item ot-l2">文艺 / 朴实 / 幽默 / 激昂 / 忧郁</div>
+              <div class="ot-item ot-l1">  月度写作报告</div>
+              <div class="ot-item ot-l2">AI 生成个性化写作建议</div>
             </div>
             <div class="card-shimmer"></div>
           </div>
         </div>
         <div class="split-text">
           <span class="feature-badge">06</span>
-          <h2 class="sec-heading">Prompt<br>Library</h2>
-          <h3 class="feature-cn-title">提示词库</h3>
+          <h2 class="sec-heading">Analytics &amp;<br>AI Insight</h2>
+          <h3 class="feature-cn-title">数据仪表盘与 AI 分析</h3>
           <p class="feature-long-desc">
-            好的 prompt 是 AI 创作的关键。墨池内置了海量精心调校的创作提示词，覆盖小说开篇、情节转折、对话生成、场景描写、情感渲染等数十种创作场景。每个提示词都经过真实创作验证，你也可以收藏、修改和分享。
+            用数据驱动创作成长。写作仪表盘追踪总字数、连续写作天数、日均产出、周/月对比；年度热力图可视化你的创作节奏；AI 风格分析从文艺、朴实、幽默、激昂、忧郁五个维度量化你的文笔特征；月度报告由 AI 生成个性化写作建议和鼓励。
           </p>
           <ul class="feature-points">
-            <li>10+ 文体、30+ 场景分类，快速找到需要的提示词</li>
-            <li>每条提示词含使用示例和效果说明</li>
-            <li>自定义提示词：创建、编辑、收藏、分享</li>
-            <li>社区共享：浏览其他创作者的提示词方案</li>
+            <li>写作仪表盘：总览 + 热力图 + 月度趋势 + 会话记录</li>
+            <li>AI 风格分析：五维度雷达图，量化你的文笔特征</li>
+            <li>AI 月度报告：自动生成个性化写作建议</li>
+            <li>阅读报告：周报 / 月报 / 年报 / 阅读速度分析</li>
+            <li>作品版本快照：每次修改自动保存，支持任意回退</li>
           </ul>
         </div>
       </div>
     </section>
 
-    <!-- ====== 9. 创作社区 ====== -->
+    <!-- ====== 9. 社区与诗词素材 ====== -->
     <section class="fp-section section-community">
       <div class="section-inner">
-        <p class="sec-tag">Community <span class="tag-cn">社区</span></p>
+        <p class="sec-tag">Community <span class="tag-cn">社区与资源</span></p>
         <h2 class="sec-heading">Share &amp;<br>Discover</h2>
         <p class="sec-subtitle">
-          创作不是孤独的事。在墨池社区，你可以发布作品、<br>发现同好、交流技巧、互相激励。
+          创作不是孤独的事。在墨池社区发布作品、发现同好、交流技巧。<br>
+          诗词库收录 150+ 首精选古诗词，素材库提供海量写作素材，每日推荐实时获取。
         </p>
         <div class="comm-grid">
           <div class="comm-card" v-for="c in community" :key="c.en">
@@ -297,7 +342,8 @@
         <p class="sec-tag">Growth <span class="tag-cn">成长</span></p>
         <h2 class="sec-heading">Level Up<br>Your Craft</h2>
         <p class="sec-subtitle">
-          每一次创作都在积累经验。从"初窥门径"到"文坛巨匠"，<br>你的每个字都算数。
+          每一次创作和阅读都在积累经验。从"初窥门径"到"文坛巨匠"，<br>
+          18 种成就覆盖写作、阅读、社交全场景，你的每个字都算数。
         </p>
         <div class="level-row">
           <div class="level-card" v-for="l in levels" :key="l.level">
@@ -314,13 +360,16 @@
     <section class="fp-section section-cta">
       <div class="section-inner">
         <h2 class="sec-heading cta-heading">Ready to<br>Create?</h2>
-        <p class="sec-subtitle">加入墨池，让 AI 激发你的下一个伟大故事</p>
+        <p class="sec-subtitle">加入墨池，28 个模块、155 个端点、42 个页面，<br>打造属于你的读写一体化空间</p>
         <div class="cta-buttons">
           <router-link to="/write" class="cta-btn cta-primary pulse-glow">
             <span>Start Writing</span>
             <span class="cta-arrow">&rarr;</span>
           </router-link>
-          <router-link to="/register" class="cta-btn cta-ghost">Create Account</router-link>
+          <router-link to="/library" class="cta-btn cta-ghost">
+            <span>Start Reading</span>
+            <span class="cta-arrow">&rarr;</span>
+          </router-link>
         </div>
       </div>
     </section>
@@ -329,14 +378,21 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import FluidCursor from '../components/FluidCursor.vue'
 import FeaturedPoemsCarousel from '../components/FeaturedPoemsCarousel.vue'
 import MorphingText from '../components/MorphingText.vue'
+import InkstoneLogo from '../components/InkstoneLogo.vue'
+import UserMenu from '../components/UserMenu.vue'
 import { api } from '../api/index.js'
+import { useUserStore } from '../stores/user.js'
 
 gsap.registerPlugin(ScrollTrigger)
+
+const router = useRouter()
+const userStore = useUserStore()
 
 const totalSections = 12
 const currentSection = ref(0)
@@ -346,10 +402,10 @@ const featuredPoems = ref([])
 const heroTexts = ['以墨为池', '字字生花', '让文字自由生长']
 
 const stats = [
-  { num: 7, label: 'AI 核心能力', desc: '覆盖创作全流程' },
-  { num: 10, label: '功能模块', desc: '写作 / 社区 / 成长' },
-  { num: 46, label: '平台子功能', desc: '每个细节都打磨到位' },
-  { num: 5, label: '创作品类', desc: '小说 / 诗歌 / 散文 / 剧本 / 自媒体' },
+  { num: 28, label: '功能模块', desc: '覆盖读写全场景' },
+  { num: 155, label: 'API 端点', desc: '每个细节都打磨到位' },
+  { num: 42, label: '页面', desc: '完整的产品体验' },
+  { num: 36, label: '数据表', desc: '严谨的数据架构' },
 ]
 
 const samplePrompts = [
@@ -363,21 +419,23 @@ const samplePrompts = [
 const community = [
   { icon: '♥', en: 'Like', cn: '点赞互动', desc: '为喜欢的作品送上欣赏，优质内容获得更多曝光' },
   { icon: '★', en: 'Favorite', cn: '收藏关注', desc: '收藏好文随时回顾，关注作者不遗漏新作品' },
-  { icon: '✎', en: 'Comment', cn: '评论交流', desc: '深度评论交流创作心得，互相学习共同进步' },
-  { icon: '♦', en: 'Rank', cn: '成就等级', desc: '从初窥门径到文坛巨匠，十级成长见证创作之路' },
+  { icon: '✎', en: 'Comment', cn: '评论交流', desc: '嵌套评论 + 置顶评论，深度交流创作心得' },
+  { icon: '✨', en: 'Poems', cn: '诗词库', desc: '150+ 精选古典诗词，分类浏览，每日推荐' },
+  { icon: '☆', en: 'Materials', cn: '素材库', desc: '海量写作素材，分类检索，好句一键同步' },
+  { icon: '♕', en: 'Rankings', cn: '排行榜', desc: '作品 / 作者 / 周榜 / 新作，多维度排行' },
 ]
 
-const levels = [
-  { level: 1, name: '初窥门径', exp: '0' },
-  { level: 3, name: '小有所成', exp: '500' },
-  { level: 5, name: '妙笔生花', exp: '5,000' },
-  { level: 7, name: '才华横溢', exp: '30,000' },
-  { level: 10, name: '文坛巨匠', exp: '500,000' },
-]
+const levels = ref([
+  { level: 1, name: '初窥门径', exp: 0 },
+  { level: 3, name: '小有所成', exp: 500 },
+  { level: 5, name: '妙笔生花', exp: 5000 },
+  { level: 7, name: '才华横溢', exp: 30000 },
+  { level: 10, name: '文坛巨匠', exp: 500000 },
+])
 
 let stTriggers = []
 let tiltCleanups = []
-
+let floatingAnims = []
 
 function animateCounters() {
   document.querySelectorAll('.stat-num').forEach(el => {
@@ -437,6 +495,17 @@ onMounted(async () => {
     if (res.code === 0) featuredPoems.value = res.data.poems
   } catch {}
 
+  // 获取等级定义（从 API 而非硬编码）
+  try {
+    const res = await api.get('/api/users/levels')
+    if (res.code === 0) {
+      const allLevels = res.data.levels
+      // 只展示关键等级节点
+      const showcase = [1, 3, 5, 7, 10]
+      levels.value = allLevels.filter(l => showcase.includes(l.level))
+    }
+  } catch {}
+
   nextTick(() => {
     const sectionsEl = document.querySelectorAll('.fp-section')
 
@@ -455,7 +524,7 @@ onMounted(async () => {
         tl.fromTo('.hero-morphing', { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, ease: 'power3.out' }, '-=1.5')
         tl.fromTo('.hero-subtitle', { opacity: 0 }, { opacity: 1, duration: 0.7 }, '-=0.3')
         tl.fromTo('.hero-divider', { scaleX: 0, opacity: 0 }, { scaleX: 1, opacity: 1, duration: 0.8, ease: 'power3.inOut' }, '-=0.3')
-        tl.fromTo('.hero-desc, .hero-cta', { y: 16, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, stagger: 0.1, ease: 'power3.out' }, '-=0.2')
+        tl.fromTo('.hero-desc, .hero-portals', { y: 16, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, stagger: 0.1, ease: 'power3.out' }, '-=0.2')
         tl.fromTo('.hero-hint', { opacity: 0 }, { opacity: 1, duration: 0.4 }, '-=0.1')
         tl.fromTo('.scroll-arrow', { y: -6, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5 })
         tl.play()
@@ -534,17 +603,20 @@ onMounted(async () => {
     bindTilt()
 
     // 浮动光点持续动画
-    gsap.to('.f-orb-1', { y: -30, x: 20, duration: 8, repeat: -1, yoyo: true, ease: 'sine.inOut' })
-    gsap.to('.f-orb-2', { y: 25, x: -20, duration: 10, repeat: -1, yoyo: true, ease: 'sine.inOut' })
-    gsap.to('.f-orb-3', { y: -20, x: -15, duration: 7, repeat: -1, yoyo: true, ease: 'sine.inOut' })
-    gsap.to('.f-diamond-1', { y: -40, rotate: 180, duration: 12, repeat: -1, yoyo: true, ease: 'sine.inOut' })
-    gsap.to('.f-diamond-2', { y: 30, rotate: -180, duration: 9, repeat: -1, yoyo: true, ease: 'sine.inOut' })
-    gsap.to('.f-ring-1', { scale: 1.2, opacity: 0.15, duration: 6, repeat: -1, yoyo: true, ease: 'sine.inOut' })
+    floatingAnims = [
+      gsap.to('.f-orb-1', { y: -30, x: 20, duration: 8, repeat: -1, yoyo: true, ease: 'sine.inOut' }),
+      gsap.to('.f-orb-2', { y: 25, x: -20, duration: 10, repeat: -1, yoyo: true, ease: 'sine.inOut' }),
+      gsap.to('.f-orb-3', { y: -20, x: -15, duration: 7, repeat: -1, yoyo: true, ease: 'sine.inOut' }),
+      gsap.to('.f-diamond-1', { y: -40, rotate: 180, duration: 12, repeat: -1, yoyo: true, ease: 'sine.inOut' }),
+      gsap.to('.f-diamond-2', { y: 30, rotate: -180, duration: 9, repeat: -1, yoyo: true, ease: 'sine.inOut' }),
+      gsap.to('.f-ring-1', { scale: 1.2, opacity: 0.15, duration: 6, repeat: -1, yoyo: true, ease: 'sine.inOut' }),
+    ]
   })
 })
 
 onUnmounted(() => {
   stTriggers.forEach(st => st.kill())
+  floatingAnims.forEach(a => a.kill())
   unbindTilt()
 })
 </script>
@@ -552,6 +624,22 @@ onUnmounted(() => {
 <style scoped>
 .home-fullpage {
   position: relative; z-index: 1;
+}
+
+/* 左上角标志 */
+.corner-area {
+  position: fixed;
+  top: 16px;
+  left: 24px;
+  z-index: 101;
+}
+
+/* 右上角用户区域 */
+.user-area {
+  position: fixed;
+  top: 16px;
+  right: 24px;
+  z-index: 101;
 }
 
 /* ====== 浮动装饰 ====== */
@@ -668,6 +756,60 @@ onUnmounted(() => {
   max-width: 600px; margin: 0 auto 2rem;
 }
 .hero-cta { margin-bottom: 2.5rem; }
+.hero-portals {
+  display: flex; gap: 2rem; justify-content: center;
+  margin-bottom: 2.5rem; flex-wrap: wrap;
+}
+.portal-card {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 2rem 2.8rem; border-radius: 2px;
+  text-decoration: none; transition: all 0.5s cubic-bezier(0.16,1,0.3,1);
+  min-width: 220px; position: relative; overflow: hidden;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.portal-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(255,255,255,0.15);
+}
+.portal-write:hover {
+  background: rgba(196,163,90,0.04);
+  box-shadow: 0 20px 60px rgba(196,163,90,0.08);
+}
+.portal-read:hover {
+  background: rgba(167,139,250,0.04);
+  box-shadow: 0 20px 60px rgba(167,139,250,0.08);
+}
+.portal-community:hover {
+  background: rgba(52,211,153,0.04);
+  box-shadow: 0 20px 60px rgba(52,211,153,0.08);
+}
+.portal-en {
+  font-family: var(--font-display);
+  font-size: 0.7rem; font-weight: 600;
+  letter-spacing: 0.3em; text-transform: uppercase;
+  color: var(--text-muted); opacity: 0.5;
+  margin-bottom: 0.6rem;
+}
+.portal-title {
+  font-family: var(--font-serif);
+  font-size: 1.35rem; font-weight: 700;
+  color: var(--text-primary); letter-spacing: 0.12em;
+  margin-bottom: 0.5rem;
+}
+.portal-sub {
+  font-size: 0.75rem; color: var(--text-muted);
+  letter-spacing: 0.06em;
+}
+.portal-line {
+  position: absolute; bottom: 0; left: 50%;
+  transform: translateX(-50%); width: 0; height: 1px;
+  transition: width 0.5s cubic-bezier(0.16,1,0.3,1);
+}
+.portal-write .portal-line { background: var(--accent-primary); }
+.portal-read .portal-line { background: var(--accent-purple); }
+.portal-community .portal-line { background: #34d399; }
+.portal-card:hover .portal-line { width: 60%; }
 .hero-hint {
   font-family: var(--font-display);
   font-size: 0.75rem; letter-spacing: 0.25em;
@@ -822,6 +964,20 @@ onUnmounted(() => {
   background: var(--accent-primary); opacity: 0.5; flex-shrink: 0;
 }
 
+/* 阅读系统演示 */
+.reading-demo { margin-top: 0.5rem; position: relative; z-index: 1; }
+.rd-progress { display: flex; align-items: center; gap: 10px; margin-bottom: 1rem; }
+.rd-label { font-size: 0.8rem; color: var(--text-muted); white-space: nowrap; }
+.rd-bar { flex: 1; height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+.rd-fill { height: 100%; background: linear-gradient(90deg, var(--accent-primary), #a78bfa); border-radius: 3px; transition: width 1s ease; }
+.rd-pct { font-size: 0.8rem; color: var(--accent-primary); font-weight: 600; }
+.rd-tools { display: flex; flex-wrap: wrap; gap: 8px; }
+.rd-tag {
+  font-size: 0.75rem; color: var(--text-secondary);
+  background: rgba(196,163,90,0.06); border: 1px solid rgba(196,163,90,0.12);
+  border-radius: 12px; padding: 4px 12px;
+}
+
 /* ====== 流光效果 ====== */
 .shimmer-card { overflow: hidden; }
 .card-shimmer {
@@ -837,7 +993,7 @@ onUnmounted(() => {
 .level-card:hover .card-shimmer { left: 150%; }
 
 /* ====== Community 卡片 ====== */
-.comm-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 2.5rem; }
+.comm-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 2.5rem; }
 .comm-card {
   display: flex; flex-direction: column; align-items: center;
   gap: 0.3rem; padding: 2rem 1.2rem;
@@ -952,7 +1108,7 @@ onUnmounted(() => {
   .level-row { gap: 0.6rem; }
 }
 @media (max-width: 640px) {
-  .comm-grid { grid-template-columns: 1fr; max-width: 300px; margin-inline: auto; }
+  .comm-grid { grid-template-columns: repeat(2, 1fr); max-width: 400px; margin-inline: auto; }
   .stat-row { gap: 1rem; }
   .level-card { min-width: 80px; padding: 1rem 0.8rem; }
   .scroll-indicator { right: 8px; gap: 8px; }

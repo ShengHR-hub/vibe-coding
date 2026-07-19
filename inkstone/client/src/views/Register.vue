@@ -85,10 +85,12 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user.js'
+import { useToast } from '../composables/useToast.js'
 import LiquidGlass from '../components/LiquidGlass.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
+const toast = useToast()
 const username = ref('')
 const password = ref('')
 const confirmPassword = ref('')
@@ -96,16 +98,17 @@ const loading = ref(false)
 
 async function handleRegister() {
   if (password.value !== confirmPassword.value) {
-    alert('两次密码不一致')
+    toast.error('两次密码不一致')
     return
   }
   loading.value = true
   const res = await userStore.register(username.value, password.value)
   loading.value = false
   if (res.code === 0) {
+    toast.success('注册成功，请登录')
     router.push('/login')
   } else {
-    alert(res.msg || '注册失败')
+    toast.error(res.msg || '注册失败')
   }
 }
 </script>

@@ -84,11 +84,14 @@ def toggle_like():
     )
 
     if existing:
-        execute('DELETE FROM work_likes WHERE like_id = %s', (existing['like_id'],))
+        execute('DELETE FROM work_likes WHERE user_id = %s AND work_id = %s', (user_id, work_id))
         execute('UPDATE works SET likes_count = GREATEST(likes_count - 1, 0) WHERE work_id = %s', (work_id,))
         return ok({'liked': False}, msg='已取消点赞')
     else:
-        execute('INSERT INTO work_likes (user_id, work_id) VALUES (%s, %s)', (user_id, work_id))
+        try:
+            execute('INSERT INTO work_likes (user_id, work_id) VALUES (%s, %s)', (user_id, work_id))
+        except Exception:
+            return ok({'liked': True}, msg='点赞成功')
         execute('UPDATE works SET likes_count = likes_count + 1 WHERE work_id = %s', (work_id,))
 
         work_author = query('SELECT user_id FROM works WHERE work_id = %s', (work_id,), one=True)
@@ -116,11 +119,14 @@ def toggle_favorite():
     )
 
     if existing:
-        execute('DELETE FROM favorites WHERE favorite_id = %s', (existing['favorite_id'],))
+        execute('DELETE FROM favorites WHERE user_id = %s AND work_id = %s', (user_id, work_id))
         execute('UPDATE works SET favorites_count = GREATEST(favorites_count - 1, 0) WHERE work_id = %s', (work_id,))
         return ok({'favorited': False}, msg='已取消收藏')
     else:
-        execute('INSERT INTO favorites (user_id, work_id) VALUES (%s, %s)', (user_id, work_id))
+        try:
+            execute('INSERT INTO favorites (user_id, work_id) VALUES (%s, %s)', (user_id, work_id))
+        except Exception:
+            return ok({'favorited': True}, msg='收藏成功')
         execute('UPDATE works SET favorites_count = favorites_count + 1 WHERE work_id = %s', (work_id,))
 
         work_author = query('SELECT user_id FROM works WHERE work_id = %s', (work_id,), one=True)

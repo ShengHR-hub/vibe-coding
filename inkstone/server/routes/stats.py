@@ -1,9 +1,12 @@
+import logging
+import json
 from flask import Blueprint, request, session
 from database.db import query, execute
 from utils.helpers import ok, fail, login_required, _fmt
 from utils.mimos import chat_completion
 from utils.prompt_builder import build_style_analysis, build_monthly_report
-import json
+
+logger = logging.getLogger(__name__)
 
 stats_bp = Blueprint('stats', __name__)
 
@@ -28,13 +31,16 @@ def overview():
         (user_id,), one=True)['wc']
 
     from datetime import date, timedelta
+    # 一次查询获取所有写作日期，然后在 Python 中计算连续天数
+    session_dates = query(
+        'SELECT DISTINCT session_date FROM writing_sessions WHERE user_id = %s ORDER BY session_date DESC',
+        (user_id,)
+    )
+    date_set = {str(r['session_date']) for r in session_dates}
     d = date.today()
     streak = 0
     for _ in range(365):
-        s = query(
-            'SELECT 1 FROM writing_sessions WHERE user_id = %s AND session_date = %s LIMIT 1',
-            (user_id, d), one=True)
-        if s:
+        if str(d) in date_set:
             streak += 1
             d = d - timedelta(days=1)
         else:
@@ -173,7 +179,8 @@ def monthly_report():
         result = chat_completion(messages, temperature=0.7, max_tokens=1024)
         return ok({'report': result, 'stats': {**stats, 'last_month_words': last_month['wc']}})
     except Exception as e:
-        return fail(f'报告生成失败: {str(e)}')
+        logger.error(f'Monthly report error: {e}')
+        return fail('报告生成失败，请稍后再试')
 
 
 @stats_bp.post('/session')

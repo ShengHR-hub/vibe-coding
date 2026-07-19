@@ -93,7 +93,7 @@ def parse_novel(filepath, max_chapters=None):
 
 
 def import_to_db(novel, user_id=1, status='published', tags=''):
-    """将解析后的小说导入数据库"""
+    """将解析后的小说导入 works + chapters 表"""
     title = novel['title']
     summary = novel['summary']
     chapters = novel['chapters']
@@ -122,6 +122,46 @@ def import_to_db(novel, user_id=1, status='published', tags=''):
     return work_id
 
 
+def import_to_library(novel, user_id=None, book_type='novel', tags='', source=''):
+    """将解析后的小说导入 library_books + library_chapters 表"""
+    title = novel['title']
+    author = novel['author']
+    summary = novel['summary']
+    chapters = novel['chapters']
+
+    # 计算总字数
+    total_wc = sum(len(re.sub(r'\s', '', ch['content'])) for ch in chapters)
+
+    # 去重检查
+    existing = query(
+        'SELECT book_id FROM library_books WHERE title = %s AND author = %s',
+        (title, author)
+    )
+    if existing:
+        print(f'[SKIP] 书籍已存在: {title} (book_id={existing[0]["book_id"]})')
+        return existing[0]['book_id']
+
+    # 插入书库书籍
+    book_id = execute(
+        'INSERT INTO library_books (title, author, summary, type, tags, word_count, chapter_count, source, uploader_id) '
+        'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)',
+        (title, author, summary, book_type, tags, total_wc, len(chapters), source, user_id)
+    )
+    print(f'[OK] 书库书籍已创建: {title} (book_id={book_id}, {len(chapters)}章, {total_wc}字)')
+
+    # 插入章节
+    for i, ch in enumerate(chapters, 1):
+        wc = len(re.sub(r'\s', '', ch['content']))
+        execute(
+            'INSERT INTO library_chapters (book_id, chapter_no, title, content, word_count) '
+            'VALUES (%s, %s, %s, %s, %s)',
+            (book_id, i, ch['title'], ch['content'], wc)
+        )
+    print(f'[OK] {len(chapters)} 个章节已导入')
+
+    return book_id
+
+
 def main():
     import argparse
     parser = argparse.ArgumentParser(description='导入小说到墨池数据库')
@@ -130,6 +170,9 @@ def main():
     parser.add_argument('--max-chapters', type=int, default=None, help='最多导入章节数')
     parser.add_argument('--status', default='published', choices=['draft', 'published', 'private'])
     parser.add_argument('--tags', default='', help='标签，逗号分隔')
+    parser.add_argument('--source', default='', help='来源标记（用于书库导入）')
+    parser.add_argument('--target', default='works', choices=['works', 'library'],
+                        help='导入目标：works（默认）或 library')
     parser.add_argument('--dry-run', action='store_true', help='仅解析不导入')
     args = parser.parse_args()
 
@@ -154,9 +197,16 @@ def main():
         print('\n[Dry Run] 未写入数据库')
         return
 
-    work_id = import_to_db(novel, user_id=args.user_id, status=args.status, tags=args.tags)
-    print(f'\n导入完成! work_id = {work_id}')
-    print(f'访问: http://localhost:5173/works/{work_id}')
+    if args.target == 'library':
+        book_id = import_to_library(
+            novel, user_id=args.user_id, tags=args.tags, source=args.source or os.path.basename(args.filepath)
+        )
+        print(f'\n导入完成! book_id = {book_id}')
+        print(f'访问: http://localhost:5173/library/library/{book_id}')
+    else:
+        work_id = import_to_db(novel, user_id=args.user_id, status=args.status, tags=args.tags)
+        print(f'\n导入完成! work_id = {work_id}')
+        print(f'访问: http://localhost:5173/works/{work_id}')
 
 
 if __name__ == '__main__':

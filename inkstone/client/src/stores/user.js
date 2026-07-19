@@ -8,12 +8,22 @@ export const useUserStore = defineStore('user', () => {
   const isLoggedIn = computed(() => !!user.value)
 
   async function fetchUser() {
-    const res = await api.get('/api/auth/me')
-    if (res.code === 0) {
-      user.value = res.data
+    try {
+      const res = await api.get('/api/auth/me')
+      if (res.code === 0) {
+        user.value = res.data
+      } else if (res.code === -1) {
+        // 网络错误，保持当前状态不清除用户
+        console.warn('[UserStore] Network error during fetchUser, keeping current state')
+      } else {
+        user.value = null
+      }
+    } catch {
+      // 异常也保持当前状态
+      console.warn('[UserStore] Unexpected error during fetchUser')
     }
     initialized.value = true
-    return res
+    return { code: user.value ? 0 : -1 }
   }
 
   async function login(username, password) {

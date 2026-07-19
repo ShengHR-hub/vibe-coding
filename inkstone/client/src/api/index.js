@@ -1,5 +1,11 @@
 const BASE = ''
 
+// Global 401 handler — redirect to login on session expiry
+let _on401 = null
+export function setUnauthorizedHandler(fn) {
+  _on401 = fn
+}
+
 async function request(url, options = {}) {
   const config = {
     headers: { 'Content-Type': 'application/json' },
@@ -13,10 +19,14 @@ async function request(url, options = {}) {
     const resp = await fetch(BASE + url, config)
     const data = await resp.json()
     if (!resp.ok) {
+      if (resp.status === 401) {
+        if (_on401) _on401()
+      }
       return { code: resp.status, data: null, msg: data.msg || `请求失败 (${resp.status})` }
     }
     return data
-  } catch {
+  } catch (err) {
+    console.error('[API Error]', url, err)
     return { code: -1, data: null, msg: '网络错误，请检查连接' }
   }
 }
@@ -43,7 +53,8 @@ export const api = {
       document.body.removeChild(a)
       URL.revokeObjectURL(a.href)
       return { code: 0 }
-    } catch {
+    } catch (err) {
+      console.error('[Download Error]', url, err)
       return { code: -1, msg: '网络错误，请检查连接' }
     }
   },
@@ -58,17 +69,30 @@ export const api = {
         body: formData
       })
       return await resp.json()
-    } catch {
+    } catch (err) {
+      console.error('[Upload Error]', err)
       return { code: -1, data: null, msg: '网络错误，请检查连接' }
     }
   },
 
-  stream(url, body, onChunk, onDone, onError) {
+  stream(url, body, onChunk, onDone, onError, { timeout = 120000 } = {}) {
+    const controller = new AbortController()
+    let timeoutId = null
+
+    const resetTimeout = () => {
+      if (timeoutId) clearTimeout(timeoutId)
+      timeoutId = setTimeout(() => {
+        controller.abort()
+        if (onError) onError('请求超时，请稍后再试')
+      }, timeout)
+    }
+
     fetch(BASE + url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      signal: controller.signal,
     }).then(async resp => {
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({ msg: `请求失败 (${resp.status})` }))
@@ -79,9 +103,11 @@ export const api = {
       const decoder = new TextDecoder()
       let buffer = ''
       let finished = false
+      resetTimeout()
       while (!finished) {
         const { done, value } = await reader.read()
         if (done) break
+        resetTimeout()
         buffer += decoder.decode(value, { stream: true })
         const lines = buffer.split('\n')
         buffer = lines.pop()
@@ -93,9 +119,13 @@ export const api = {
           }
         }
       }
+      if (timeoutId) clearTimeout(timeoutId)
       if (onDone) onDone()
-    }).catch(() => {
+    }).catch(err => {
+      if (timeoutId) clearTimeout(timeoutId)
+      if (err.name === 'AbortError') return
       if (onError) onError('网络错误，请检查连接')
     })
+    return controller
   }
 }

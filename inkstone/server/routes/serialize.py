@@ -1,5 +1,5 @@
 from flask import Blueprint, request, session
-from database.db import query, execute
+from database.db import query, execute, execute_many
 from utils.helpers import ok, fail, login_required, _fmt
 
 serialize_bp = Blueprint('serialize', __name__)
@@ -96,10 +96,12 @@ def delete_volume(work_id, vol_id):
     execute('UPDATE chapters SET volume_id = NULL WHERE volume_id = %s AND work_id = %s', (vol_id, work_id))
     execute('DELETE FROM volumes WHERE volume_id = %s', (vol_id,))
 
-    # 重排卷号
+    # 重排卷号（批量更新）
     remaining = query('SELECT volume_id FROM volumes WHERE work_id = %s ORDER BY volume_no', (work_id,))
-    for i, v in enumerate(remaining, 1):
-        execute('UPDATE volumes SET volume_no = %s WHERE volume_id = %s', (i, v['volume_id']))
+    if remaining:
+        ops = [('UPDATE volumes SET volume_no = %s WHERE volume_id = %s', (i, v['volume_id']))
+               for i, v in enumerate(remaining, 1)]
+        execute_many(ops)
 
     return ok(msg='卷已删除')
 

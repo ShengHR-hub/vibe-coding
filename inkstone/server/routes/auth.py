@@ -1,3 +1,5 @@
+import time
+from collections import defaultdict
 from flask import Blueprint, request, session
 import bcrypt
 from database.db import query, execute
@@ -5,9 +7,30 @@ from utils.helpers import ok, fail, login_required, get_login_user, _fmt
 
 auth_bp = Blueprint('auth', __name__)
 
+# 简单内存速率限制：{ip: [timestamps]}
+_login_attempts = defaultdict(list)
+_REGISTER_ATTEMPTS = defaultdict(list)
+_MAX_LOGIN_ATTEMPTS = 10  # 10次
+_LOGIN_WINDOW = 60  # 60秒内
+_MAX_REGISTER_ATTEMPTS = 5
+_REGISTER_WINDOW = 300  # 5分钟内
+
+
+def _check_rate_limit(store, ip, max_attempts, window):
+    now = time.time()
+    store[ip] = [t for t in store[ip] if now - t < window]
+    if len(store[ip]) >= max_attempts:
+        return False
+    store[ip].append(now)
+    return True
+
 
 @auth_bp.post('/register')
 def register():
+    ip = request.remote_addr or 'unknown'
+    if not _check_rate_limit(_REGISTER_ATTEMPTS, ip, _MAX_REGISTER_ATTEMPTS, _REGISTER_WINDOW):
+        return fail('注册过于频繁，请稍后再试')
+
     data = request.get_json()
     username = (data.get('username') or '').strip()
     password = (data.get('password') or '').strip()
@@ -31,6 +54,10 @@ def register():
 
 @auth_bp.post('/login')
 def login():
+    ip = request.remote_addr or 'unknown'
+    if not _check_rate_limit(_login_attempts, ip, _MAX_LOGIN_ATTEMPTS, _LOGIN_WINDOW):
+        return fail('登录尝试过多，请1分钟后再试')
+
     data = request.get_json()
     username = (data.get('username') or '').strip()
     password = (data.get('password') or '').strip()

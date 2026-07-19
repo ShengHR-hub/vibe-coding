@@ -142,6 +142,8 @@ import { api } from '../../api/index.js'
 import { useUserStore } from '../../stores/user.js'
 import LoadingSpinner from '../../components/LoadingSpinner.vue'
 
+import { useToast } from '../../composables/useToast.js'
+const toast = useToast()
 const router = useRouter()
 const userStore = useUserStore()
 
@@ -204,7 +206,7 @@ async function join(id) {
   if (res.code === 0) {
     fetchData()
   } else {
-    alert(res.msg)
+    toast.info(res.msg)
   }
 }
 
@@ -302,7 +304,7 @@ async function doRelay(challengeId) {
     st.content = ''
     loadRelay(challengeId)
   } else {
-    alert(res.msg)
+    toast.info(res.msg)
   }
 }
 

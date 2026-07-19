@@ -11,6 +11,14 @@ ALLOWED_TYPES = {'image/png', 'image/jpeg', 'image/gif', 'image/webp'}
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 MAX_UPLOAD_SIZE = 5 * 1024 * 1024  # 5MB
 
+# Magic bytes for image type detection
+_MAGIC_BYTES = {
+    'png': b'\x89PNG\r\n\x1a\n',
+    'jpg': b'\xff\xd8\xff',
+    'gif': b'GIF8',
+    'webp': b'RIFF',  # full check: RIFF....WEBP
+}
+
 # Level thresholds: exp needed for each level
 LEVEL_THRESHOLDS = [0, 100, 500, 1500, 5000, 12000, 30000, 80000, 200000, 500000]
 
@@ -37,6 +45,21 @@ def _calc_user_exp(user_id):
     return stats['total_words'] + stats['total_likes'] * 2 + stats['total_comments'] * 3
 
 
+@users_bp.get('/levels')
+def get_levels():
+    """公开接口：返回等级定义表"""
+    level_names = ['', '初窥门径', '略知皮毛', '小有所成', '登堂入室',
+                   '妙笔生花', '融会贯通', '才华横溢', '出类拔萃', '登峰造极', '文坛巨匠']
+    levels = []
+    for i, threshold in enumerate(LEVEL_THRESHOLDS):
+        levels.append({
+            'level': i + 1,
+            'name': level_names[i + 1] if i + 1 < len(level_names) else level_names[-1],
+            'exp': threshold,
+        })
+    return ok({'levels': levels})
+
+
 @users_bp.get('/<int:user_id>')
 def get_profile(user_id):
     user = query('SELECT user_id, username, avatar, cover_image, bio, level, exp, created_at FROM users WHERE user_id = %s', (user_id,), one=True)
@@ -53,12 +76,58 @@ def get_profile(user_id):
 
     user['created_at'] = _fmt(user.get('created_at'))
 
-    # Stats
-    works_count = query('SELECT COUNT(*) as cnt FROM works WHERE user_id = %s AND status = %s', (user_id, 'published'), one=True)['cnt']
-    total_words = query('SELECT COALESCE(SUM(word_count), 0) as wc FROM works WHERE user_id = %s', (user_id,), one=True)['wc']
-    followers_count = query('SELECT COUNT(*) as cnt FROM follows WHERE following_id = %s', (user_id,), one=True)['cnt']
-    following_count = query('SELECT COUNT(*) as cnt FROM follows WHERE follower_id = %s', (user_id,), one=True)['cnt']
-    total_likes = query('SELECT COALESCE(SUM(likes_count), 0) as lc FROM works WHERE user_id = %s', (user_id,), one=True)['lc']
+    # 写作统计（合并查询）
+    w_stats = query(
+        'SELECT '
+        'COUNT(CASE WHEN status = \'published\' THEN 1 END) as works_count, '
+        'COALESCE(SUM(word_count), 0) as total_words, '
+        'COALESCE(SUM(likes_count), 0) as total_likes '
+        'FROM works WHERE user_id = %s',
+        (user_id,), one=True
+    )
+    works_count = w_stats['works_count']
+    total_words = w_stats['total_words']
+    total_likes = w_stats['total_likes']
+
+    # 关注统计（合并查询）
+    f_stats = query(
+        'SELECT '
+        'COUNT(CASE WHEN following_id = %s THEN 1 END) as followers_count, '
+        'COUNT(CASE WHEN follower_id = %s THEN 1 END) as following_count '
+        'FROM follows WHERE follower_id = %s OR following_id = %s',
+        (user_id, user_id, user_id, user_id), one=True
+    )
+    followers_count = f_stats['followers_count']
+    following_count = f_stats['following_count']
+
+    # 阅读统计（合并查询）
+    r_stats = query(
+        'SELECT '
+        '(SELECT COUNT(*) FROM reading_bookshelf WHERE user_id = %s AND shelf_group = \'reading\') as reading_count, '
+        '(SELECT COUNT(*) FROM reading_bookshelf WHERE user_id = %s AND shelf_group = \'completed\') as completed_count, '
+        '(SELECT COALESCE(SUM(read_minutes), 0) FROM reading_time_logs WHERE user_id = %s) as reading_minutes, '
+        '(SELECT COUNT(DISTINCT checkin_date) FROM reading_checkins WHERE user_id = %s) as checkin_days, '
+        '(SELECT COUNT(*) FROM reading_annotations WHERE user_id = %s) as annotation_count, '
+        '(SELECT COUNT(*) FROM reading_highlights WHERE user_id = %s) as highlight_count, '
+        '(SELECT COUNT(*) FROM library_reviews WHERE user_id = %s) as review_count',
+        (user_id, user_id, user_id, user_id, user_id, user_id, user_id), one=True
+    )
+    reading_count = r_stats['reading_count']
+    completed_count = r_stats['completed_count']
+    reading_minutes = r_stats['reading_minutes']
+    checkin_days = r_stats['checkin_days']
+    annotation_count = r_stats['annotation_count']
+    highlight_count = r_stats['highlight_count']
+    review_count = r_stats['review_count']
+
+    # Reading preferences (types of books read)
+    pref_rows = query('''
+        SELECT b.type, COUNT(*) as cnt FROM reading_bookshelf rb
+        JOIN library_books b ON rb.book_id = b.book_id AND rb.book_type = 'library'
+        WHERE rb.user_id = %s
+        GROUP BY b.type ORDER BY cnt DESC LIMIT 3
+    ''', (user_id,))
+    reading_preferences = [r['type'] for r in pref_rows]
 
     # Is current user following?
     is_following = False
@@ -74,8 +143,16 @@ def get_profile(user_id):
             'total_words': total_words,
             'total_likes': total_likes,
             'followers_count': followers_count,
-            'following_count': following_count
+            'following_count': following_count,
+            'reading_count': reading_count,
+            'completed_count': completed_count,
+            'reading_minutes': reading_minutes,
+            'checkin_days': checkin_days,
+            'annotation_count': annotation_count,
+            'highlight_count': highlight_count,
+            'review_count': review_count,
         },
+        'reading_preferences': reading_preferences,
         'is_following': is_following,
         'is_own': 'user_id' in session and session['user_id'] == user_id,
         'prev_level_exp': prev_exp,
@@ -109,6 +186,15 @@ def upload_file():
     if len(file_bytes) > MAX_UPLOAD_SIZE:
         return fail(f'文件过大，最大允许 {MAX_UPLOAD_SIZE // (1024*1024)}MB')
 
+    # Validate magic bytes to prevent disguised files
+    if ext == 'webp':
+        if file_bytes[:4] != _MAGIC_BYTES['webp'] or b'WEBP' not in file_bytes[8:12]:
+            return fail('文件内容与扩展名不匹配')
+    else:
+        magic = _MAGIC_BYTES.get(ext, b'')
+        if magic and file_bytes[:len(magic)] != magic:
+            return fail('文件内容与扩展名不匹配')
+
     os.makedirs(UPLOAD_DIR, exist_ok=True)
     filename = f"{uuid.uuid4().hex}.{ext}"
     filepath = os.path.join(UPLOAD_DIR, filename)
@@ -124,9 +210,16 @@ def edit_profile():
     data = request.get_json()
     user_id = session['user_id']
 
-    avatar = data.get('avatar', '').strip()
-    cover_image = data.get('cover_image', '').strip()
-    bio = data.get('bio', '').strip()
+    avatar = (data.get('avatar') or '').strip()
+    cover_image = (data.get('cover_image') or '').strip()
+    bio = (data.get('bio') or '').strip()
+
+    if len(bio) > 500:
+        return fail('个人简介最多500字')
+    if len(avatar) > 500:
+        return fail('头像URL过长')
+    if len(cover_image) > 500:
+        return fail('封面URL过长')
 
     execute('UPDATE users SET avatar = %s, cover_image = %s, bio = %s WHERE user_id = %s',
             (avatar, cover_image, bio, user_id))
@@ -141,7 +234,10 @@ def toggle_follow():
     following_id = data.get('user_id')
     if not following_id:
         return fail('缺少用户ID')
-    following_id = int(following_id)
+    try:
+        following_id = int(following_id)
+    except (ValueError, TypeError):
+        return fail('无效的用户ID')
 
     follower_id = session['user_id']
     if follower_id == following_id:
@@ -257,6 +353,64 @@ def list_user_favorites(user_id):
     return ok({'items': rows, 'total': total, 'page': page, 'page_size': page_size})
 
 
+@users_bp.get('/<int:user_id>/reading')
+def list_user_reading(user_id):
+    """List user's reading bookshelf (public)."""
+    page = max(1, request.args.get('page', 1, type=int))
+    page_size = min(30, request.args.get('page_size', 12, type=int))
+    group = request.args.get('group', '')  # reading, completed, want_read
+
+    conditions = ['rb.user_id = %s']
+    params = [user_id]
+    if group in ('reading', 'completed', 'want_read'):
+        conditions.append('rb.shelf_group = %s')
+        params.append(group)
+
+    where = ' AND '.join(conditions)
+
+    total = query(f'SELECT COUNT(*) as cnt FROM reading_bookshelf rb WHERE {where}', params, one=True)['cnt']
+
+    rows = query(f'''
+        SELECT rb.*, b.title, b.author, b.cover_image, b.type as book_type_name, b.word_count as book_words
+        FROM reading_bookshelf rb
+        LEFT JOIN library_books b ON rb.book_id = b.book_id AND rb.book_type = 'library'
+        WHERE {where}
+        ORDER BY rb.updated_at DESC
+        LIMIT %s OFFSET %s
+    ''', params + [page_size, (page - 1) * page_size])
+
+    for r in rows:
+        r['created_at'] = _fmt(r.get('created_at'))
+        r['updated_at'] = _fmt(r.get('updated_at'))
+        r['last_read_at'] = _fmt(r.get('last_read_at'))
+
+    return ok({'items': rows, 'total': total, 'page': page, 'page_size': page_size})
+
+
+@users_bp.get('/<int:user_id>/reviews')
+def list_user_reviews(user_id):
+    """List user's book reviews."""
+    page = max(1, request.args.get('page', 1, type=int))
+    page_size = min(30, request.args.get('page_size', 12, type=int))
+
+    total = query('SELECT COUNT(*) as cnt FROM library_reviews WHERE user_id = %s', (user_id,), one=True)['cnt']
+
+    rows = query('''
+        SELECT r.*, b.title as book_title, b.author as book_author, b.cover_image as book_cover
+        FROM library_reviews r
+        JOIN library_books b ON r.book_id = b.book_id
+        WHERE r.user_id = %s
+        ORDER BY r.created_at DESC
+        LIMIT %s OFFSET %s
+    ''', (user_id, page_size, (page - 1) * page_size))
+
+    for r in rows:
+        r['created_at'] = _fmt(r.get('created_at'))
+        r['updated_at'] = _fmt(r.get('updated_at'))
+
+    return ok({'items': rows, 'total': total, 'page': page, 'page_size': page_size})
+
+
 @users_bp.get('/achievements')
 @login_required
 def list_achievements():
@@ -272,17 +426,45 @@ def list_achievements():
     unlocked = query('SELECT achievement_id, unlocked_at FROM user_achievements WHERE user_id = %s', (user_id,))
     unlocked_map = {u['achievement_id']: _fmt(u['unlocked_at']) for u in unlocked}
 
-    # User stats for progress calculation
-    total_words = query('SELECT COALESCE(SUM(word_count), 0) as wc FROM works WHERE user_id = %s', (user_id,), one=True)['wc']
-    total_likes = query('SELECT COALESCE(SUM(likes_count), 0) as lc FROM works WHERE user_id = %s', (user_id,), one=True)['lc']
-    total_comments = query('SELECT COALESCE(SUM(comments_count), 0) as cc FROM works WHERE user_id = %s', (user_id,), one=True)['cc']
-    works_count = query('SELECT COUNT(*) as cnt FROM works WHERE user_id = %s AND status = %s', (user_id, 'published'), one=True)['cnt']
+    # 写作统计（合并查询）
+    w_stats = query(
+        'SELECT '
+        'COALESCE(SUM(word_count), 0) as total_words, '
+        'COALESCE(SUM(likes_count), 0) as total_likes, '
+        'COALESCE(SUM(comments_count), 0) as total_comments, '
+        'COUNT(CASE WHEN status = \'published\' THEN 1 END) as works_count '
+        'FROM works WHERE user_id = %s',
+        (user_id,), one=True
+    )
+    total_words = w_stats['total_words']
+    total_likes = w_stats['total_likes']
+    total_comments = w_stats['total_comments']
+    works_count = w_stats['works_count']
+
+    # 其他统计（合并查询）
+    other_stats = query(
+        'SELECT '
+        '(SELECT COUNT(*) FROM follows WHERE following_id = %s) as followers_count, '
+        '(SELECT COUNT(*) FROM reading_bookshelf WHERE user_id = %s AND shelf_group = \'completed\') as books_read, '
+        '(SELECT COUNT(DISTINCT checkin_date) FROM reading_checkins WHERE user_id = %s) as reading_streak, '
+        '(SELECT COALESCE(SUM(read_minutes), 0) FROM reading_time_logs WHERE user_id = %s) as reading_minutes, '
+        '(SELECT COUNT(*) FROM reading_annotations WHERE user_id = %s) as annotations_count, '
+        '(SELECT COUNT(*) FROM reading_highlights WHERE user_id = %s) as highlights_count',
+        (user_id, user_id, user_id, user_id, user_id, user_id), one=True
+    )
+    followers_count = other_stats['followers_count']
+    books_read = other_stats['books_read']
+    reading_streak = other_stats['reading_streak']
+    reading_hours = (other_stats['reading_minutes'] or 0) // 60
+    annotations_count = other_stats['annotations_count']
+    highlights_count = other_stats['highlights_count']
+
+    # 写作打卡单独查询（涉及 JOIN）
     checkin_days = query('''
         SELECT COUNT(DISTINCT checkin_date) as cnt FROM challenge_checkins cc
         JOIN challenge_participants cp ON cc.participant_id = cp.participant_id
         WHERE cp.user_id = %s
     ''', (user_id,), one=True)['cnt']
-    followers_count = query('SELECT COUNT(*) as cnt FROM follows WHERE following_id = %s', (user_id,), one=True)['cnt']
 
     result = []
     for ach in all_achievements:
@@ -300,6 +482,16 @@ def list_achievements():
             current = checkin_days
         elif ct == 'followers':
             current = followers_count
+        elif ct == 'books_read':
+            current = books_read
+        elif ct == 'reading_streak':
+            current = reading_streak
+        elif ct == 'reading_hours':
+            current = reading_hours
+        elif ct == 'annotations':
+            current = annotations_count
+        elif ct == 'highlights':
+            current = highlights_count
 
         target = ach['condition_value']
         result.append({

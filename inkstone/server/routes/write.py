@@ -1,13 +1,17 @@
-from flask import Blueprint, request, Response, session
+import logging
+from flask import Blueprint, request, Response, session, current_app
 from database.db import query, execute
 from utils.helpers import ok, fail, login_required
 from utils.mimos import chat_completion, chat_completion_stream
 from utils.prompt_builder import (
     build_continue, build_inspire, build_outline,
     build_character, build_polish, build_prompt_suggestion,
-    build_chat_system, build_diagnose
+    build_chat_system, build_diagnose, build_summary
 )
-import json, uuid, traceback
+from utils.logger import log_ai_call
+import json, uuid
+
+logger = logging.getLogger(__name__)
 
 write_bp = Blueprint('write', __name__)
 
@@ -27,21 +31,29 @@ def ai_continue():
     style = (data.get('style') or '现代').strip()
     if not content:
         return fail('请提供上文内容')
+    if len(content) > 20000:
+        return fail('内容过长，最多20000字')
 
     messages = build_continue(content, style)
     conv_key = str(uuid.uuid4())
     _save_conv(conv_key, 'user', content)
 
     def generate():
-        full = ''
+        full = []
         try:
             for chunk in chat_completion_stream(messages):
-                full += chunk
+                full.append(chunk)
                 yield f'data: {json.dumps({"chunk": chunk}, ensure_ascii=False)}\n\n'
-            _save_conv(conv_key, 'assistant', full)
-        except Exception:
-            traceback.print_exc()
+            log_ai_call(current_app, session.get('user_id'), '/continue', success=True)
+        except Exception as e:
+            logger.error(f'AI continue error: {e}')
+            log_ai_call(current_app, session.get('user_id'), '/continue', success=False, error=str(e))
             yield f'data: {json.dumps({"error": "续写生成失败，请稍后再试"}, ensure_ascii=False)}\n\n'
+        # 流结束后保存（客户端仍连接时执行）
+        try:
+            _save_conv(conv_key, 'assistant', ''.join(full))
+        except Exception as e:
+            logger.error(f'Failed to save AI conversation: {e}')
         yield 'data: [DONE]\n\n'
 
     return Response(generate(), mimetype='text/event-stream; charset=utf-8')
@@ -54,11 +66,15 @@ def ai_inspire():
     keywords = (data.get('keywords') or '').strip()
     if not keywords:
         return fail('请输入关键词')
+    if len(keywords) > 500:
+        return fail('关键词过长，最多500字')
 
     messages = build_inspire(keywords)
     try:
         result = chat_completion(messages)
-    except Exception:
+        log_ai_call(current_app, session.get('user_id'), '/inspire', success=True)
+    except Exception as e:
+        log_ai_call(current_app, session.get('user_id'), '/inspire', success=False, error=str(e))
         return fail('灵感生成失败，请稍后再试')
     conv_key = str(uuid.uuid4())
     _save_conv(conv_key, 'user', keywords)
@@ -77,7 +93,9 @@ def ai_outline():
     messages = build_outline(theme)
     try:
         result = chat_completion(messages)
-    except Exception:
+        log_ai_call(current_app, session.get('user_id'), '/outline', success=True)
+    except Exception as e:
+        log_ai_call(current_app, session.get('user_id'), '/outline', success=False, error=str(e))
         return fail('大纲生成失败，请稍后再试')
     conv_key = str(uuid.uuid4())
     _save_conv(conv_key, 'user', theme)
@@ -96,7 +114,9 @@ def ai_character():
     messages = build_character(story_context)
     try:
         result = chat_completion(messages)
-    except Exception:
+        log_ai_call(current_app, session.get('user_id'), '/character', success=True)
+    except Exception as e:
+        log_ai_call(current_app, session.get('user_id'), '/character', success=False, error=str(e))
         return fail('角色生成失败，请稍后再试')
     conv_key = str(uuid.uuid4())
     _save_conv(conv_key, 'user', story_context)
@@ -112,11 +132,15 @@ def ai_polish():
     mode = (data.get('mode') or '流畅').strip()
     if not text:
         return fail('请提供需要润色的文字')
+    if len(text) > 20000:
+        return fail('内容过长，最多20000字')
 
     messages = build_polish(text, mode)
     try:
         result = chat_completion(messages)
-    except Exception:
+        log_ai_call(current_app, session.get('user_id'), '/polish', success=True)
+    except Exception as e:
+        log_ai_call(current_app, session.get('user_id'), '/polish', success=False, error=str(e))
         return fail('润色失败，请稍后再试')
     conv_key = str(uuid.uuid4())
     _save_conv(conv_key, 'user', f'[{mode}] {text}')
@@ -135,7 +159,9 @@ def ai_prompt():
     messages = build_prompt_suggestion(context)
     try:
         result = chat_completion(messages)
-    except Exception:
+        log_ai_call(current_app, session.get('user_id'), '/prompt', success=True)
+    except Exception as e:
+        log_ai_call(current_app, session.get('user_id'), '/prompt', success=False, error=str(e))
         return fail('剧情建议生成失败，请稍后再试')
     conv_key = str(uuid.uuid4())
     _save_conv(conv_key, 'user', context)
@@ -153,6 +179,10 @@ def ai_chat():
 
     if not message:
         return fail('请输入消息')
+    if len(message) > 5000:
+        return fail('消息过长，最多5000字')
+    if len(history) > 100:
+        return fail('对话历史过长')
 
     # Build multi-turn messages: system + history + new user message
     messages = [build_chat_system()]
@@ -165,15 +195,20 @@ def ai_chat():
     _save_conv(session_key, 'user', message)
 
     def generate():
-        full = ''
+        full = []
         try:
             for chunk in chat_completion_stream(messages):
-                full += chunk
+                full.append(chunk)
                 yield f'data: {json.dumps({"chunk": chunk, "session_key": session_key}, ensure_ascii=False)}\n\n'
-            _save_conv(session_key, 'assistant', full)
-        except Exception:
-            traceback.print_exc()
+            log_ai_call(current_app, session.get('user_id'), '/chat', success=True)
+        except Exception as e:
+            logger.error(f'AI chat error: {e}')
+            log_ai_call(current_app, session.get('user_id'), '/chat', success=False, error=str(e))
             yield f'data: {json.dumps({"error": "对话生成失败，请稍后再试"}, ensure_ascii=False)}\n\n'
+        try:
+            _save_conv(session_key, 'assistant', ''.join(full))
+        except Exception as e:
+            logger.error(f'Failed to save AI conversation: {e}')
         yield 'data: [DONE]\n\n'
 
     return Response(generate(), mimetype='text/event-stream; charset=utf-8')
@@ -193,9 +228,36 @@ def ai_diagnose():
     messages = build_diagnose(content)
     try:
         result = chat_completion(messages)
-    except Exception:
+        log_ai_call(current_app, session.get('user_id'), '/diagnose', success=True)
+    except Exception as e:
+        log_ai_call(current_app, session.get('user_id'), '/diagnose', success=False, error=str(e))
         return fail('诊断失败，请稍后再试')
     conv_key = str(uuid.uuid4())
     _save_conv(conv_key, 'user', f'[诊断] {content[:200]}...')
     _save_conv(conv_key, 'assistant', result)
     return ok({'diagnosis': result})
+
+
+@write_bp.post('/summary')
+@login_required
+def ai_summary():
+    """AI 章节摘要"""
+    data = request.get_json()
+    chapter_title = (data.get('title') or '').strip()
+    content = (data.get('content') or '').strip()
+    if not content:
+        return fail('请提供章节内容')
+    if len(content) < 100:
+        return fail('内容太短，至少需要100字才能生成摘要')
+
+    messages = build_summary(chapter_title, content)
+    try:
+        result = chat_completion(messages)
+        log_ai_call(current_app, session.get('user_id'), '/summary', success=True)
+    except Exception as e:
+        log_ai_call(current_app, session.get('user_id'), '/summary', success=False, error=str(e))
+        return fail('摘要生成失败，请稍后再试')
+    conv_key = str(uuid.uuid4())
+    _save_conv(conv_key, 'user', f'[摘要] {chapter_title}: {content[:100]}...')
+    _save_conv(conv_key, 'assistant', result)
+    return ok({'summary': result})

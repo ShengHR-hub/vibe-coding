@@ -100,6 +100,8 @@
 import { ref, onMounted } from 'vue'
 import { api } from '../../api/index.js'
 
+import { useToast } from '../../composables/useToast.js'
+const toast = useToast()
 const poems = ref([])
 const categories = ref([])
 const loading = ref(true)
@@ -133,7 +135,7 @@ async function loadCategories() {
 
 async function loadPoems() {
   loading.value = true
-  let url = `/api/poems/?page=${page.value}&page_size=${pageSize}`
+  let url = `/api/poems?page=${page.value}&page_size=${pageSize}`
   if (activeCategory.value) url += `&category=${encodeURIComponent(activeCategory.value)}`
   const res = await api.get(url)
   if (res.code === 0) {
@@ -187,7 +189,7 @@ async function fetchRealtime() {
     poems.value = res.data.poems.map(p => ({ ...p, _realtime: true }))
     total.value = poems.value.length
   } else {
-    alert(res.msg || '获取实时诗词失败')
+    toast.error(res.msg || '获取实时诗词失败')
   }
   loading.value = false
 }
@@ -202,11 +204,11 @@ async function saveRealtime(poem) {
   })
   saving.value = false
   if (res.code === 0) {
-    alert(res.data.msg || '已收藏')
+    toast.success(res.data.msg || '已收藏')
     poem._realtime = false
     poem.poem_id = res.data.poem_id
   } else {
-    alert(res.msg || '收藏失败')
+    toast.error(res.msg || '收藏失败')
   }
 }
 
@@ -234,9 +236,9 @@ async function copyPoem(poem) {
   const text = `${poem.title}\n${authorLine}\n\n${poem.content}`
   try {
     await navigator.clipboard.writeText(text)
-    alert('已复制到剪贴板')
+    toast.success('已复制到剪贴板')
   } catch {
-    alert('复制失败，请手动选择复制')
+    toast.error('复制失败，请手动选择复制')
   }
 }
 </script>

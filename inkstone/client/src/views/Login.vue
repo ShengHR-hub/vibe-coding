@@ -74,10 +74,12 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user.js'
+import { useToast } from '../composables/useToast.js'
 import LiquidGlass from '../components/LiquidGlass.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
+const toast = useToast()
 const username = ref('')
 const password = ref('')
 const loading = ref(false)
@@ -87,9 +89,10 @@ async function handleLogin() {
   const res = await userStore.login(username.value, password.value)
   loading.value = false
   if (res.code === 0) {
+    toast.success('登录成功')
     router.push('/')
   } else {
-    alert(res.msg || '登录失败')
+    toast.error(res.msg || '登录失败')
   }
 }
 </script>

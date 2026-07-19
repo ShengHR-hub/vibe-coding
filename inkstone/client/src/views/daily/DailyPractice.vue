@@ -109,6 +109,8 @@
 import { ref, onMounted } from 'vue'
 import { api } from '../../api/index.js'
 import { useUserStore } from '../../stores/user.js'
+import { useToast } from '../../composables/useToast.js'
+const toast = useToast()
 const userStore = useUserStore()
 
 const todayPrompt = ref(null)
@@ -181,12 +183,12 @@ async function handleSubmit() {
     await loadSubmissions()
     await loadStreak()
   } else {
-    alert(res.msg)
+    toast.info(res.msg)
   }
 }
 
 async function toggleLike(s) {
-  if (!userStore.isLoggedIn) { alert('请先登录'); return }
+  if (!userStore.isLoggedIn) { toast.error('请先登录'); return }
   const res = await api.post('/api/daily/like', { submission_id: s.submission_id })
   if (res.code === 0) {
     s._liked = res.data.liked

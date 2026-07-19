@@ -57,6 +57,8 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../../api/index.js'
 
+import { useToast } from '../../composables/useToast.js'
+const toast = useToast()
 const route = useRoute()
 const router = useRouter()
 const work = ref(null)
@@ -128,7 +130,7 @@ async function toggleStatus(e) {
   const res = await api.put(`/api/works/${work.value.work_id}/status`, { status: newStatus })
   if (res.code !== 0) {
     work.value.status = oldStatus
-    alert(res.msg)
+    toast.info(res.msg)
   }
 }
 
@@ -146,7 +148,7 @@ async function rollback(versionId) {
       loadVersions()
     }
   } else {
-    alert(res.msg)
+    toast.info(res.msg)
   }
   rollingBack.value = false
 }

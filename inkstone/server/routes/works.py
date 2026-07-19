@@ -1,6 +1,6 @@
 from flask import Blueprint, request, session, Response
 import re, json, urllib.parse
-from database.db import query, execute
+from database.db import query, execute, execute_many
 from utils.helpers import ok, fail, login_required, _fmt, check_achievements
 
 works_bp = Blueprint('works', __name__)
@@ -325,17 +325,23 @@ def rollback_version(work_id, version_id):
         'work': {k: _fmt(v) for k, v in work.items()},
         'chapters': [{k: _fmt(v) for k, v in ch.items()} for ch in current_chapters]
     }, ensure_ascii=False)
-    execute('INSERT INTO work_versions (work_id, content_json, word_count) VALUES (%s, %s, %s)',
-            (work_id, current_snapshot, work['word_count']))
 
-    # Restore chapters from version
-    execute('DELETE FROM chapters WHERE work_id = %s', (work_id,))
+    # Build transaction operations: save snapshot + delete old chapters + insert restored chapters
+    ops = [
+        ('INSERT INTO work_versions (work_id, content_json, word_count) VALUES (%s, %s, %s)',
+         (work_id, current_snapshot, work['word_count'])),
+        ('DELETE FROM chapters WHERE work_id = %s', (work_id,)),
+    ]
     for ch in old_chapters:
-        execute('INSERT INTO chapters (work_id, chapter_no, title, content, word_count) VALUES (%s, %s, %s, %s, %s)',
-                (work_id, ch['chapter_no'], ch['title'], ch['content'], ch.get('word_count', 0)))
+        ops.append(
+            ('INSERT INTO chapters (work_id, chapter_no, title, content, word_count) VALUES (%s, %s, %s, %s, %s)',
+             (work_id, ch['chapter_no'], ch['title'], ch['content'], ch.get('word_count', 0)))
+        )
 
-    total_wc = query('SELECT COALESCE(SUM(word_count), 0) as wc FROM chapters WHERE work_id = %s', (work_id,), one=True)['wc']
-    execute('UPDATE works SET word_count = %s WHERE work_id = %s', (total_wc, work_id))
+    total_wc = sum(ch.get('word_count', 0) or 0 for ch in old_chapters)
+    ops.append(('UPDATE works SET word_count = %s WHERE work_id = %s', (total_wc, work_id)))
+
+    execute_many(ops)
 
     return ok(msg='已回退到指定版本')
 
@@ -362,14 +368,37 @@ def create_chapter(work_id):
 
 
 def _cn(n):
-    """数字转中文：1→一，2→二..."""
+    """数字转中文：1→一，2→二...支持到9999"""
     cn = '零一二三四五六七八九十'
     if 1 <= n <= 10:
         return cn[n]
     if 11 <= n <= 19:
         return '十' + cn[n - 10]
-    if n == 20:
-        return '二十'
+    if 20 <= n <= 99:
+        tens, ones = divmod(n, 10)
+        result = cn[tens] + '十'
+        if ones:
+            result += cn[ones]
+        return result
+    if 100 <= n <= 999:
+        hundreds, rest = divmod(n, 100)
+        result = cn[hundreds] + '百'
+        if rest >= 10:
+            tens, ones = divmod(rest, 10)
+            result += cn[tens] + '十'
+            if ones:
+                result += cn[ones]
+        elif rest > 0:
+            result += '零' + cn[rest]
+        return result
+    if 1000 <= n <= 9999:
+        thousands, rest = divmod(n, 1000)
+        result = cn[thousands] + '千'
+        if rest >= 100:
+            result += _cn(rest)
+        elif rest > 0:
+            result += '零' + _cn(rest)
+        return result
     return str(n)
 
 
@@ -386,10 +415,13 @@ def delete_chapter(work_id, chapter_id):
 
     execute('DELETE FROM chapters WHERE chapter_id = %s', (chapter_id,))
 
-    # 重排 chapter_no
+    # 重排 chapter_no（批量更新）
     remaining = query('SELECT chapter_id FROM chapters WHERE work_id = %s ORDER BY chapter_no', (work_id,))
-    for i, r in enumerate(remaining, 1):
-        execute('UPDATE chapters SET chapter_no = %s WHERE chapter_id = %s', (i, r['chapter_id']))
+    if remaining:
+        ops = []
+        for i, r in enumerate(remaining, 1):
+            ops.append(('UPDATE chapters SET chapter_no = %s WHERE chapter_id = %s', (i, r['chapter_id'])))
+        execute_many(ops)
 
     # 更新总字数
     total_wc = query('SELECT COALESCE(SUM(word_count), 0) as wc FROM chapters WHERE work_id = %s', (work_id,), one=True)['wc']
@@ -409,6 +441,14 @@ def reorder_chapters(work_id):
     order = data.get('order') or []
     if not order:
         return fail('请提供排序列表')
+    if len(order) > 200:
+        return fail('排序列表过长')
+
+    # 验证所有 chapter_id 属于该作品
+    valid_ids = {r['chapter_id'] for r in query(
+        'SELECT chapter_id FROM chapters WHERE work_id = %s', (work_id,))}
+    if not all(cid in valid_ids for cid in order):
+        return fail('包含无效的章节ID')
 
     for i, ch_id in enumerate(order, 1):
         execute('UPDATE chapters SET chapter_no = %s WHERE chapter_id = %s AND work_id = %s', (i, ch_id, work_id))

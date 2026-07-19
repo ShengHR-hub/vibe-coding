@@ -1,9 +1,12 @@
+import logging
 from flask import Blueprint, request, session, Response
 from database.db import query, execute
 from utils.helpers import ok, fail, login_required
 from utils.mimos import chat_completion, chat_completion_stream
 from utils.prompt_builder import build_rp_extract, build_rp_chat
-import json, uuid, traceback
+import json, uuid
+
+logger = logging.getLogger(__name__)
 
 rp_bp = Blueprint('rp', __name__)
 
@@ -18,7 +21,7 @@ def list_characters(work_id):
 @rp_bp.post('/<int:work_id>/characters')
 @login_required
 def create_character(work_id):
-    work = query('SELECT work_id FROM works WHERE work_id = %s', (work_id,), one=True)
+    work = query('SELECT work_id FROM works WHERE work_id = %s AND user_id = %s', (work_id, session['user_id']), one=True)
     if not work:
         return fail('作品不存在', code=404)
 
@@ -42,7 +45,7 @@ def create_character(work_id):
 @rp_bp.post('/<int:work_id>/characters/extract')
 @login_required
 def extract_characters(work_id):
-    work = query('SELECT work_id FROM works WHERE work_id = %s', (work_id,), one=True)
+    work = query('SELECT work_id FROM works WHERE work_id = %s AND user_id = %s', (work_id, session['user_id']), one=True)
     if not work:
         return fail('作品不存在', code=404)
 
@@ -116,13 +119,13 @@ def rp_chat():
     messages = build_rp_chat(char, history, message)
 
     def generate():
-        full = ''
+        full = []
         try:
             for chunk in chat_completion_stream(messages):
-                full += chunk
+                full.append(chunk)
                 yield f'data: {json.dumps({"chunk": chunk}, ensure_ascii=False)}\n\n'
-        except Exception:
-            traceback.print_exc()
+        except Exception as e:
+            logger.error(f'RP chat error: {e}')
             yield f'data: {json.dumps({"error": "对话生成失败，请稍后再试"}, ensure_ascii=False)}\n\n'
         yield 'data: [DONE]\n\n'
 
@@ -132,7 +135,9 @@ def rp_chat():
 @rp_bp.delete('/characters/<int:char_id>')
 @login_required
 def delete_character(char_id):
-    char = query('SELECT * FROM rp_characters WHERE char_id = %s', (char_id,), one=True)
+    char = query(
+        'SELECT rc.* FROM rp_characters rc JOIN works w ON rc.work_id = w.work_id WHERE rc.char_id = %s AND w.user_id = %s',
+        (char_id, session['user_id']), one=True)
     if not char:
         return fail('角色不存在', code=404)
     execute('DELETE FROM rp_characters WHERE char_id = %s', (char_id,))

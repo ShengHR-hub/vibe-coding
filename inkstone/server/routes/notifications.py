@@ -1,15 +1,21 @@
+import logging
 from flask import Blueprint, request, session
 from database.db import query, execute
 from utils.helpers import ok, fail, login_required, _fmt
 
+logger = logging.getLogger(__name__)
 notifications_bp = Blueprint('notifications', __name__)
 
 
 def create_notification(user_id, ntype, content, related_id=None):
-    execute(
-        'INSERT INTO notifications (user_id, type, content, related_id) VALUES (%s, %s, %s, %s)',
-        (user_id, ntype, content, related_id)
-    )
+    """Create a notification. Fails silently to avoid breaking main flow."""
+    try:
+        execute(
+            'INSERT INTO notifications (user_id, type, content, related_id) VALUES (%s, %s, %s, %s)',
+            (user_id, ntype, content, related_id)
+        )
+    except Exception as e:
+        logger.error(f'Failed to create notification: {e}')
 
 
 @notifications_bp.get('')

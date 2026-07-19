@@ -94,6 +94,8 @@
 import { ref, onMounted } from 'vue'
 import { api } from '../../api/index.js'
 
+import { useToast } from '../../composables/useToast.js'
+const toast = useToast()
 const materials = ref([])
 const categories = ref([])
 const loading = ref(true)
@@ -175,8 +177,8 @@ function openDetail(m) { detailMat.value = m }
 async function copyMat(m) {
   try {
     await navigator.clipboard.writeText(m.content)
-    alert('已复制到剪贴板')
-  } catch { alert('复制失败') }
+    toast.success('已复制到剪贴板')
+  } catch { toast.error('复制失败') }
 }
 </script>
 

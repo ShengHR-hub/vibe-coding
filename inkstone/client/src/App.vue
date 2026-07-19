@@ -1,8 +1,8 @@
 <template>
-  <div id="inkstone-app">
+  <div id="inkstone-app" v-cloak>
     <SilkBackground :hue="bgHue" :saturation="bgSat" :brightness="bgBright" :speed="bgSpeed" />
-    <NavBar />
-    <main class="main-content">
+    <NavBar v-if="showNav" />
+    <main class="main-content" :class="{ standalone: isStandalone, 'no-nav': route.meta.noNav }">
       <router-view />
     </main>
     <Toast />
@@ -10,13 +10,25 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import NavBar from './components/NavBar.vue'
 import Toast from './components/Toast.vue'
 import SilkBackground from './components/SilkBackground.vue'
 import { useUserStore } from './stores/user.js'
 
 useUserStore()
+const route = useRoute()
+const router = useRouter()
+const routeReady = ref(false)
+
+const isStandalone = computed(() => route.meta.standalone === true)
+const showNav = computed(() => routeReady.value && !isStandalone.value && !route.meta.noNav)
+
+onMounted(async () => {
+  await router.isReady()
+  routeReady.value = true
+})
 
 const bgHue = ref(220)
 const bgSat = ref(0.3)
@@ -40,5 +52,9 @@ const bgSpeed = ref(0.8)
 .main-content {
   flex: 1;
   padding-top: 80px;
+}
+.main-content.standalone,
+.main-content.no-nav {
+  padding-top: 0;
 }
 </style>

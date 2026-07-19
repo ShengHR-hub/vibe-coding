@@ -145,6 +145,8 @@ import MaterialPanel from './MaterialPanel.vue'
 import DiagnosePanel from './DiagnosePanel.vue'
 import PomodoroTimer from '../../components/PomodoroTimer.vue'
 
+import { useToast } from '../../composables/useToast.js'
+const toast = useToast()
 const writingStore = useWritingStore()
 
 // ---- Tab 状态 ----
@@ -247,7 +249,7 @@ async function onDeleteChapter() {
   const ch = contextMenu.value.chapter
   if (!ch) return
   if (writingStore.chapters.length <= 1) {
-    alert('至少保留一个章节')
+    toast.info('至少保留一个章节')
     closeContextMenu()
     return
   }

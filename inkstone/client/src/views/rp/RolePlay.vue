@@ -117,6 +117,8 @@ import { useRoute } from 'vue-router'
 import { api } from '../../api/index.js'
 import { useUserStore } from '../../stores/user.js'
 
+import { useToast } from '../../composables/useToast.js'
+const toast = useToast()
 const route = useRoute()
 const userStore = useUserStore()
 const workId = route.params.work_id
@@ -183,9 +185,9 @@ async function extractChars() {
   extracting.value = false
   if (res.code === 0) {
     await loadCharacters()
-    alert(`已提取 ${res.data.count} 个角色`)
+    toast.success(`已提取 ${res.data.count} 个角色`)
   } else {
-    alert(res.msg || '提取失败')
+    toast.error(res.msg || '提取失败')
   }
 }
 

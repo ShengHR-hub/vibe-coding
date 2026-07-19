@@ -1,13 +1,16 @@
-import urllib.request
+import logging
+import requests as http_requests
 import json
 from flask import Blueprint, request, session
 from database.db import query, execute
 from utils.helpers import ok, fail, login_required
 
+logger = logging.getLogger(__name__)
+
 poems_bp = Blueprint('poems', __name__)
 
 
-@poems_bp.get('/')
+@poems_bp.get('')
 def list_poems():
     """List poems with optional category filter and pagination."""
     page = max(1, request.args.get('page', 1, type=int))
@@ -95,20 +98,22 @@ def realtime():
     poems = []
     for _ in range(count):
         try:
-            req = urllib.request.Request(
+            resp = http_requests.get(
                 'https://v1.jinrishici.com/all.json',
-                headers={'User-Agent': 'Mozilla/5.0'}
+                headers={'User-Agent': 'Mozilla/5.0'},
+                timeout=5
             )
-            with urllib.request.urlopen(req, timeout=5) as resp:
-                data = json.loads(resp.read().decode('utf-8'))
-                poems.append({
-                    'title': data.get('origin', ''),
-                    'author': data.get('author', ''),
-                    'content': data.get('content', ''),
-                    'category': data.get('category', ''),
-                    'source': '今日诗词',
-                })
-        except Exception:
+            resp.raise_for_status()
+            data = resp.json()
+            poems.append({
+                'title': data.get('origin', ''),
+                'author': data.get('author', ''),
+                'content': data.get('content', ''),
+                'category': data.get('category', ''),
+                'source': '今日诗词',
+            })
+        except Exception as e:
+            logger.warning(f'Failed to fetch poem: {e}')
             continue
     if not poems:
         return fail('获取诗词失败，请稍后再试')

@@ -109,36 +109,33 @@ def checkin(challenge_id):
     if today > challenge['end_date']:
         return fail('挑战已结束')
 
-    # Check if already checked in today
-    existing = query(
-        'SELECT checkin_id, word_count as old_words FROM challenge_checkins WHERE participant_id = %s AND checkin_date = CURDATE()',
-        (participant['participant_id'],), one=True
-    )
+    # 用 INSERT ... ON DUPLICATE KEY UPDATE 避免竞态
+    try:
+        execute(
+            'INSERT INTO challenge_checkins (participant_id, checkin_date, word_count, note) '
+            'VALUES (%s, CURDATE(), %s, %s) '
+            'ON DUPLICATE KEY UPDATE word_count = %s, note = %s',
+            (participant['participant_id'], word_count, note, word_count, note)
+        )
+    except Exception:
+        return fail('打卡失败，请稍后再试')
 
-    if existing:
-        old_words = existing['old_words'] or 0
-        delta = word_count - old_words
-        execute(
-            'UPDATE challenge_checkins SET word_count = %s, note = %s WHERE checkin_id = %s',
-            (word_count, note, existing['checkin_id'])
-        )
-        if delta != 0:
-            execute(
-                'UPDATE challenge_participants SET progress = GREATEST(progress + %s, 0) WHERE participant_id = %s',
-                (delta, participant['participant_id'])
-            )
-        return ok(msg='今日打卡已更新')
-    else:
-        execute(
-            'INSERT INTO challenge_checkins (participant_id, checkin_date, word_count, note) VALUES (%s, CURDATE(), %s, %s)',
-            (participant['participant_id'], word_count, note)
-        )
-        execute(
-            'UPDATE challenge_participants SET checkin_days = checkin_days + 1, progress = progress + %s WHERE participant_id = %s',
-            (word_count, participant['participant_id'])
-        )
-        check_achievements(user_id)
-        return ok(msg='打卡成功')
+    # 重新计算总进度
+    total_progress = query(
+        'SELECT COALESCE(SUM(word_count), 0) as total FROM challenge_checkins WHERE participant_id = %s',
+        (participant['participant_id'],), one=True
+    )['total']
+    checkin_count = query(
+        'SELECT COUNT(*) as cnt FROM challenge_checkins WHERE participant_id = %s',
+        (participant['participant_id'],), one=True
+    )['cnt']
+
+    execute(
+        'UPDATE challenge_participants SET progress = %s, checkin_days = %s WHERE participant_id = %s',
+        (total_progress, checkin_count, participant['participant_id'])
+    )
+    check_achievements(user_id)
+    return ok(msg='打卡成功')
 
 
 @challenges_bp.get('/<int:challenge_id>/checkins')

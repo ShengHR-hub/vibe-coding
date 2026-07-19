@@ -37,6 +37,7 @@
           <span class="status-tag" :class="w.status">{{ statusLabel(w.status) }}</span>
           <span>{{ fmt(w.updated_at) }}</span>
           <button class="btn btn-ghost btn-xs edit-link" @click.stop="$router.push(`/works/${w.work_id}/edit`)">编辑</button>
+          <button class="btn btn-ghost btn-xs delete-link" @click.stop="confirmDelete(w)">删除</button>
         </div>
       </div>
     </div>
@@ -45,6 +46,18 @@
       <button class="btn btn-ghost" :disabled="page <= 1" @click="page--; load()">上一页</button>
       <span>{{ page }} / {{ Math.ceil(total / pageSize) }}</span>
       <button class="btn btn-ghost" :disabled="page >= Math.ceil(total / pageSize)" @click="page++; load()">下一页</button>
+    </div>
+
+    <!-- Delete Confirm Modal -->
+    <div v-if="showDeleteConfirm" class="modal-overlay" @click.self="showDeleteConfirm = false">
+      <div class="modal glass-card">
+        <h3>确认删除</h3>
+        <p>确定要删除作品「{{ deleteTarget?.title || '未命名作品' }}」吗？此操作不可撤销。</p>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" @click="showDeleteConfirm = false">取消</button>
+          <button class="btn btn-danger" @click="doDelete" :disabled="deleting">{{ deleting ? '删除中...' : '确认删除' }}</button>
+        </div>
+      </div>
     </div>
 
     <!-- Create Modal -->
@@ -75,6 +88,8 @@ import { useRouter } from 'vue-router'
 import { api } from '../../api/index.js'
 import LoadingSpinner from '../../components/LoadingSpinner.vue'
 
+import { useToast } from '../../composables/useToast.js'
+const toast = useToast()
 const router = useRouter()
 const works = ref([])
 const loading = ref(true)
@@ -91,6 +106,28 @@ const createType = ref('novel')
 const createTags = ref('')
 const createSummary = ref('')
 const creating = ref(false)
+const showDeleteConfirm = ref(false)
+const deleteTarget = ref(null)
+const deleting = ref(false)
+
+function confirmDelete(work) {
+  deleteTarget.value = work
+  showDeleteConfirm.value = true
+}
+
+async function doDelete() {
+  if (!deleteTarget.value) return
+  deleting.value = true
+  const res = await api.delete(`/api/works/${deleteTarget.value.work_id}`)
+  deleting.value = false
+  showDeleteConfirm.value = false
+  if (res.code === 0) {
+    toast.success('作品已删除')
+    load()
+  } else {
+    toast.error(res.msg || '删除失败')
+  }
+}
 
 onMounted(load)
 
@@ -111,7 +148,7 @@ async function load() {
 }
 
 async function create() {
-  if (!createTitle.value.trim()) { alert('请输入标题'); return }
+  if (!createTitle.value.trim()) { toast.info('请输入标题'); return }
   creating.value = true
   const res = await api.post('/api/works', {
     title: createTitle.value,
@@ -124,7 +161,7 @@ async function create() {
     showCreate.value = false
     router.push(`/works/${res.data.work_id}/edit`)
   } else {
-    alert(res.msg)
+    toast.info(res.msg)
   }
 }
 
@@ -158,7 +195,12 @@ function fmt(d) {
 .empty { text-align: center; color: var(--text-muted); padding: var(--space-2xl); }
 .error-msg { color: var(--accent-red); }
 .edit-link { margin-left: auto; }
+.delete-link { color: var(--accent-red); }
+.delete-link:hover { background: rgba(239, 68, 68, 0.1); }
 .btn-xs { padding: 2px 8px; font-size: 0.7rem; }
+.btn-danger { background: var(--accent-red); color: #fff; border: none; }
+.btn-danger:hover { opacity: 0.85; }
+.btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
 .center { display: flex; justify-content: center; padding: var(--space-2xl); }
 .pagination { display: flex; justify-content: center; align-items: center; gap: var(--space-md); margin-top: var(--space-xl); }
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 200; }

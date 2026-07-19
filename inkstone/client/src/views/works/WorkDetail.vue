@@ -50,6 +50,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { api } from '../../api/index.js'
 import SharePoster from '../../components/SharePoster.vue'
 
+import { useToast } from '../../composables/useToast.js'
+const toast = useToast()
 const route = useRoute()
 const router = useRouter()
 const work = ref(null)
@@ -69,7 +71,7 @@ onMounted(async () => {
 
 async function handleExport() {
   const res = await api.download(`/api/works/${work.value.work_id}/export`)
-  if (res.code !== 0) alert(res.msg || '导出失败')
+  if (res.code !== 0) toast.error(res.msg || '导出失败')
 }
 
 async function confirmDelete() {
@@ -78,7 +80,7 @@ async function confirmDelete() {
   if (res.code === 0) {
     router.push('/works')
   } else {
-    alert(res.msg)
+    toast.info(res.msg)
   }
 }
 

@@ -9,7 +9,8 @@ random.seed(42)
 
 
 def _exists(table):
-    return query(f'SELECT COUNT(*) as cnt FROM {table}')[0]['cnt'] > 0
+    """Check if a table has any rows. Table name is always hardcoded internally."""
+    return query(f'SELECT COUNT(*) as cnt FROM `{table}`')[0]['cnt'] > 0
 
 
 def seed_achievements():
@@ -18,6 +19,7 @@ def seed_achievements():
         return
 
     achievements = [
+        # 写作成就
         ('初试啼声', '发布第一篇作品', '📝', 'works', 1),
         ('笔耕不辍', '累计写作1万字', '✍️', 'word_count', 10000),
         ('著作等身', '累计写作10万字', '📚', 'word_count', 100000),
@@ -28,6 +30,15 @@ def seed_achievements():
         ('每日打卡30天', '连续打卡30天', '💎', 'checkin_days', 30),
         ('初具人望', '收获10个粉丝', '👥', 'followers', 10),
         ('声名远播', '收获100个粉丝', '🌟', 'followers', 100),
+        # 阅读成就
+        ('初识书香', '读完第1本书', '📖', 'books_read', 1),
+        ('博览群书', '读完10本书', '📗', 'books_read', 10),
+        ('学富五车', '读完50本书', '🏛️', 'books_read', 50),
+        ('日拱一卒', '连续阅读打卡7天', '📅', 'reading_streak', 7),
+        ('锲而不舍', '连续阅读打卡30天', '🗓️', 'reading_streak', 30),
+        ('书山有路', '累计阅读100小时', '⏰', 'reading_hours', 100),
+        ('笔墨生香', '写下100条批注', '🖊️', 'annotations', 100),
+        ('字字珠玑', '标记50条好句', '✨', 'highlights', 50),
     ]
     for name, desc, icon, ctype, cval in achievements:
         execute(
@@ -543,6 +554,7 @@ def seed_user_achievements():
 
     for uid in users:
         stats = {
+            # 写作统计
             'word_count': query('SELECT COALESCE(SUM(word_count), 0) as v FROM works WHERE user_id = %s', (uid,), one=True)['v'],
             'likes': query('SELECT COALESCE(SUM(likes_count), 0) as v FROM works WHERE user_id = %s', (uid,), one=True)['v'],
             'comments': query('SELECT COALESCE(SUM(comments_count), 0) as v FROM works WHERE user_id = %s', (uid,), one=True)['v'],
@@ -553,6 +565,12 @@ def seed_user_achievements():
                 WHERE cp.user_id = %s
             ''', (uid,), one=True)['v'],
             'followers': query('SELECT COUNT(*) as v FROM follows WHERE following_id = %s', (uid,), one=True)['v'],
+            # 阅读统计
+            'books_read': query("SELECT COUNT(*) as v FROM reading_bookshelf WHERE user_id = %s AND shelf_group = 'completed'", (uid,), one=True)['v'],
+            'reading_streak': query('SELECT COUNT(DISTINCT checkin_date) as v FROM reading_checkins WHERE user_id = %s', (uid,), one=True)['v'],
+            'reading_hours': query('SELECT COALESCE(SUM(read_minutes), 0) as v FROM reading_time_logs WHERE user_id = %s', (uid,), one=True)['v'] // 60,
+            'annotations': query('SELECT COUNT(*) as v FROM reading_annotations WHERE user_id = %s', (uid,), one=True)['v'],
+            'highlights': query('SELECT COUNT(*) as v FROM reading_highlights WHERE user_id = %s', (uid,), one=True)['v'],
         }
 
         for ach in achievements:
@@ -594,5 +612,15 @@ if __name__ == '__main__':
     # Import daily prompts
     from scripts.seed_daily_prompts import import_daily_prompts
     import_daily_prompts()
+
+    # Import novels into library
+    from database.seed_library import seed_library_books
+    seed_library_books()
+
+    # Import real data from public sources
+    from scripts.import_real_data import import_poems_from_github, import_public_domain_books, import_real_prompts
+    import_poems_from_github(limit_per_source=100)
+    import_public_domain_books()
+    import_real_prompts()
 
     print('Seeding complete!')
