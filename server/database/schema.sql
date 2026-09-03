@@ -358,3 +358,17 @@ CREATE TABLE work_lore (
     UNIQUE KEY uk_work_lore_title (work_id, title),
     CONSTRAINT work_lore_ibfk_1 FOREIGN KEY (work_id) REFERENCES works (work_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 26. 灵感收藏表（F2：诗词/素材的个人收藏，冗余快照便于直接展示）
+CREATE TABLE inspiration_favorites (
+    fav_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    item_type ENUM('poem', 'material') NOT NULL,
+    ref_id INT NOT NULL,
+    title VARCHAR(200) DEFAULT '',
+    content TEXT NOT NULL,
+    author VARCHAR(100) DEFAULT '',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_fav_item (user_id, item_type, ref_id),
+    CONSTRAINT inspiration_favorites_ibfk_1 FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
