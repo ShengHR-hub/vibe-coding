@@ -4,27 +4,13 @@
 
 <script setup>
 import { computed } from 'vue'
+import { renderMarkdownBlock } from '../utils/render.js'
 
 const props = defineProps({
   content: { type: String, default: '' }
 })
 
-const renderedHtml = computed(() => {
-  if (!props.content) return ''
-  let html = props.content
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/`(.+?)`/g, '<code>$1</code>')
-    .replace(/\n\n/g, '</p><p>')
-    .replace(/\n/g, '<br>')
-  return `<p>${html}</p>`
-})
+const renderedHtml = computed(() => renderMarkdownBlock(props.content))
 </script>
 
 <style scoped>

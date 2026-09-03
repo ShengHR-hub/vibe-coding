@@ -308,6 +308,7 @@ import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../../api/index.js'
 import { useUserStore } from '../../stores/user.js'
+import { renderParagraphBlock } from '../../utils/render.js'
 import SharePoster from '../../components/SharePoster.vue'
 
 import { useToast } from '../../composables/useToast.js'
@@ -406,10 +407,7 @@ const authorName = computed(() => bookType.value === 'library' ? (work.value?.au
 const renderedContent = computed(() => {
   const ch = chapters.value[activeChapterIdx.value]
   if (!ch?.content) return '<p class="muted">暂无内容</p>'
-  return '<p>' + ch.content
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/\n\n/g, '</p><p>')
-    .replace(/\n/g, '<br>') + '</p>'
+  return renderParagraphBlock(ch.content)
 })
 
 function handleContainerClick() {

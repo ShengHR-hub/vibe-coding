@@ -48,6 +48,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../../api/index.js'
+import { renderParagraphs } from '../../utils/render.js'
 import SharePoster from '../../components/SharePoster.vue'
 
 import { useToast } from '../../composables/useToast.js'
@@ -85,13 +86,7 @@ async function confirmDelete() {
 }
 
 function renderContent(text) {
-  if (!text) return ''
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/\n\n/g, '</p><p>')
-    .replace(/\n/g, '<br>')
+  return renderParagraphs(text)
 }
 
 function typeLabel(t) {

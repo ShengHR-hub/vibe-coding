@@ -115,6 +115,7 @@
 import { ref, onMounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { api } from '../../api/index.js'
+import { renderBr } from '../../utils/render.js'
 import { useUserStore } from '../../stores/user.js'
 
 import { useToast } from '../../composables/useToast.js'
@@ -135,9 +136,7 @@ const chatArea = ref(null)
 const newChar = ref({ name: '', description: '', personality: '', background: '', speaking_style: '' })
 
 function renderMsg(text) {
-  if (!text) return ''
-  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/\n/g, '<br>')
+  return renderBr(text)
 }
 
 async function loadCharacters() {

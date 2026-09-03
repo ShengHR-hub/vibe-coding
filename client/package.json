@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:util": "node --test src/utils/render.test.js"
   },
   "dependencies": {
     "@inspira-ui/plugins": "^0.0.2",

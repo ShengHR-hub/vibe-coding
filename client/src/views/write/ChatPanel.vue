@@ -52,6 +52,7 @@
 <script setup>
 import { ref, nextTick, onMounted } from 'vue'
 import { api } from '../../api/index.js'
+import { renderMarkdownChat } from '../../utils/render.js'
 
 defineEmits(['insert'])
 
@@ -71,13 +72,7 @@ const starters = [
 ]
 
 function renderMarkdown(text) {
-  if (!text) return ''
-  return text
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/\n\n/g, '</p><p>')
-    .replace(/\n/g, '<br>')
+  return renderMarkdownChat(text)
 }
 
 function scrollToBottom() {
