@@ -1,0 +1,20 @@
+node_modules/
+dist/
+__pycache__/
+*.pyc
+.env
+*.log
+.DS_Store
+Thumbs.db
+server/uploads/
+server/logs/
+1153/
+《剑来》 作者：烽火戏诸侯/
+.pytest_cache/
+.claude/
+.idea/
+.vscode/
+.venv/
+Thumbs.db
+.audit-shots/
+audit_measure.py
