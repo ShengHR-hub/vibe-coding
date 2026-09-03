@@ -1,5 +1,25 @@
 <template>
   <div class="panel chat-panel">
+    <!-- 会话工具栏 + 历史列表 -->
+    <div class="chat-toolbar">
+      <button class="tb-btn" @click="toggleHistory" :disabled="streaming">
+        {{ historyOpen ? '收起历史 ▾' : `历史会话${sessions.length ? ` (${sessions.length})` : ''}` }}
+      </button>
+      <button class="tb-btn tb-new" @click="newConversation" :disabled="streaming">＋ 新会话</button>
+    </div>
+    <div class="chat-history" v-if="historyOpen">
+      <div class="empty-state" v-if="sessions.length === 0">
+        <p class="empty-hint">暂无历史会话</p>
+      </div>
+      <div v-for="s in sessions" :key="s.session_key" class="history-item">
+        <div class="history-main" @click="loadConversation(s.session_key)">
+          <span class="history-preview">{{ s.preview || '（空会话）' }}</span>
+          <span class="history-meta">{{ s.msg_count }} 条 · {{ s.updated_at }}</span>
+        </div>
+        <button class="tb-btn tb-del" @click.stop="removeSession(s.session_key)">删除</button>
+      </div>
+    </div>
+
     <!-- 消息列表 -->
     <div class="chat-messages" ref="messagesRef">
       <div class="chat-welcome" v-if="messages.length === 0">
@@ -63,6 +83,52 @@ const streamBuffer = ref('')
 const messagesRef = ref(null)
 const inputRef = ref(null)
 const sessionKey = ref('')
+const sessions = ref([])
+const historyOpen = ref(false)
+
+function genSessionKey() {
+  return 'c' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10)
+}
+
+async function loadSessions() {
+  const res = await api.get('/api/write/conversations')
+  if (res.code === 0) sessions.value = res.data.sessions || []
+}
+
+function toggleHistory() {
+  historyOpen.value = !historyOpen.value
+  if (historyOpen.value) loadSessions()
+}
+
+function newConversation() {
+  if (streaming.value) return
+  messages.value = []
+  streamBuffer.value = ''
+  sessionKey.value = genSessionKey()
+  historyOpen.value = false
+  scrollToBottom()
+}
+
+async function loadConversation(key) {
+  if (streaming.value || !key) return
+  const res = await api.get(`/api/write/conversations/${key}`)
+  if (res.code === 0) {
+    messages.value = (res.data.messages || []).map(m => ({ role: m.role, content: m.content }))
+    sessionKey.value = key
+    historyOpen.value = false
+    scrollToBottom()
+  }
+}
+
+async function removeSession(key) {
+  if (streaming.value) return
+  if (!window.confirm('删除该历史会话？')) return
+  const res = await api.delete(`/api/write/conversations/${key}`)
+  if (res.code === 0) {
+    sessions.value = sessions.value.filter(s => s.session_key !== key)
+    if (key === sessionKey.value) newConversation()
+  }
+}
 
 const starters = [
   '帮我构思一个奇幻故事',
@@ -90,6 +156,9 @@ function onEnter(e) {
 async function sendMessage(text) {
   const content = (text || inputText.value).trim()
   if (!content || streaming.value) return
+
+  // 首次发言生成客户端会话 key，保证同一次对话落库在同一 session 下
+  if (!sessionKey.value) sessionKey.value = genSessionKey()
 
   // Add user message
   messages.value.push({ role: 'user', content })
@@ -141,6 +210,8 @@ async function copyText(text) {
     await navigator.clipboard.writeText(text)
   } catch {}
 }
+
+onMounted(() => { loadSessions() })
 </script>
 
 <style scoped>
@@ -148,6 +219,45 @@ async function copyText(text) {
   display: flex; flex-direction: column; height: 100%;
   padding: 0; gap: 0;
 }
+
+/* 会话工具栏与历史 */
+.chat-toolbar {
+  display: flex; gap: 6px; padding: 0.5rem 0.75rem 0;
+  flex-shrink: 0;
+}
+.tb-btn {
+  font-size: 0.72rem; padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(196, 163, 90, 0.06);
+  border: 1px solid rgba(196, 163, 90, 0.12);
+  color: var(--text-muted);
+  cursor: pointer; transition: all 0.2s;
+}
+.tb-btn:hover:not(:disabled) { color: var(--accent-primary); border-color: rgba(196,163,90,0.3); }
+.tb-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.tb-new { color: var(--accent-primary); }
+.tb-del { color: #e0716b; }
+.chat-history {
+  margin: 0.4rem 0.75rem 0; padding: 0.4rem;
+  border: 1px solid rgba(196, 163, 90, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  max-height: 180px; overflow-y: auto;
+  flex-shrink: 0;
+}
+.history-item {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; padding: 6px 8px; border-radius: 6px;
+}
+.history-item:hover { background: rgba(196, 163, 90, 0.06); }
+.history-main { flex: 1; min-width: 0; cursor: pointer; }
+.history-preview {
+  display: block; font-size: 0.8rem; color: var(--text-primary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.history-meta { display: block; font-size: 0.68rem; color: var(--text-muted); margin-top: 1px; }
+.chat-history .empty-state { padding: 0.6rem 0; text-align: center; }
+.chat-history .empty-hint { font-size: 0.75rem; color: var(--text-muted); }
 
 /* 消息列表 */
 .chat-messages {
