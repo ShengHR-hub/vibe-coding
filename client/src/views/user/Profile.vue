@@ -1,7 +1,6 @@
 <template>
   <div class="page-container" v-if="profile">
-    <ReadingNav v-if="fromReading" />
-    <NavBar v-else />
+    <NavBar />
     <!-- Cover -->
     <div class="cover" :style="profile.user.cover_image ? { backgroundImage: `url(${profile.user.cover_image})` } : {}">
       <div class="cover-overlay"></div>
@@ -331,13 +330,11 @@ import { useRoute } from 'vue-router'
 import { api } from '../../api/index.js'
 import { useUserStore } from '../../stores/user.js'
 import LoadingSpinner from '../../components/LoadingSpinner.vue'
-import ReadingNav from '../../components/ReadingNav.vue'
 import NavBar from '../../components/NavBar.vue'
 
 import { useToast } from '../../composables/useToast.js'
 const toast = useToast()
 const route = useRoute()
-const fromReading = computed(() => route.query.from === 'reading')
 const userStore = useUserStore()
 
 const profile = ref(null)
@@ -391,8 +388,6 @@ const interactBar = computed(() => {
 const allTabs = [
   { key: 'works', label: '作品' },
   { key: 'favorites', label: '收藏' },
-  { key: 'reading', label: '阅读' },
-  { key: 'reviews', label: '书评' },
   { key: 'achievements', label: '成就' },
   { key: 'followers', label: '粉丝' },
   { key: 'following', label: '关注' },
@@ -447,8 +442,6 @@ async function loadTab() {
   switch (activeTab.value) {
     case 'works': url = `/api/users/${uid}/works`; break
     case 'favorites': url = `/api/users/${uid}/favorites`; break
-    case 'reading': url = `/api/users/${uid}/reading`; break
-    case 'reviews': url = `/api/users/${uid}/reviews`; break
     case 'followers': url = `/api/users/${uid}/followers`; break
     case 'following': url = `/api/users/${uid}/following`; break
   }
