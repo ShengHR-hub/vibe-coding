@@ -1,5 +1,9 @@
 <template>
   <div class="panel">
+    <div class="ref-chips" v-if="writingStore.pickedRefs.length">
+      <span class="ref-chip" v-for="(r, ri) in writingStore.pickedRefs" :key="ri" :title="r.content">{{ r.type }} · {{ r.content.slice(0, 14) }}</span>
+      <button class="ref-chip ref-clear" @click="writingStore.clearRefs()">✕ 清除</button>
+    </div>
     <div class="panel-input-area">
       <label class="panel-label">写作风格</label>
       <select v-model="style">
@@ -77,7 +81,7 @@ function go() {
   if (!text) return
   loading.value = true
   let result = ''
-  api.stream('/api/write/continue', { content: text, style: style.value, work_id: writingStore.currentWorkId || null },
+  api.stream('/api/write/continue', { content: text, style: style.value, work_id: writingStore.currentWorkId || null, references: writingStore.pickedRefs.map(r => ({ type: r.type, content: r.content })) },
     (chunk) => {
       try { const data = JSON.parse(chunk); result += data.chunk } catch {}
     },

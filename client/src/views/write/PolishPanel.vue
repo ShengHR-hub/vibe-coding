@@ -1,5 +1,9 @@
 <template>
   <div class="panel">
+    <div class="ref-chips" v-if="writingStore.pickedRefs.length">
+      <span class="ref-chip" v-for="(r, ri) in writingStore.pickedRefs" :key="ri" :title="r.content">{{ r.type }} · {{ r.content.slice(0, 14) }}</span>
+      <button class="ref-chip ref-clear" @click="writingStore.clearRefs()">✕ 清除</button>
+    </div>
     <div class="panel-input-area">
       <label class="panel-label">润色模式</label>
       <select v-model="mode">
@@ -57,9 +61,12 @@
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { api } from '../../api/index.js'
 import { renderParagraphBold } from '../../utils/render.js'
+import { useWritingStore } from '../../stores/writing.js'
 
 const props = defineProps({ content: { type: String, default: '' }, tabKey: { type: String, default: '' } })
 defineEmits(['insert'])
+
+const writingStore = useWritingStore()
 
 const mode = ref('流畅')
 const text = ref('')
@@ -82,7 +89,7 @@ async function go() {
   if (!input.trim()) return
   const original = input
   loading.value = true
-  const res = await api.post('/api/write/polish', { text: input, mode: mode.value })
+  const res = await api.post('/api/write/polish', { text: input, mode: mode.value, references: writingStore.pickedRefs.map(r => ({ type: r.type, content: r.content })) })
   loading.value = false
   if (res.code === 0) {
     history.value.unshift({

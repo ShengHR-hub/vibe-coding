@@ -38,6 +38,7 @@
           <div class="mat-content">{{ m.content }}</div>
           <div class="mat-actions">
             <button class="card-btn" @click.stop="$emit('insert', m.content)">插入编辑器</button>
+            <button class="card-btn" @click.stop="toggleRef(m)">{{ isPicked(m.content) ? '✓ 已引用' : '＋ 引用' }}</button>
             <button class="card-btn" @click.stop="copyText(m.content)">复制</button>
           </div>
         </div>
@@ -50,8 +51,11 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { api } from '../../api/index.js'
+import { useWritingStore } from '../../stores/writing.js'
 
 defineEmits(['insert'])
+
+const writingStore = useWritingStore()
 
 const materials = ref([])
 const categories = ref([])
@@ -106,6 +110,14 @@ async function selectCategory(cat) {
 
 function toggleExpand(idx) {
   expandedIdx.value = expandedIdx.value === idx ? null : idx
+}
+
+function isPicked(content) {
+  return writingStore.pickedRefs.some(r => r.content === content)
+}
+
+function toggleRef(m) {
+  writingStore.pickRef({ type: m.category || '素材', content: m.content })
 }
 
 async function copyText(text) {

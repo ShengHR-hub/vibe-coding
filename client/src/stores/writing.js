@@ -7,6 +7,24 @@ export const useWritingStore = defineStore('writing', () => {
   const currentWorkId = ref(null)
   const aiHistory = ref([])
 
+  // W4b：素材/诗词引用队列（references）——供 AI 请求注入，最多 6 条
+  const pickedRefs = ref([])
+
+  function pickRef(item) {
+    const key = item.content || item.text || ''
+    const idx = pickedRefs.value.findIndex(r => r.content === key)
+    if (idx >= 0) {
+      pickedRefs.value.splice(idx, 1)
+      return
+    }
+    if (pickedRefs.value.length >= 6) pickedRefs.value.shift()
+    pickedRefs.value.push({ type: item.type || item.category || '素材', content: key })
+  }
+
+  function clearRefs() {
+    pickedRefs.value = []
+  }
+
   // 章节管理 — 唯一数据源：chapters 数组
   const chapters = ref([])
   const activeChapterId = ref(null)
@@ -138,6 +156,7 @@ export const useWritingStore = defineStore('writing', () => {
   return {
     content, title, wordCount, currentWorkId, aiHistory,
     chapters, activeChapterId,
+    pickedRefs, pickRef, clearRefs,
     setContent, addAiMessage, reset,
     loadChapters, switchChapter, addChapter, removeChapter, reorderChapters,
     getActiveChapterTitle, setActiveChapterTitle,

@@ -43,6 +43,7 @@
           <div class="poem-actions">
             <button class="card-btn" @click.stop="insertFull(poem)">插入全文</button>
             <button class="card-btn" @click.stop="insertFirst(poem)">插入首句</button>
+            <button class="card-btn" @click.stop="toggleRef(poem)">{{ isPicked(poem.content) ? '✓ 已引用' : '＋ 引用' }}</button>
           </div>
         </div>
         <div v-else class="poem-preview">{{ firstLine(poem.content) }}</div>
@@ -54,8 +55,11 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { api } from '../../api/index.js'
+import { useWritingStore } from '../../stores/writing.js'
 
 const emit = defineEmits(['insert'])
+
+const writingStore = useWritingStore()
 
 const poems = ref([])
 const categories = ref([])
@@ -63,6 +67,14 @@ const loading = ref(false)
 const searchQuery = ref('')
 const activeCategory = ref('')
 const expandedIdx = ref(null)
+
+function isPicked(content) {
+  return writingStore.pickedRefs.some(r => r.content === content)
+}
+
+function toggleRef(poem) {
+  writingStore.pickRef({ type: '诗词', content: poem.content })
+}
 
 onMounted(async () => {
   const res = await api.get('/api/poems/categories')

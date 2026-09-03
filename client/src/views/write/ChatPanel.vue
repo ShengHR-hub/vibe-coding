@@ -53,6 +53,10 @@
     </div>
 
     <!-- 输入区域 -->
+    <div class="ref-chips" v-if="writingStore.pickedRefs.length">
+      <span class="ref-chip" v-for="(r, ri) in writingStore.pickedRefs" :key="ri" :title="r.content">{{ r.type }} · {{ r.content.slice(0, 14) }}</span>
+      <button class="ref-chip ref-clear" @click="writingStore.clearRefs()">✕ 清除</button>
+    </div>
     <div class="chat-input-area">
       <textarea
         ref="inputRef"
@@ -73,8 +77,11 @@
 import { ref, nextTick, onMounted } from 'vue'
 import { api } from '../../api/index.js'
 import { renderMarkdownChat } from '../../utils/render.js'
+import { useWritingStore } from '../../stores/writing.js'
 
 defineEmits(['insert'])
+
+const writingStore = useWritingStore()
 
 const messages = ref([])
 const inputText = ref('')
@@ -177,7 +184,7 @@ async function sendMessage(text) {
   const currentSessionKey = sessionKey.value
 
   api.stream('/api/write/chat',
-    { message: content, history, session_key: currentSessionKey },
+    { message: content, history, session_key: currentSessionKey, references: writingStore.pickedRefs.map(r => ({ type: r.type, content: r.content })) },
     (chunk) => {
       try {
         const data = JSON.parse(chunk)
