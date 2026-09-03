@@ -48,9 +48,12 @@
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { api } from '../../api/index.js'
 import { renderParagraphBold } from '../../utils/render.js'
+import { useWritingStore } from '../../stores/writing.js'
 
 const props = defineProps({ content: { type: String, default: '' }, tabKey: { type: String, default: '' } })
 defineEmits(['insert'])
+
+const writingStore = useWritingStore()
 
 const style = ref('现代')
 const inputContent = ref('')
@@ -74,7 +77,7 @@ function go() {
   if (!text) return
   loading.value = true
   let result = ''
-  api.stream('/api/write/continue', { content: text, style: style.value },
+  api.stream('/api/write/continue', { content: text, style: style.value, work_id: writingStore.currentWorkId || null },
     (chunk) => {
       try { const data = JSON.parse(chunk); result += data.chunk } catch {}
     },

@@ -137,6 +137,7 @@ import ContinuePanel from './ContinuePanel.vue'
 import InspirePanel from './InspirePanel.vue'
 import OutlinePanel from './OutlinePanel.vue'
 import CharacterPanel from './CharacterPanel.vue'
+import LorePanel from './LorePanel.vue'
 import PolishPanel from './PolishPanel.vue'
 import PromptPanel from './PromptPanel.vue'
 import PoemPanel from './PoemPanel.vue'
@@ -158,6 +159,7 @@ const tabs = [
   { key: 'inspire', label: '灵感', icon: '☆' },
   { key: 'outline', label: '大纲', icon: '≡' },
   { key: 'character', label: '角色', icon: '♛' },
+  { key: 'lore', label: '设定', icon: '❖' },
   { key: 'polish', label: '润色', icon: '♦' },
   { key: 'chat', label: '对话', icon: ' ' },
   { key: 'poem', label: '诗词', icon: ' ' },
@@ -171,6 +173,7 @@ const componentMap = {
   inspire: InspirePanel,
   outline: OutlinePanel,
   character: CharacterPanel,
+  lore: LorePanel,
   polish: PolishPanel,
   chat: ChatPanel,
   poem: PoemPanel,
