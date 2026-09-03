@@ -11,7 +11,7 @@
     <transition name="toolbar">
       <div v-show="toolbarVisible" class="reader-toolbar" @click.stop>
         <div class="toolbar-top">
-          <button class="btn btn-ghost btn-sm" @click="$router.push('/library?from=reading')">&larr; 返回</button>
+          <button class="btn btn-ghost btn-sm" @click="$router.push('/works')">&larr; 返回</button>
           <span class="toolbar-title">{{ work.title }}</span>
           <div class="toolbar-actions">
             <!-- 常用按钮 -->

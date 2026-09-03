@@ -9,7 +9,7 @@
         <div class="dropdown-menu glass-card" v-if="menuOpen" @click.stop>
           <router-link :to="`/profile/${userStore.user?.user_id}`" @click="closeMenu">我的主页</router-link>
           <router-link to="/works" @click="closeMenu">我的作品</router-link>
-          <router-link to="/bookshelf" @click="closeMenu">阅读中心</router-link>
+          <router-link to="/materials" @click="closeMenu">素材灵感</router-link>
           <router-link to="/stats" @click="closeMenu">数据洞察</router-link>
           <router-link to="/notifications" @click="closeMenu">消息中心</router-link>
           <hr>

@@ -42,10 +42,10 @@
             <span class="portal-sub">AI 续写 · 灵感激发 · 角色塑造</span>
             <span class="portal-line"></span>
           </router-link>
-          <router-link to="/library?from=reading" class="portal-card portal-read">
-            <span class="portal-en">Reading</span>
-            <span class="portal-title">开始阅读</span>
-            <span class="portal-sub">书库探索 · 沉浸阅读 · 批注打卡</span>
+          <router-link to="/materials" class="portal-card portal-read">
+            <span class="portal-en">Inspiration</span>
+            <span class="portal-title">寻找灵感</span>
+            <span class="portal-sub">短句素材 · 诗词名句 · 好句收藏</span>
             <span class="portal-line"></span>
           </router-link>
           <router-link to="/explore" class="portal-card portal-community">
@@ -366,8 +366,8 @@
             <span>Start Writing</span>
             <span class="cta-arrow">&rarr;</span>
           </router-link>
-          <router-link to="/library" class="cta-btn cta-ghost">
-            <span>Start Reading</span>
+          <router-link to="/materials" class="cta-btn cta-ghost">
+            <span>Get Inspired</span>
             <span class="cta-arrow">&rarr;</span>
           </router-link>
         </div>

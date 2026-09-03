@@ -11,7 +11,6 @@
     >
       <div class="nav-links">
         <router-link to="/write" class="nav-item">写作</router-link>
-        <router-link to="/library?from=write" class="nav-item">书库</router-link>
         <router-link to="/explore" class="nav-item">广场</router-link>
         <router-link to="/poems" class="nav-item">诗词</router-link>
         <router-link to="/materials" class="nav-item">素材</router-link>
@@ -22,10 +21,10 @@
     </LiquidGlass>
   </nav>
 
-  <!-- 左上角标志 + 阅读入口 -->
+  <!-- 左上角标志 + 灵感入口 -->
   <div class="corner-area">
     <InkstoneLogo />
-    <router-link to="/bookshelf" class="switch-btn">阅读</router-link>
+    <router-link to="/materials" class="switch-btn">灵感</router-link>
   </div>
 
   <!-- 右上角头像（独立于导航栏，相对于视口定位） -->
