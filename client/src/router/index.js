@@ -21,6 +21,7 @@ const routes = [
   { path: '/rp/:work_id', name: 'RolePlay', component: () => import('../views/rp/RolePlay.vue'), meta: { auth: true } },
   { path: '/poems', name: 'Poems', component: () => import('../views/poems/PoemLibrary.vue') },
   { path: '/materials', name: 'Materials', component: () => import('../views/materials/MaterialLibrary.vue') },
+  { path: '/inspire', name: 'Inspire', component: () => import('../views/Inspire.vue') },
   { path: '/daily', name: 'Daily', component: () => import('../views/daily/DailyPractice.vue') },
   { path: '/rankings', name: 'Rankings', component: () => import('../views/rankings/Rankings.vue') },
   { path: '/:pathMatch(.*)*', name: 'NotFound', component: () => import('../views/NotFound.vue') },
