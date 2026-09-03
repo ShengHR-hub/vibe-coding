@@ -1,8 +1,34 @@
 """所有 AI Prompt 模板集中管理"""
 
 
-def build_continue(content, style='现代', context=None):
-    """续写 prompt。context：作品设定参考（W2a），用于保持设定/人设/剧情连贯。"""
+def build_references_text(references):
+    """把前端传来的 references（素材/诗词/句子）格式化为注入文本；非法/空返回 None。"""
+    if not references:
+        return None
+    lines = []
+    for r in references[:6]:
+        if isinstance(r, dict):
+            content = str(r.get('content') or '').strip()
+            if not content:
+                continue
+            label = str(r.get('type') or r.get('category') or '素材')
+        elif isinstance(r, str) and r.strip():
+            content = r.strip()
+            label = '素材'
+        else:
+            continue
+        lines.append(f'- [{label}] {content[:500]}')
+    if not lines:
+        return None
+    block = '\n'.join(lines)
+    return (
+        '\n\n=== 参考素材（借鉴其中的意象/措辞/氛围，仅在契合时化用，不要照抄整句或整段）===\n'
+        + block
+    )[:4000]
+
+
+def build_continue(content, style='现代', context=None, references=None):
+    """续写 prompt。context：作品设定参考（W2a）；references：素材/诗词注入（W4a）。"""
     system = f'你是一位精通{style}风格的专业作家。请根据用户提供的上文，用{style}风格续写后续内容。保持文风一致，情节自然衔接。续写200-500字。'
     user = f'请续写以下内容（只续写，不要重写上文）：\n\n{content}'
     if context:
@@ -10,6 +36,9 @@ def build_continue(content, style='现代', context=None):
             '\n\n=== 作品设定参考（仅用于保持世界观/人设/剧情连贯，'
             '不得当作上文续写，也不得照抄）===\n' + context
         )
+    ref_block = build_references_text(references)
+    if ref_block:
+        user += ref_block
     return [
         {'role': 'system', 'content': system},
         {'role': 'user', 'content': user}
@@ -37,7 +66,7 @@ def build_character(story_context):
     ]
 
 
-def build_polish(text, mode='流畅'):
+def build_polish(text, mode='流畅', references=None):
     mode_map = {
         '流畅': '使文字更加流畅自然',
         '文艺': '使文字更加文艺优美，增添诗意',
@@ -45,9 +74,13 @@ def build_polish(text, mode='流畅'):
         '简洁': '精简文字，去除冗余表达'
     }
     instruction = mode_map.get(mode, '优化文字表达')
+    user = f'请润色以下文字（{mode}模式）：\n\n{text}'
+    ref_block = build_references_text(references)
+    if ref_block:
+        user += ref_block
     return [
         {'role': 'system', 'content': f'你是一位文字编辑专家。{instruction}。保持原意不变，只优化表达方式。'},
-        {'role': 'user', 'content': f'请润色以下文字（{mode}模式）：\n\n{text}'}
+        {'role': 'user', 'content': user}
     ]
 
 

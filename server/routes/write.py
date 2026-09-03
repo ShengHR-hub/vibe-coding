@@ -6,7 +6,7 @@ from utils.mimos import chat_completion, chat_completion_stream
 from utils.prompt_builder import (
     build_continue, build_inspire, build_outline,
     build_character, build_polish, build_prompt_suggestion,
-    build_chat_system, build_diagnose, build_summary
+    build_chat_system, build_diagnose, build_summary, build_references_text
 )
 from utils.logger import log_ai_call
 import json, uuid
@@ -23,6 +23,25 @@ def _save_conv(session_key, role, content):
         'INSERT INTO ai_conversations (user_id, session_key, role, content) VALUES (%s, %s, %s, %s)',
         (session.get('user_id'), session_key, role, content)
     )
+
+
+def _sanitize_references(raw):
+    """W4a：清洗前端 references（≤6 条，每条 ≤600 字，dict/字符串均可）。"""
+    if not isinstance(raw, list):
+        return None
+    out = []
+    for r in raw[:8]:
+        if isinstance(r, dict):
+            content = str(r.get('content') or '').strip()
+            if not content:
+                continue
+            label = str(r.get('type') or r.get('category') or '素材')
+            out.append({'type': label[:20], 'content': content[:600]})
+        elif isinstance(r, str) and r.strip():
+            out.append({'type': '素材', 'content': r.strip()[:600]})
+        if len(out) >= 6:
+            break
+    return out or None
 
 
 def _build_work_context(user_id, work_id):
@@ -98,8 +117,9 @@ def ai_continue():
     except (TypeError, ValueError):
         work_id = None
     context = _build_work_context(session.get('user_id'), work_id) if work_id else None
+    references = _sanitize_references(data.get('references'))
 
-    messages = build_continue(content, style, context=context)
+    messages = build_continue(content, style, context=context, references=references)
     conv_key = str(uuid.uuid4())
     _save_conv(conv_key, 'user', content)
 
@@ -204,7 +224,8 @@ def ai_polish():
     if len(text) > 20000:
         return fail('内容过长，最多20000字')
 
-    messages = build_polish(text, mode)
+    references = _sanitize_references(data.get('references'))
+    messages = build_polish(text, mode, references=references)
     try:
         result = chat_completion(messages)
         log_ai_call(current_app, session.get('user_id'), '/polish', success=True)
@@ -262,6 +283,12 @@ def ai_chat():
         if role in ('user', 'assistant'):
             messages.append({'role': role, 'content': h.get('content', '')})
     messages.append({'role': 'user', 'content': message})
+
+    # W4a：对话同样支持注入参考素材
+    references = _sanitize_references(data.get('references'))
+    ref_block = build_references_text(references)
+    if ref_block:
+        messages[-1] = {'role': 'user', 'content': messages[-1]['content'] + ref_block}
 
     _save_conv(session_key, 'user', message)
 
