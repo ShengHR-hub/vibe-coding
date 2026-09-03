@@ -1,7 +1,7 @@
 import logging
 from flask import Blueprint, request, Response, session, current_app
 from database.db import query, execute
-from utils.helpers import ok, fail, login_required
+from utils.helpers import ok, fail, login_required, check_ai_quota
 from utils.mimos import chat_completion, chat_completion_stream
 from utils.prompt_builder import (
     build_continue, build_inspire, build_outline,
@@ -23,8 +23,21 @@ def _save_conv(session_key, role, content):
     )
 
 
+def ai_quota(func):
+    """AI 调用配额装饰器（W1a）：登录后、进入逻辑前按用户限流，超限返回 429。"""
+    from functools import wraps
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        ok_, msg_ = check_ai_quota(session.get('user_id'))
+        if not ok_:
+            return fail(msg_, code=429)
+        return func(*args, **kwargs)
+    return wrapper
+
+
 @write_bp.post('/continue')
 @login_required
+@ai_quota
 def ai_continue():
     data = request.get_json()
     content = (data.get('content') or '').strip()
@@ -61,6 +74,7 @@ def ai_continue():
 
 @write_bp.post('/inspire')
 @login_required
+@ai_quota
 def ai_inspire():
     data = request.get_json()
     keywords = (data.get('keywords') or '').strip()
@@ -84,6 +98,7 @@ def ai_inspire():
 
 @write_bp.post('/outline')
 @login_required
+@ai_quota
 def ai_outline():
     data = request.get_json()
     theme = (data.get('theme') or '').strip()
@@ -105,6 +120,7 @@ def ai_outline():
 
 @write_bp.post('/character')
 @login_required
+@ai_quota
 def ai_character():
     data = request.get_json()
     story_context = (data.get('story_context') or '').strip()
@@ -126,6 +142,7 @@ def ai_character():
 
 @write_bp.post('/polish')
 @login_required
+@ai_quota
 def ai_polish():
     data = request.get_json()
     text = (data.get('text') or '').strip()
@@ -150,6 +167,7 @@ def ai_polish():
 
 @write_bp.post('/prompt')
 @login_required
+@ai_quota
 def ai_prompt():
     data = request.get_json()
     context = (data.get('context') or '').strip()
@@ -171,6 +189,7 @@ def ai_prompt():
 
 @write_bp.post('/chat')
 @login_required
+@ai_quota
 def ai_chat():
     data = request.get_json()
     message = (data.get('message') or '').strip()
@@ -216,6 +235,7 @@ def ai_chat():
 
 @write_bp.post('/diagnose')
 @login_required
+@ai_quota
 def ai_diagnose():
     data = request.get_json()
     content = (data.get('content') or '').strip()
@@ -224,6 +244,8 @@ def ai_diagnose():
 
     if len(content) < 50:
         return fail('文字太短，至少需要50字才能进行诊断')
+    if len(content) > 20000:
+        return fail('文字过长，最多20000字')
 
     messages = build_diagnose(content)
     try:
@@ -240,6 +262,7 @@ def ai_diagnose():
 
 @write_bp.post('/summary')
 @login_required
+@ai_quota
 def ai_summary():
     """AI 章节摘要"""
     data = request.get_json()
@@ -249,6 +272,8 @@ def ai_summary():
         return fail('请提供章节内容')
     if len(content) < 100:
         return fail('内容太短，至少需要100字才能生成摘要')
+    if len(content) > 30000:
+        return fail('章节内容过长，最多30000字')
 
     messages = build_summary(chapter_title, content)
     try:

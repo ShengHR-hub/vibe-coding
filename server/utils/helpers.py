@@ -1,3 +1,5 @@
+from collections import defaultdict
+import time
 from flask import session
 
 
@@ -93,3 +95,33 @@ def check_achievements(user_id):
             create_notification(user_id, 'achievement', f'恭喜解锁成就「{name}」！', None)
 
     return newly_unlocked
+
+
+# ---------------------------------------------------------------------------
+# AI 调用配额（W1a）：按用户进程内限流（分钟窗口 + 每日上限）
+# 注意：单进程有效；多 worker 部署时需换成 Redis（见 M3/部署项 Backlog）。
+# ---------------------------------------------------------------------------
+_ai_minute = defaultdict(list)   # user_id -> [时间戳]
+_ai_daily = defaultdict(int)     # user_id -> 今日已用次数
+_ai_day = {}                     # user_id -> 日期字符串
+
+
+def check_ai_quota(user_id):
+    """检查 AI 调用配额。返回 (ok: bool, msg: str)；未登录返回放行（由 login_required 拦截）。"""
+    from config import Config
+    if not user_id:
+        return True, ''
+    now = time.time()
+    stamps = _ai_minute.setdefault(user_id, [])
+    stamps[:] = [t for t in stamps if now - t < 60]
+    if len(stamps) >= Config.AI_RATE_PER_MIN:
+        return False, 'AI 请求太频繁，请稍后再试'
+    today = time.strftime('%Y-%m-%d')
+    if _ai_day.get(user_id) != today:
+        _ai_day[user_id] = today
+        _ai_daily[user_id] = 0
+    if _ai_daily[user_id] >= Config.AI_DAILY_LIMIT:
+        return False, '今日 AI 用量已达上限，请明天再试'
+    stamps.append(now)
+    _ai_daily[user_id] += 1
+    return True, ''

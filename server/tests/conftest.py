@@ -89,6 +89,11 @@ def _clean_between_tests(_fresh_test_db):
     from routes import auth as _auth_mod
     _auth_mod._login_attempts.clear()
     _auth_mod._REGISTER_ATTEMPTS.clear()
+    # 清空 AI 配额计数（W1a，防止用例间相互影响）
+    from utils import helpers as _helpers
+    _helpers._ai_minute.clear()
+    _helpers._ai_daily.clear()
+    _helpers._ai_day.clear()
     yield
 
 

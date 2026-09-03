@@ -21,3 +21,6 @@ class Config:
     MIMO_BASE_URL = os.environ.get('MIMO_BASE_URL', 'https://token-plan-cn.xiaomimimo.com/anthropic')
     MIMO_MODEL = os.environ.get('MIMO_MODEL', 'mimo-v2.5')
     MAX_CONTENT_LENGTH = 50 * 1024 * 1024  # 50MB
+    # AI 调用配额（W1a）：每用户每分钟次数 / 每日总次数
+    AI_RATE_PER_MIN = int(os.environ.get('AI_RATE_PER_MIN', 20))
+    AI_DAILY_LIMIT = int(os.environ.get('AI_DAILY_LIMIT', 300))
