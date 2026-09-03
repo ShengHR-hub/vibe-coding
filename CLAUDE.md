@@ -3,7 +3,7 @@
 ## 项目概况
 
 Vue3 + Flask + MySQL + MiMo 大模型，面向写作爱好者的全品类创作平台。
-当前规模：**27 个蓝图 / 150+ API 端点 / 37 张表 / 42 个前端页面**。
+当前规模：**27 个蓝图 / 150+ API 端点 / 38 张表 / 42 个前端页面**。
 当前阶段：**M0→M3 收敛加固期**（独立仓库与测试基线已就绪，进行中）。过程纪律见 `docs/改造守则.md`，分步进度见 `docs/改造进度.md`。
 
 ## 启动命令
@@ -42,7 +42,7 @@ inkstone/
     │                        # serialize/rp/library/bookshelf/reading/bookmarks/annotations/
     │                        # checkin/report/highlights/reviews/compare
     ├── database/
-    │   ├── schema.sql       # 37 张表 DDL（核心域 + 阅读库域 library_*/reading_*）
+    │   ├── schema.sql       # 38 张表 DDL（核心域 + 阅读库域 library_*/reading_*）
     │   ├── db.py            # PyMySQL 连接池（query/execute/execute_many）
     │   └── seed.py          # 成就定义 + 预制数据
     ├── tests/               # pytest 48 用例（隔离测试库，见 conftest.py）

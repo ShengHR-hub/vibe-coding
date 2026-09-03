@@ -24,7 +24,7 @@
 
 - 前端：Vue 3 + Vite + Vue Router + Pinia，毛玻璃/暗色暖色自定义主题，42 个页面
 - 后端：Flask 3（应用工厂 + 27 个蓝图、150+ API 端点）+ PyMySQL 连接池（全部参数化 SQL）
-- 数据库：MySQL 8，37 张表
+- 数据库：MySQL 8，38 张表
 - AI：小米 MiMo API（SSE `text/event-stream` 流式返回），对话按 session 落库
 - 认证：Session-based + bcrypt，登录/注册 IP 限速
 
@@ -47,7 +47,7 @@ inkstone/
 │   │                       #   daily/rankings/serialize/rp/library/bookshelf/reading/
 │   │                       #   bookmarks/annotations/checkin/report/highlights/reviews/compare）
 │   ├── database/
-│   │   ├── schema.sql      # 37 张表 DDL
+│   │   ├── schema.sql      # 38 张表 DDL
 │   │   ├── db.py           # PyMySQL 连接池（query/execute/execute_many，自动事务）
 │   │   └── seed.py         # 成就定义 + 预制数据
 │   ├── utils/              # helpers / prompt_builder / logger 等
