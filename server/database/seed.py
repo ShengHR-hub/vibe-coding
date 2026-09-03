@@ -613,9 +613,7 @@ if __name__ == '__main__':
     from scripts.seed_daily_prompts import import_daily_prompts
     import_daily_prompts()
 
-    # Import novels into library
-    from database.seed_library import seed_library_books
-    seed_library_books()
+    # 注：书库/外部书籍导入已下线（P2），seed 不再导入小说
 
     # Import real data from public sources
     from scripts.import_real_data import import_poems_from_github, import_public_domain_books, import_real_prompts
