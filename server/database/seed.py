@@ -30,15 +30,6 @@ def seed_achievements():
         ('每日打卡30天', '连续打卡30天', '💎', 'checkin_days', 30),
         ('初具人望', '收获10个粉丝', '👥', 'followers', 10),
         ('声名远播', '收获100个粉丝', '🌟', 'followers', 100),
-        # 阅读成就
-        ('初识书香', '读完第1本书', '📖', 'books_read', 1),
-        ('博览群书', '读完10本书', '📗', 'books_read', 10),
-        ('学富五车', '读完50本书', '🏛️', 'books_read', 50),
-        ('日拱一卒', '连续阅读打卡7天', '📅', 'reading_streak', 7),
-        ('锲而不舍', '连续阅读打卡30天', '🗓️', 'reading_streak', 30),
-        ('书山有路', '累计阅读100小时', '⏰', 'reading_hours', 100),
-        ('笔墨生香', '写下100条批注', '🖊️', 'annotations', 100),
-        ('字字珠玑', '标记50条好句', '✨', 'highlights', 50),
     ]
     for name, desc, icon, ctype, cval in achievements:
         execute(
@@ -565,12 +556,6 @@ def seed_user_achievements():
                 WHERE cp.user_id = %s
             ''', (uid,), one=True)['v'],
             'followers': query('SELECT COUNT(*) as v FROM follows WHERE following_id = %s', (uid,), one=True)['v'],
-            # 阅读统计
-            'books_read': query("SELECT COUNT(*) as v FROM reading_bookshelf WHERE user_id = %s AND shelf_group = 'completed'", (uid,), one=True)['v'],
-            'reading_streak': query('SELECT COUNT(DISTINCT checkin_date) as v FROM reading_checkins WHERE user_id = %s', (uid,), one=True)['v'],
-            'reading_hours': query('SELECT COALESCE(SUM(read_minutes), 0) as v FROM reading_time_logs WHERE user_id = %s', (uid,), one=True)['v'] // 60,
-            'annotations': query('SELECT COUNT(*) as v FROM reading_annotations WHERE user_id = %s', (uid,), one=True)['v'],
-            'highlights': query('SELECT COUNT(*) as v FROM reading_highlights WHERE user_id = %s', (uid,), one=True)['v'],
         }
 
         for ach in achievements:
@@ -615,10 +600,12 @@ if __name__ == '__main__':
 
     # 注：书库/外部书籍导入已下线（P2），seed 不再导入小说
 
-    # Import real data from public sources
-    from scripts.import_real_data import import_poems_from_github, import_public_domain_books, import_real_prompts
-    import_poems_from_github(limit_per_source=100)
-    import_public_domain_books()
-    import_real_prompts()
+    # 可选真实数据导入（poems/prompts；网络失败或表缺失时跳过，不阻塞 seed）
+    try:
+        from scripts.import_real_data import import_poems_from_github, import_real_prompts
+        import_poems_from_github(limit_per_source=100)
+        import_real_prompts()
+    except Exception as e:
+        print('可选数据导入跳过:', e)
 
     print('Seeding complete!')
