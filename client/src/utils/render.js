@@ -52,3 +52,16 @@ export function renderMarkdownBlock(content) {
     .replace(/\n/g, '<br>')
   return `<p>${html}</p>`
 }
+
+/**
+ * 加粗 + 分段（W1d：AI 写面板统一安全渲染）。
+ * 转义后仅支持 **加粗** 与空行分段/换行，其余 markdown 原样显示（原 DiagnosePanel 语义 + 转义）。
+ */
+export function renderParagraphBold(text) {
+  if (!text) return ''
+  const html = escHtml(text)
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\n/g, '<br>')
+  return `<p>${html}</p>`
+}

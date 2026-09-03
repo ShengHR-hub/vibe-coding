@@ -7,6 +7,7 @@ import {
   renderParagraphBlock,
   renderMarkdownChat,
   renderMarkdownBlock,
+  renderParagraphBold,
 } from './render.js'
 
 test('escHtml 转义 & < >（保留引号，与旧实现一致）', () => {
@@ -58,6 +59,19 @@ test('XSS 向量：所有渲染函数都不输出裸标签', () => {
     assert.ok(!/<img|<script/.test(out), `裸标签泄漏: ${out}`)
     assert.ok(out.includes('&lt;img'), '应保留转义后的 <img')
   }
+})
+
+test('renderParagraphBold：转义 + 加粗 + 分段包 <p>（W1d AI 面板渲染）', () => {
+  assert.equal(
+    renderParagraphBold('**粗**\n\n第二段\n续行'),
+    '<p><strong>粗</strong></p><p>第二段<br>续行</p>'
+  )
+  // XSS：HTML 被转义，仅 ** 加粗生效
+  const out = renderParagraphBold('<img src=x onerror=alert(1)> **好**')
+  assert.ok(!/<img/.test(out))
+  assert.ok(out.includes('&lt;img'))
+  assert.ok(out.includes('<strong>好</strong>'))
+  assert.equal(renderParagraphBold(''), '')
 })
 
 test('非法输入不抛异常', () => {

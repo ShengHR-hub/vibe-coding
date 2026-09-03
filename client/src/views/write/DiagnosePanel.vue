@@ -45,6 +45,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { api } from '../../api/index.js'
+import { renderParagraphBold } from '../../utils/render.js'
 
 const props = defineProps({ content: { type: String, default: '' }, tabKey: { type: String, default: '' } })
 defineEmits(['insert'])
@@ -54,13 +55,7 @@ const result = ref('')
 const resultTime = ref('')
 
 function renderDiagnosis(text) {
-  if (!text) return ''
-  return text
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\n\n/g, '</p><p>')
-    .replace(/\n/g, '<br>')
-    .replace(/^/, '<p>')
-    .replace(/$/, '</p>')
+  return renderParagraphBold(text)
 }
 
 async function go() {

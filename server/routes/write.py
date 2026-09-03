@@ -17,6 +17,8 @@ write_bp = Blueprint('write', __name__)
 
 
 def _save_conv(session_key, role, content):
+    # W1d：入库内容截断，防止超长输出撑爆 ai_conversations
+    content = (content or '')[:20000]
     execute(
         'INSERT INTO ai_conversations (user_id, session_key, role, content) VALUES (%s, %s, %s, %s)',
         (session.get('user_id'), session_key, role, content)

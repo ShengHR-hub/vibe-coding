@@ -44,7 +44,7 @@
             <p class="compare-text polished">{{ stripHtml(item.text) }}</p>
           </div>
         </div>
-        <div class="card-body markdown-body" v-else v-html="item.text"></div>
+        <div class="card-body markdown-body" v-else v-html="renderParagraphBold(item.text)"></div>
         <div class="card-actions">
           <button class="card-btn" @click="$emit('insert', stripHtml(item.text))">替换原文</button>
         </div>
@@ -56,6 +56,7 @@
 <script setup>
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { api } from '../../api/index.js'
+import { renderParagraphBold } from '../../utils/render.js'
 
 const props = defineProps({ content: { type: String, default: '' }, tabKey: { type: String, default: '' } })
 defineEmits(['insert'])

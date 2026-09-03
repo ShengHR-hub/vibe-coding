@@ -29,7 +29,7 @@
           <span class="card-badge">角色设定</span>
           <span class="card-time">{{ item.time }}</span>
         </div>
-        <div class="card-body markdown-body" v-html="item.text"></div>
+        <div class="card-body markdown-body" v-html="renderParagraphBold(item.text)"></div>
         <div class="card-actions">
           <button class="card-btn" @click="$emit('insert', stripHtml(item.text))">插入编辑器</button>
         </div>
@@ -41,6 +41,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { api } from '../../api/index.js'
+import { renderParagraphBold } from '../../utils/render.js'
 
 const props = defineProps({ tabKey: { type: String, default: '' } })
 defineEmits(['insert'])
