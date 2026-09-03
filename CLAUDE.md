@@ -3,53 +3,50 @@
 ## 项目概况
 
 Vue3 + Flask + MySQL + MiMo 大模型，面向写作爱好者的全品类创作平台。
-10 模块 46 功能，当前 6/13 阶段完成。
+当前规模：**27 个蓝图 / 150+ API 端点 / 37 张表 / 42 个前端页面**。
+当前阶段：**M0→M3 收敛加固期**（独立仓库与测试基线已就绪，进行中）。过程纪律见 `docs/改造守则.md`，分步进度见 `docs/改造进度.md`。
 
 ## 启动命令
 
 ```bash
+# 初始化数据库（一次性）
+mysql -u root -p123456 < server/database/schema.sql
+cd server && python -m database.seed
+
 # 后端（端口 5000）
 cd server && python app.py
 
 # 前端（端口 5173）
 cd client && npm run dev
 
-# 初始化数据库
-mysql -u root -p123456 < server/database/schema.sql
-cd server && python -m database.seed
+# 后端测试（隔离测试库 inkstone_test，不碰开发库）
+cd server && python -m pytest tests -q
 ```
 
 ## 项目结构
 
 ```
 inkstone/
-├── client/                  # Vue3 + Vite 前端
+├── client/                  # Vue3 + Vite 前端（42 页面）
 │   └── src/
 │       ├── api/index.js     # HTTP 封装（request + SSE stream）
-│       ├── router/index.js  # 路由 + 全局守卫（auth/guest meta）
+│       ├── router/index.js  # 路由 + 全局守卫（auth/guest meta；standalone=全屏阅读态）
 │       ├── stores/          # Pinia（user.js, writing.js）
-│       ├── views/           # 页面组件
-│       │   ├── write/       # AI 写作工作室
-│       │   ├── works/       # 作品管理 + 阅读器
-│       │   ├── community/   # 社区广场
-│       │   └── user/        # 个人主页
-│       └── components/      # 通用组件
-└── server/                  # Flask 后端
-    ├── app.py               # 应用工厂
-    ├── config.py            # 配置（环境变量）
-    ├── routes/              # 蓝图路由
-    │   ├── auth.py          # 注册/登录/登出（bcrypt + session）
-    │   ├── write.py         # AI 写作（6 端点，续写用 SSE）
-    │   ├── works.py         # 作品 CRUD + 版本快照 + 发布/阅读
-    │   ├── community.py     # 社区流/搜索/分类
-    │   ├── interactions.py  # 评论/点赞/收藏
-    │   └── users.py         # 个人主页/关注/成就/等级
+│       ├── views/           # write/works/community/library/user/stats/...
+│       └── components/      # 通用组件（含若干仅供展示的高保真动效组件）
+└── server/                  # Flask 后端（27 蓝图，routes/__init__.py 统一注册）
+    ├── app.py               # 应用工厂（蓝图 + 安全头 + uploads/静态托管）
+    ├── config.py            # 环境变量配置（缺 SECRET_KEY/MIMO_API_KEY 拒绝启动）
+    ├── routes/              # auth/write/works/community/interactions/users/stats/graph/
+    │                        # challenges/notifications/review/poems/materials/daily/rankings/
+    │                        # serialize/rp/library/bookshelf/reading/bookmarks/annotations/
+    │                        # checkin/report/highlights/reviews/compare
     ├── database/
-    │   ├── schema.sql       # 17 张表 DDL
-    │   ├── db.py            # PyMySQL 封装（query/execute, DictCursor）
+    │   ├── schema.sql       # 37 张表 DDL（核心域 + 阅读库域 library_*/reading_*）
+    │   ├── db.py            # PyMySQL 连接池（query/execute/execute_many）
     │   └── seed.py          # 成就定义 + 预制数据
-    └── utils/
-        └── helpers.py       # ok()/fail()/login_required
+    ├── tests/               # pytest 48 用例（隔离测试库，见 conftest.py）
+    └── utils/               # helpers/prompt_builder/logger/scraper/mimos
 ```
 
 ## 技术约定
@@ -62,37 +59,36 @@ inkstone/
 
 ### 认证
 - Session-based（Flask session），`@login_required` 装饰器保护路由
+- bcrypt 哈希；登录/注册有进程内 IP 限速（auth.py 模块级 dict）
 - `client/src/stores/user.js` 用 `initialized` 标志防止路由守卫竞态
-- 全局路由守卫：`auth` meta 需登录，`guest` meta 登录后重定向到 `/`
+- 全局路由守卫：`auth` meta 需登录，`guest` meta 登录后重定向
 
 ### 数据库
-- PyMySQL + DictCursor，`database/db.py` 提供 `query()` 和 `execute()`
-- 所有路由通过这两个函数操作数据库，不直接写 SQL 连接
-- `execute()` 自动 commit/rollback，返回 `lastrowid`
-- 点赞/关注用 toggle 模式：SELECT 检查 → INSERT 或 DELETE
-- 计数器使用 `GREATEST(x-1, 0)` 防负值
+- PyMySQL 连接池 + DictCursor，`database/db.py` 提供 `query()` / `execute()` / `execute_many()`
+- 所有路由通过这三个函数操作数据库，不直接写 SQL 连接；SQL 一律参数化（f-string 只拼内部白名单）
+- `execute()` 自动 commit/rollback，返回 lastrowid；点赞/关注用 toggle（SELECT→INSERT/DELETE）
+- 计数器用 `GREATEST(x-1, 0)` 防负值
+- **测试隔离**：pytest 走 inkstone_test（conftest.py 会话重建 + 每用例清表 + 清限速计数），禁止改回开发库
 
 ### AI 流式响应
-- SSE `text/event-stream`，chunk 格式 `data: xxx\n\n`，结束 `data: [DONE]\n\n`
-- 前端 `api.stream()` 解析 SSE，支持 onChunk/onDone/onError 回调
-- 对话历史按 `session_key` (UUID) 存入 `ai_conversations`
+- SSE `text/event-stream`，chunk `data: xxx\n\n`，结束 `data: [DONE]\n\n`
+- 前端 `api.stream()` 解析，支持 onChunk/onDone/onError
+- 对话历史按 `session_key` (UUID) 存入 `ai_conversations`；输入有字符上限（部分端点待补，见 M2）
+- **安全提醒**：多数 AI 面板此前直接 `v-html` 模型输出——涉及渲染用户/AI 内容时先走统一转义（M2 专项收口，勿新增裸 v-html）
 
-### 前端样式
-- CSS 自定义属性体系（`--accent-primary`, `--bg-glass`, `--border-glass` 等）
-- 毛玻璃卡片：`class="glass-card"`
-- 路由切换动画：`<transition name="page" mode="out-in">`
+### 前端样式与渲染
+- CSS 自定义属性体系（`--accent-primary` 等）+ 毛玻璃 `glass-card` + `<transition name="page">`
+- 用户/AI 文本渲染：统一走转义后再拼受控 HTML；不要直接 `v-html` 外部内容
 
-### 等级系统
-- 经验值 = 总字数 + 获赞×2 + 评论×3
-- 10 级：初窥门径→文坛巨匠，阈值 [0, 100, 500, 1500, 5000, 12000, 30000, 80000, 200000, 500000]
-- 查看主页时自动重算，后端返回 `prev_level_exp` + `next_level_exp` 供前端算进度条
+### 等级与成就
+- 经验值 = 总字数 + 获赞×2 + 评论×3（注意：阅读时长尚未入经验，M1 计划项）
+- 等级阈值后端下发（`/api/users/levels`），前端不得重复维护
 
 ### 作品版本快照
-- 每次更新前 JSON 序列化当前状态 → `work_versions`
-- 回退前先创建当前状态快照（可逆操作）
-- 日期字段用 `_fmt()` 转 ISO 字符串再序列化
+- 每次更新前序列化当前状态 → `work_versions`；回退前先建当前快照（可逆）
+- 日期字段 `_fmt()` 转 ISO 字符串后再序列化
 
-## 关键路由
+## 关键路由（节选，全量见 routes/）
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
@@ -102,16 +98,20 @@ inkstone/
 | GET | /api/works/public/:id | 公开作品详情（无需 auth） |
 | GET | /api/community/feed?sort=hot | 社区推荐流 |
 | GET | /api/community/search?q= | 全文搜索 |
+| GET | /api/library | 书库（作品 + 导入书籍合并） |
+| GET | /api/reading/progress/:type/:id | 阅读进度（UPSERT） |
+| GET | /api/reading/report/monthly | 月度报告 |
 | POST | /api/interactions/like | 点赞 toggle |
-| POST | /api/interactions/favorite | 收藏 toggle |
 | GET | /api/users/:id | 个人主页 |
-| POST | /api/users/follow | 关注 toggle |
 | GET | /api/users/achievements | 成就列表（需 auth） |
 
 ## 红线
 
-- **不要**在路由中直接创建数据库连接，用 `db.query()` / `db.execute()`
-- **不要**在 `works/<id>` 端点返回非本人作品（已拆分为 `works/public/<id>`）
-- **不要**用 `'\s'` 匹配空白（Python 中它是字面量），用 `re.sub(r'\s', '', text)`
-- **不要**在前端维护与后端重复的阈值/常量（如等级表），从 API 响应取值
+- **不要**在路由中直接创建数据库连接，用 `db.query()` / `db.execute()` / `execute_many()`
+- **不要**在 `works/<id>` 端点返回非本人作品（公开走 `works/public/<id>`）
+- **不要**用 `'\s'` 匹配空白（Python 中是字面量），用 `re.sub(r'\s', '', text)`
+- **不要**在前端维护与后端重复的阈值/常量（等级/成就等），从 API 响应取值
 - **不要**在 CLAUDE.md 顶部写 blockquote 历史叙事
+- **不要**给外部可见文本直接 `v-html`（先统一转义）；**不要**把测试指向开发库 inkstone
+- **不要**提交 `.env` / `client/dist/` / `server/uploads/` 等（见 .gitignore）；真实密钥只放本地 .env
+- 改动遵循 `docs/改造守则.md`：最小增量、每步自测+回归、绿灯才前进；无关发现进 `docs/改造进度.md` Backlog
