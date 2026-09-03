@@ -34,7 +34,7 @@
         <MorphingText :texts="heroTexts" class="hero-morphing" />
         <p class="hero-subtitle">Where ink blooms into art</p>
         <div class="hero-divider"></div>
-        <p class="hero-desc">墨池是一个 AI 驱动的读写一体化平台，涵盖 AI 写作工作室、沉浸式阅读系统、<br>出版连载、角色扮演、社区互动、挑战赛、数据仪表盘等 28 个功能模块。</p>
+        <p class="hero-desc">墨池是一个 AI 驱动的创作灵感平台，涵盖 AI 写作工作室、素材与诗词灵感、<br>作品管理、社区互动、挑战赛、角色扮演、数据洞察等创作功能模块。</p>
         <div class="hero-portals">
           <router-link to="/write" class="portal-card portal-write">
             <span class="portal-en">Writing</span>
@@ -64,10 +64,10 @@
     <section class="fp-section section-overview">
       <div class="section-inner">
         <p class="sec-tag">Overview <span class="tag-cn">概览</span></p>
-        <h2 class="sec-heading">读写一体<br>智能创作空间</h2>
+        <h2 class="sec-heading">AI 创作助手<br>灵感生长空间</h2>
         <p class="sec-subtitle">
-          28 个功能模块覆盖创作与阅读的每一个环节——从 AI 辅助写作到沉浸式阅读，<br>
-          从社区互动到数据驱动的成长体系，读与写在这里深度融合。
+          从 AI 辅助写作、设定记忆到素材灵感反哺，<br>
+          让每个灵感都能长成完整的故事。
         </p>
         <div class="stat-row">
           <div class="stat-card" v-for="s in stats" :key="s.label">
@@ -360,7 +360,7 @@
     <section class="fp-section section-cta">
       <div class="section-inner">
         <h2 class="sec-heading cta-heading">Ready to<br>Create?</h2>
-        <p class="sec-subtitle">加入墨池，28 个模块、155 个端点、42 个页面，<br>打造属于你的读写一体化空间</p>
+        <p class="sec-subtitle">加入墨池，用 AI 与灵感<br>把每个故事写成作品</p>
         <div class="cta-buttons">
           <router-link to="/write" class="cta-btn cta-primary pulse-glow">
             <span>Start Writing</span>
@@ -402,8 +402,8 @@ const featuredPoems = ref([])
 const heroTexts = ['以墨为池', '字字生花', '让文字自由生长']
 
 const stats = [
-  { num: 28, label: '功能模块', desc: '覆盖读写全场景' },
-  { num: 155, label: 'API 端点', desc: '每个细节都打磨到位' },
+  { num: 17, label: '功能模块', desc: 'AI 创作全流程覆盖' },
+  { num: 106, label: 'API 端点', desc: '每个细节都打磨到位' },
   { num: 42, label: '页面', desc: '完整的产品体验' },
   { num: 36, label: '数据表', desc: '严谨的数据架构' },
 ]

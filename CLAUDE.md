@@ -3,7 +3,7 @@
 ## 项目概况
 
 Vue3 + Flask + MySQL + MiMo 大模型，面向写作爱好者的全品类创作平台。
-当前规模：**27 个蓝图 / 150+ API 端点 / 38 张表 / 42 个前端页面**。
+当前规模：**17 个蓝图 / 106 个 API 端点 / 26 张表 / 33 个前端页面**。
 当前阶段：**M0→M3 收敛加固期**（独立仓库与测试基线已就绪，进行中）。过程纪律见 `docs/改造守则.md`，分步进度见 `docs/改造进度.md`。
 
 ## 启动命令
@@ -27,26 +27,25 @@ cd server && python -m pytest tests -q
 
 ```
 inkstone/
-├── client/                  # Vue3 + Vite 前端（42 页面）
+├── client/                  # Vue3 + Vite 前端（33 页面）
 │   └── src/
 │       ├── api/index.js     # HTTP 封装（request + SSE stream）
 │       ├── router/index.js  # 路由 + 全局守卫（auth/guest meta；standalone=全屏阅读态）
 │       ├── stores/          # Pinia（user.js, writing.js）
-│       ├── views/           # write/works/community/library/user/stats/...
+│       ├── views/           # write/works/community/user/stats/...
 │       └── components/      # 通用组件（含若干仅供展示的高保真动效组件）
-└── server/                  # Flask 后端（27 蓝图，routes/__init__.py 统一注册）
+└── server/                  # Flask 后端（17 蓝图，routes/__init__.py 统一注册）
     ├── app.py               # 应用工厂（蓝图 + 安全头 + uploads/静态托管）
     ├── config.py            # 环境变量配置（缺 SECRET_KEY/MIMO_API_KEY 拒绝启动）
-    ├── routes/              # auth/write/works/community/interactions/users/stats/graph/
+    ├── routes/              # 17 蓝图：auth/write/works/community/interactions/users/stats/graph/
     │                        # challenges/notifications/review/poems/materials/daily/rankings/
-    │                        # serialize/rp/library/bookshelf/reading/bookmarks/annotations/
-    │                        # checkin/report/highlights/reviews/compare
+    │                        # serialize/rp（书/书库蓝图已于 P2-R2 下线）
     ├── database/
-    │   ├── schema.sql       # 38 张表 DDL（核心域 + 阅读库域 library_*/reading_*）
+    │   ├── schema.sql       # 26 张表 DDL（书库/阅读相关表已随 P2 下线）
     │   ├── db.py            # PyMySQL 连接池（query/execute/execute_many）
     │   └── seed.py          # 成就定义 + 预制数据
-    ├── tests/               # pytest 48 用例（隔离测试库，见 conftest.py）
-    └── utils/               # helpers/prompt_builder/logger/scraper/mimos
+    ├── tests/               # pytest 76 用例（隔离测试库，见 conftest.py）
+    └── utils/               # helpers/prompt_builder/logger/mimos
 ```
 
 ## 技术约定
@@ -98,9 +97,8 @@ inkstone/
 | GET | /api/works/public/:id | 公开作品详情（无需 auth） |
 | GET | /api/community/feed?sort=hot | 社区推荐流 |
 | GET | /api/community/search?q= | 全文搜索 |
-| GET | /api/library | 书库（作品 + 导入书籍合并） |
-| GET | /api/reading/progress/:type/:id | 阅读进度（UPSERT） |
-| GET | /api/reading/report/monthly | 月度报告 |
+| GET | /api/works/:id/lore | 作品设定记忆（work_lore）CRUD |
+| GET | /api/write/conversations | AI 会话历史（含剪枝） |
 | POST | /api/interactions/like | 点赞 toggle |
 | GET | /api/users/:id | 个人主页 |
 | GET | /api/users/achievements | 成就列表（需 auth） |
