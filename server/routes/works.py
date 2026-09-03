@@ -1,5 +1,6 @@
 from flask import Blueprint, request, session, Response
 import re, json, urllib.parse
+from pymysql.err import IntegrityError
 from database.db import query, execute, execute_many
 from utils.helpers import ok, fail, login_required, _fmt, check_achievements
 
@@ -471,3 +472,91 @@ def toggle_status(work_id):
     execute('UPDATE works SET status = %s WHERE work_id = %s', (new_status, work_id))
     check_achievements(session['user_id'])
     return ok({'status': new_status}, msg='状态已更新')
+
+
+# ---------------------------------------------------------------------------
+# W2b：作品设定记忆 work_lore（轻量 lorebook，仅本人作品）
+# ---------------------------------------------------------------------------
+
+@works_bp.get('/<int:work_id>/lore')
+@login_required
+def list_lore(work_id):
+    work = query('SELECT work_id FROM works WHERE work_id = %s AND user_id = %s',
+                 (work_id, session['user_id']), one=True)
+    if not work:
+        return fail('作品不存在', code=404)
+    rows = query('SELECT lore_id, title, content, updated_at FROM work_lore WHERE work_id = %s ORDER BY lore_id', (work_id,))
+    for r in rows:
+        r['updated_at'] = _fmt(r.get('updated_at'))
+    return ok({'items': rows})
+
+
+@works_bp.post('/<int:work_id>/lore')
+@login_required
+def create_lore(work_id):
+    work = query('SELECT work_id FROM works WHERE work_id = %s AND user_id = %s',
+                 (work_id, session['user_id']), one=True)
+    if not work:
+        return fail('作品不存在', code=404)
+    data = request.get_json() or {}
+    title = (data.get('title') or '').strip()
+    content = (data.get('content') or '').strip()
+    if not title:
+        return fail('设定标题不能为空')
+    if len(title) > 100:
+        return fail('设定标题过长，最多100字')
+    if not content:
+        return fail('设定内容不能为空')
+    if len(content) > 10000:
+        return fail('设定内容过长，最多10000字')
+    try:
+        lore_id = execute(
+            'INSERT INTO work_lore (work_id, title, content) VALUES (%s, %s, %s)',
+            (work_id, title, content),
+        )
+    except IntegrityError:
+        return fail('同名设定已存在，请修改标题')
+    return ok({'lore_id': lore_id}, msg='设定已保存')
+
+
+@works_bp.put('/<int:work_id>/lore/<int:lore_id>')
+@login_required
+def update_lore(work_id, lore_id):
+    row = query(
+        'SELECT l.lore_id FROM work_lore l JOIN works w ON l.work_id = w.work_id '
+        'WHERE l.lore_id = %s AND l.work_id = %s AND w.user_id = %s',
+        (lore_id, work_id, session['user_id']), one=True,
+    )
+    if not row:
+        return fail('设定不存在', code=404)
+    data = request.get_json() or {}
+    title = (data.get('title') or '').strip()
+    content = (data.get('content') or '').strip()
+    if not title:
+        return fail('设定标题不能为空')
+    if len(title) > 100:
+        return fail('设定标题过长，最多100字')
+    if not content:
+        return fail('设定内容不能为空')
+    if len(content) > 10000:
+        return fail('设定内容过长，最多10000字')
+    try:
+        execute('UPDATE work_lore SET title = %s, content = %s WHERE lore_id = %s AND work_id = %s',
+                (title, content, lore_id, work_id))
+    except IntegrityError:
+        return fail('同名设定已存在，请修改标题')
+    return ok(msg='设定已更新')
+
+
+@works_bp.delete('/<int:work_id>/lore/<int:lore_id>')
+@login_required
+def delete_lore(work_id, lore_id):
+    row = query(
+        'SELECT l.lore_id FROM work_lore l JOIN works w ON l.work_id = w.work_id '
+        'WHERE l.lore_id = %s AND l.work_id = %s AND w.user_id = %s',
+        (lore_id, work_id, session['user_id']), one=True,
+    )
+    if not row:
+        return fail('设定不存在', code=404)
+    execute('DELETE FROM work_lore WHERE lore_id = %s', (lore_id,))
+    return ok(msg='设定已删除')

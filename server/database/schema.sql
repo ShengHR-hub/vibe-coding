@@ -349,6 +349,16 @@ CREATE TABLE rp_characters (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 25. 书库书籍表（外部导入书籍，区别于用户创作的 works 表）
+CREATE TABLE work_lore (
+    lore_id INT AUTO_INCREMENT PRIMARY KEY,
+    work_id INT NOT NULL,
+    title VARCHAR(100) NOT NULL,
+    content TEXT NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_work_lore_title (work_id, title),
+    CONSTRAINT work_lore_ibfk_1 FOREIGN KEY (work_id) REFERENCES works (work_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE library_books (
     book_id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(200) NOT NULL,

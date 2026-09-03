@@ -54,6 +54,15 @@ def _build_work_context(user_id, work_id):
             brief = '；'.join(x for x in (c.get('description'), c.get('personality'), c.get('background')) if x)
             parts.append(f"{c['name']}（{brief[:120]}）")
         lines.append('主要角色：' + ' '.join(parts))
+    lore = query(
+        'SELECT title, content FROM work_lore WHERE work_id = %s ORDER BY lore_id LIMIT 10',
+        (work_id,),
+    )
+    if lore:
+        parts = []
+        for l in lore:
+            parts.append(f"{l['title']}：{str(l['content'])[:80]}")
+        lines.append('作品设定（work_lore）：' + '；'.join(parts))
     context = '\n'.join(lines)
     return context[:2000] if len(lines) > 1 else None
 
