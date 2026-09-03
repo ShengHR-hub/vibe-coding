@@ -110,76 +110,34 @@
       </div>
     </section>
 
-    <!-- ====== 4. 沉浸式阅读系统 ====== -->
+    <!-- ====== 4. 灵感馆与素材引用 ====== -->
     <section class="fp-section section-feature-detail">
       <div class="section-inner split-layout reverse">
-        <div class="split-visual">
-          <div class="visual-card shimmer-card">
-            <span class="visual-icon"> </span>
-            <div class="visual-demo">
-              <div class="reading-demo">
-                <div class="rd-progress">
-                  <span class="rd-label">阅读进度</span>
-                  <div class="rd-bar"><div class="rd-fill" style="width:68%"></div></div>
-                  <span class="rd-pct">68%</span>
-                </div>
-                <div class="rd-tools">
-                  <span class="rd-tag">  书签</span>
-                  <span class="rd-tag">  批注</span>
-                  <span class="rd-tag">✨ 好句</span>
-                  <span class="rd-tag">  打卡</span>
-                </div>
-              </div>
-            </div>
-            <div class="card-shimmer"></div>
-          </div>
-        </div>
-        <div class="split-text">
-          <span class="feature-badge">02</span>
-          <h2 class="sec-heading">Immersive<br>Reading</h2>
-          <h3 class="feature-cn-title">沉浸式阅读系统</h3>
-          <p class="feature-long-desc">
-            完整的阅读体验闭环。个人书架管理想读、在读、已读书籍；阅读进度精确到章节和滚动百分比，自动同步书架状态；书签标记精彩段落，批注记录阅读感悟，好句标记可一键同步到写作素材库。还有阅读打卡、阅读目标、阅读热力图、年度阅读报告等丰富的数据追踪。
-          </p>
-          <ul class="feature-points">
-            <li>个人书架：分组管理 + 自定义书单 + 批量操作</li>
-            <li>阅读进度：章节级追踪 + 自动流转（想读→在读→已读）</li>
-            <li>书签 / 批注 / 好句标记：完整的阅读笔记体系</li>
-            <li>阅读打卡 + 热力图 + 目标设定 + 年度报告</li>
-            <li>好句一键同步到写作素材库，读写深度融合</li>
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    <!-- ====== 5. 书库与出版连载 ====== -->
-    <section class="fp-section section-feature-detail">
-      <div class="section-inner split-layout">
         <div class="split-text">
           <span class="feature-badge">03</span>
-          <h2 class="sec-heading">Library &<br>Serialization</h2>
-          <h3 class="feature-cn-title">书库与出版连载</h3>
+          <h2 class="sec-heading">Inspiration<br>Hub</h2>
+          <h3 class="feature-cn-title">灵感馆 · 素材反哺创作</h3>
           <p class="feature-long-desc">
-            双轨书库系统——用户创作的作品与外部导入的书籍统一管理。支持 TXT 文件上传自动解析章节，书库排行榜多维度推荐，AI 基于阅读偏好智能推荐同类书籍。出版连载系统支持卷管理、章节分配、连载状态切换，满足长篇连载需求。
+            今日灵感与诗词短句随手翻阅，收藏或收录进自己的灵感池；把喜欢的句子一键"引用到创作"，
+            AI 续写 / 润色 / 对话会带着这些素材的意象与风格生成文字——让每一条好句都变成作品的养分。
           </p>
           <ul class="feature-points">
-            <li>双轨书库：用户创作 + 外部导入，统一搜索浏览</li>
-            <li>TXT 上传自动解析：正则识别章节标题 + 编码检测</li>
-            <li>书库排行榜：热门 / 评分 / 最新，多维度推荐</li>
-            <li>出版连载：卷管理 + 章节分配 + 连载/完结/暂停状态</li>
-            <li>AI 推荐：基于阅读偏好分析推荐同类热门书籍</li>
+            <li>今日灵感：每日精选诗词，常看常新</li>
+            <li>诗词 / 句子素材：分类浏览 · 搜索 · 随机</li>
+            <li>收藏与收录：个人灵感池随手沉淀</li>
+            <li>引用到创作：素材注入 AI 请求，借鉴意象不照抄</li>
           </ul>
         </div>
         <div class="split-visual">
           <div class="visual-card shimmer-card">
-            <span class="visual-icon"> </span>
+            <span class="visual-icon">❖</span>
             <div class="outline-tree">
-              <div class="ot-item ot-l1">  书库浏览</div>
-              <div class="ot-item ot-l2">  热门排行 · 评分排行</div>
-              <div class="ot-item ot-l2">  TXT 上传 · 自动解析</div>
-              <div class="ot-item ot-l1">  出版连载</div>
-              <div class="ot-item ot-l2">卷管理 · 章节分配</div>
-              <div class="ot-item ot-l2">连载中 / 已完结 / 暂停</div>
+              <div class="ot-item ot-l1">  灵感馆</div>
+              <div class="ot-item ot-l2">今日灵感 · 诗词 · 句子素材</div>
+              <div class="ot-item ot-l1">  收藏 / 收录</div>
+              <div class="ot-item ot-l2">个人灵感池</div>
+              <div class="ot-item ot-l1">  引用到创作</div>
+              <div class="ot-item ot-l2">续写 / 润色 / 对话携带素材</div>
             </div>
             <div class="card-shimmer"></div>
           </div>
@@ -291,7 +249,6 @@
             <li>写作仪表盘：总览 + 热力图 + 月度趋势 + 会话记录</li>
             <li>AI 风格分析：五维度雷达图，量化你的文笔特征</li>
             <li>AI 月度报告：自动生成个性化写作建议</li>
-            <li>阅读报告：周报 / 月报 / 年报 / 阅读速度分析</li>
             <li>作品版本快照：每次修改自动保存，支持任意回退</li>
           </ul>
         </div>
@@ -328,7 +285,7 @@
         <h2 class="sec-heading">Poetry<br>Inspirations</h2>
         <p class="sec-subtitle">
           每日精选古典诗词，为你的创作注入千年文韵。<br>
-          轮播自动切换，悬停暂停，点击卡片沉浸阅读。
+          轮播自动切换，悬停暂停，点击卡片细读诗词。
         </p>
         <div class="featured-wrapper">
           <FeaturedPoemsCarousel :poems="featuredPoems" />
@@ -342,8 +299,8 @@
         <p class="sec-tag">Growth <span class="tag-cn">成长</span></p>
         <h2 class="sec-heading">Level Up<br>Your Craft</h2>
         <p class="sec-subtitle">
-          每一次创作和阅读都在积累经验。从"初窥门径"到"文坛巨匠"，<br>
-          18 种成就覆盖写作、阅读、社交全场景，你的每个字都算数。
+          每一次落笔和练笔都在积累经验。从"初窥门径"到"文坛巨匠"，<br>
+          18 种成就覆盖写作、灵感与社交全场景，你的每个字都算数。
         </p>
         <div class="level-row">
           <div class="level-card" v-for="l in levels" :key="l.level">
