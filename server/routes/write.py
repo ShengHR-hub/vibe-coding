@@ -1,7 +1,7 @@
 import logging
 from flask import Blueprint, request, Response, session, current_app
 from database.db import query, execute
-from utils.helpers import ok, fail, login_required, check_ai_quota
+from utils.helpers import ok, fail, login_required, check_ai_quota, _fmt
 from utils.mimos import chat_completion, chat_completion_stream
 from utils.prompt_builder import (
     build_continue, build_inspire, build_outline,
@@ -338,3 +338,85 @@ def ai_summary():
     _save_conv(conv_key, 'user', f'[摘要] {chapter_title}: {content[:100]}...')
     _save_conv(conv_key, 'assistant', result)
     return ok({'summary': result})
+
+
+# ---------------------------------------------------------------------------
+# W3a：AI 会话管理（历史列表 / 详情 / 删除 / 自动清理）
+# ---------------------------------------------------------------------------
+
+def _prune_conversations(user_id, keep=100):
+    """只保留每个用户最近的 keep 个会话（按最近消息时间），防止 ai_conversations 无限增长。"""
+    if keep <= 0:
+        execute('DELETE FROM ai_conversations WHERE user_id = %s', (user_id,))
+        return
+    keys = [r['session_key'] for r in query(
+        'SELECT session_key, MAX(created_at) AS mx, MAX(conv_id) AS mid '
+        'FROM ai_conversations WHERE user_id = %s '
+        'GROUP BY session_key ORDER BY mx DESC, mid DESC LIMIT %s',
+        (user_id, keep),
+    )]
+    if not keys:
+        return
+    marks = ','.join(['%s'] * len(keys))
+    execute(
+        f'DELETE FROM ai_conversations WHERE user_id = %s AND session_key NOT IN ({marks})',
+        [user_id] + keys,
+    )
+
+
+@write_bp.get('/conversations')
+@login_required
+def list_conversations():
+    user_id = session['user_id']
+    _prune_conversations(user_id)
+    rows = query(
+        'SELECT c.session_key, MAX(c.created_at) AS updated_at, '
+        '(SELECT cc.content FROM ai_conversations cc WHERE cc.user_id = c.user_id '
+        '  AND cc.session_key = c.session_key AND cc.role = \'user\' '
+        '  ORDER BY cc.conv_id DESC LIMIT 1) AS last_user_msg, '
+        'COUNT(*) AS msg_count '
+        'FROM ai_conversations c WHERE c.user_id = %s '
+        'GROUP BY c.session_key ORDER BY updated_at DESC, MAX(c.conv_id) DESC',
+        (user_id,),
+    )
+    sessions = []
+    for r in rows:
+        sessions.append({
+            'session_key': r['session_key'],
+            'updated_at': _fmt(r['updated_at']),
+            'preview': (r['last_user_msg'] or '')[:60],
+            'msg_count': r['msg_count'],
+        })
+    return ok({'sessions': sessions})
+
+
+@write_bp.get('/conversations/<session_key>')
+@login_required
+def get_conversation(session_key):
+    user_id = session['user_id']
+    rows = query(
+        'SELECT conv_id, role, content, created_at FROM ai_conversations '
+        'WHERE user_id = %s AND session_key = %s ORDER BY conv_id ASC',
+        (user_id, session_key),
+    )
+    if not rows:
+        return fail('会话不存在', code=404)
+    messages = []
+    for r in rows:
+        messages.append({
+            'role': r['role'],
+            'content': r['content'],
+            'created_at': _fmt(r['created_at']),
+        })
+    return ok({'session_key': session_key, 'messages': messages})
+
+
+@write_bp.delete('/conversations/<session_key>')
+@login_required
+def delete_conversation(session_key):
+    user_id = session['user_id']
+    execute(
+        'DELETE FROM ai_conversations WHERE user_id = %s AND session_key = %s',
+        (user_id, session_key),
+    )
+    return ok(msg='会话已删除')
