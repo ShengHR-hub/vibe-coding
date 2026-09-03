@@ -59,17 +59,10 @@ def check_achievements(user_id):
         'COALESCE(SUM(likes_count), 0) as likes, '
         'COALESCE(SUM(comments_count), 0) as comments, '
         'COALESCE(SUM(CASE WHEN status = \'published\' THEN 1 ELSE 0 END), 0) as works, '
-        '(SELECT COUNT(*) FROM follows WHERE following_id = %s) as followers, '
-        '(SELECT COUNT(*) FROM reading_bookshelf WHERE user_id = %s AND shelf_group = \'completed\') as books_read, '
-        '(SELECT COUNT(DISTINCT checkin_date) FROM reading_checkins WHERE user_id = %s) as reading_streak, '
-        '(SELECT COALESCE(SUM(read_minutes), 0) FROM reading_time_logs WHERE user_id = %s) as reading_minutes, '
-        '(SELECT COUNT(*) FROM reading_annotations WHERE user_id = %s) as annotations, '
-        '(SELECT COUNT(*) FROM reading_highlights WHERE user_id = %s) as highlights '
+        '(SELECT COUNT(*) FROM follows WHERE following_id = %s) as followers '
         'FROM works WHERE user_id = %s',
-        (user_id, user_id, user_id, user_id, user_id, user_id, user_id), one=True
+        (user_id, user_id), one=True
     )
-
-    stats['reading_hours'] = (stats.pop('reading_minutes', 0) or 0) // 60
 
     # 写作打卡单独查询（涉及 JOIN）
     stats['checkin_days'] = query(
