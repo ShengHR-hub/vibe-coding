@@ -37,6 +37,7 @@
           <span class="status-tag" :class="w.status">{{ statusLabel(w.status) }}</span>
           <span>{{ fmt(w.updated_at) }}</span>
           <button class="btn btn-ghost btn-xs edit-link" @click.stop="$router.push(`/works/${w.work_id}/edit`)">编辑</button>
+          <button class="btn btn-ghost btn-xs" @click.stop="exportWork(w)">导出</button>
           <button class="btn btn-ghost btn-xs delete-link" @click.stop="confirmDelete(w)">删除</button>
         </div>
       </div>
@@ -113,6 +114,11 @@ const deleting = ref(false)
 function confirmDelete(work) {
   deleteTarget.value = work
   showDeleteConfirm.value = true
+}
+
+async function exportWork(work) {
+  const res = await api.download(`/api/works/${work.work_id}/export`, `${work.title || '作品'}.txt`)
+  if (res.code !== 0 && res.msg) toast.error(res.msg)
 }
 
 async function doDelete() {
