@@ -3,7 +3,7 @@
 ## 项目概况
 
 Vue3 + Flask + MySQL + MiMo 大模型，面向写作爱好者的全品类创作平台。
-当前规模：**17 个蓝图 / 106 个 API 端点 / 26 张表 / 33 个前端页面**。
+当前规模：**18 个蓝图 / 109 个 API 端点 / 27 张表 / 34 个前端页面**。
 当前阶段：**M0→M3 收敛加固期**（独立仓库与测试基线已就绪，进行中）。过程纪律见 `docs/改造守则.md`，分步进度见 `docs/改造进度.md`。
 
 ## 启动命令
@@ -27,24 +27,24 @@ cd server && python -m pytest tests -q
 
 ```
 inkstone/
-├── client/                  # Vue3 + Vite 前端（33 页面）
+├── client/                  # Vue3 + Vite 前端（34 页面）
 │   └── src/
 │       ├── api/index.js     # HTTP 封装（request + SSE stream）
 │       ├── router/index.js  # 路由 + 全局守卫（auth/guest meta；standalone=全屏阅读态）
 │       ├── stores/          # Pinia（user.js, writing.js）
 │       ├── views/           # write/works/community/user/stats/...
 │       └── components/      # 通用组件（含若干仅供展示的高保真动效组件）
-└── server/                  # Flask 后端（17 蓝图，routes/__init__.py 统一注册）
+└── server/                  # Flask 后端（18 蓝图，routes/__init__.py 统一注册）
     ├── app.py               # 应用工厂（蓝图 + 安全头 + uploads/静态托管）
     ├── config.py            # 环境变量配置（缺 SECRET_KEY/MIMO_API_KEY 拒绝启动）
-    ├── routes/              # 17 蓝图：auth/write/works/community/interactions/users/stats/graph/
+    ├── routes/              # 18 蓝图：auth/write/works/community/interactions/users/stats/graph/
     │                        # challenges/notifications/review/poems/materials/daily/rankings/
-    │                        # serialize/rp（书/书库蓝图已于 P2-R2 下线）
+    │                        # serialize/rp/inspire（书/书库蓝图已于 P2-R2 下线）
     ├── database/
-    │   ├── schema.sql       # 26 张表 DDL（书库/阅读相关表已随 P2 下线）
+    │   ├── schema.sql       # 27 张表 DDL（含 work_lore/inspiration_favorites；书库/阅读表已下线）
     │   ├── db.py            # PyMySQL 连接池（query/execute/execute_many）
     │   └── seed.py          # 成就定义 + 预制数据
-    ├── tests/               # pytest 76 用例（隔离测试库，见 conftest.py）
+    ├── tests/               # pytest 79 用例（隔离测试库，见 conftest.py）
     └── utils/               # helpers/prompt_builder/logger/mimos
 ```
 

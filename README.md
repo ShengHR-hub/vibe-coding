@@ -23,9 +23,9 @@
 
 ## 技术栈与规模
 
-- 前端：Vue 3 + Vite + Vue Router + Pinia，毛玻璃/暗色暖色自定义主题，33 个页面
-- 后端：Flask 3（应用工厂 + 17 个蓝图、106 个 API 端点）+ PyMySQL 连接池（全部参数化 SQL）
-- 数据库：MySQL 8，26 张表
+- 前端：Vue 3 + Vite + Vue Router + Pinia，毛玻璃/暗色暖色自定义主题，34 个页面
+- 后端：Flask 3（应用工厂 + 18 个蓝图、109 个 API 端点）+ PyMySQL 连接池（全部参数化 SQL）
+- 数据库：MySQL 8，27 张表
 - AI：小米 MiMo API（SSE `text/event-stream` 流式返回），对话按 session 落库；所有 AI 端点按用户限流 + 每日配额（env 可配）
 - 认证：Session-based + bcrypt，登录/注册 IP 限速
 
@@ -33,7 +33,7 @@
 
 ```
 inkstone/
-├── client/                 # Vue3 前端（33 页面）
+├── client/                 # Vue3 前端（34 页面）
 │   └── src/
 │       ├── api/            # HTTP 封装（request + SSE stream）
 │       ├── router/         # 路由 + 全局守卫（auth/guest meta）
@@ -44,15 +44,15 @@ inkstone/
 ├── server/                 # Flask 后端
 │   ├── app.py              # 应用工厂（蓝图注册 + 静态托管 + 安全头）
 │   ├── config.py           # 环境变量配置（缺 SECRET_KEY/MIMO_API_KEY 即拒绝启动）
-│   ├── routes/             # 17 个蓝图（auth/write/works/community/interactions/users/
+│   ├── routes/             # 18 个蓝图（auth/write/works/community/interactions/users/
 │   │                       #   stats/graph/challenges/notifications/review/poems/materials/
-│   │                       #   daily/rankings/serialize/rp）
+│   │                       #   daily/rankings/serialize/rp/inspire）
 │   ├── database/
-│   │   ├── schema.sql      # 26 张表 DDL（含 work_lore；书/阅读表已下线）
+│   │   ├── schema.sql      # 27 张表 DDL（含 work_lore/inspiration_favorites；书/阅读表已下线）
 │   │   ├── db.py           # PyMySQL 连接池（query/execute/execute_many，自动事务）
 │   │   └── seed.py         # 成就定义 + 预制数据
 │   ├── utils/              # helpers（含 AI 配额）/ prompt_builder / logger / mimos
-│   └── tests/              # pytest 76 用例（隔离测试库 inkstone_test）
+│   └── tests/              # pytest 79 用例（隔离测试库 inkstone_test）
 └── docs/                   # 需求文档 / 方向与强化计划 / 改造守则与进度
 ```
 
@@ -78,7 +78,7 @@ cd client && npm install && npm run dev
 ## 测试
 
 ```bash
-cd server && python -m pytest tests -q   # 后端 76 用例
+cd server && python -m pytest tests -q   # 后端 79 用例
 cd client && npm run test:util            # 前端渲染工具单测
 ```
 

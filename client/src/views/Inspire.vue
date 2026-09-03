@@ -9,25 +9,32 @@
       </blockquote>
       <div class="hero-actions">
         <button class="btn btn-ghost btn-sm" @click="loadHero" :disabled="heroLoading">{{ heroLoading ? '换一句…' : '换一句' }}</button>
-        <button class="btn btn-ghost btn-sm" v-if="hero" @click="pickRef({ type: '诗词', content: hero.content })">
-          {{ isPicked(hero.content) ? '✓ 已引用到创作' : '＋ 引用到创作' }}
-        </button>
+        <template v-if="userStore.isLoggedIn">
+          <button class="btn btn-ghost btn-sm" v-if="hero" @click="pickRef({ type: '诗词', content: hero.content })">
+            {{ isPicked(hero.content) ? '✓ 已引用到创作' : '＋ 引用到创作' }}
+          </button>
+          <button class="btn btn-ghost btn-sm" v-if="hero" @click="toggleFav('poem', hero.poem_id)" :class="{ starred: isFav('poem', hero.poem_id) }">
+            {{ isFav('poem', hero.poem_id) ? '♥ 已收藏' : '♡ 收藏' }}
+          </button>
+        </template>
       </div>
     </section>
 
-    <!-- 内容区：诗词 / 句子素材 -->
+    <!-- 内容区 -->
     <section class="inspire-main">
       <div class="seg-tabs">
         <button v-for="t in segs" :key="t.key" class="seg-tab" :class="{ active: activeTab === t.key }" @click="switchSeg(t.key)">
           {{ t.label }}
         </button>
         <span class="flex-spacer"></span>
-        <input class="inspire-search" v-model="query" placeholder="搜索内容 / 作者…" @keydown.enter="doSearch" />
-        <button class="btn btn-primary btn-sm" @click="doSearch">搜索</button>
-        <button class="btn btn-ghost btn-sm" @click="refresh" :disabled="loading">{{ loading ? '…' : '换一批' }}</button>
+        <template v-if="activeTab !== 'favorites'">
+          <input class="inspire-search" v-model="query" placeholder="搜索内容 / 作者…" @keydown.enter="doSearch" />
+          <button class="btn btn-primary btn-sm" @click="doSearch">搜索</button>
+          <button class="btn btn-ghost btn-sm" @click="refresh" :disabled="loading">{{ loading ? '…' : '换一批' }}</button>
+        </template>
       </div>
 
-      <div class="cat-chips" v-if="cats.length">
+      <div class="cat-chips" v-if="activeTab !== 'favorites' && cats.length">
         <span class="cat-chip" :class="{ active: activeCat === '' }" @click="pickCat('')">全部</span>
         <span v-for="c in cats" :key="c.category" class="cat-chip" :class="{ active: activeCat === c.category }" @click="pickCat(c.category)">
           {{ c.category }}<small> {{ c.count }}</small>
@@ -35,20 +42,36 @@
       </div>
 
       <div v-if="loading" class="center muted" style="padding: 3rem 0">灵感加载中…</div>
-      <div v-else-if="items.length === 0" class="center muted" style="padding: 3rem 0">暂无内容，换个分类或关键词试试</div>
+      <div v-else-if="items.length === 0" class="center muted" style="padding: 3rem 0">
+        {{ activeTab === 'favorites' ? '还没有收藏，去诗词/素材里点 ♡ 收藏吧' : '暂无内容，换个分类或关键词试试' }}
+      </div>
+
+      <!-- 收藏列表 -->
+      <div v-else-if="activeTab === 'favorites'" class="inspire-grid">
+        <div v-for="it in items" :key="'fav-' + it.fav_id" class="inspire-card glass-card">
+          <p class="ic-content" :class="{ poem: it.item_type === 'poem' }">{{ it.content }}</p>
+          <div class="ic-meta">
+            <span class="ic-source">{{ it.item_type === 'poem' ? `《${it.title}》${it.author}` : (it.title || '素材') }}</span>
+            <button class="ic-btn" @click="removeFav(it)">✕ 取消收藏</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 诗词 / 素材列表 -->
       <div v-else class="inspire-grid">
         <div v-for="(it, i) in items" :key="activeTab + '-' + (it.poem_id || it.material_id || i)" class="inspire-card glass-card">
           <p class="ic-content" :class="{ poem: activeTab === 'poems' }">{{ it.content }}</p>
           <div class="ic-meta">
-            <template v-if="activeTab === 'poems'">
-              <span v-if="it.title || it.author" class="ic-source">《{{ it.title }}》{{ it.author }}<template v-if="it.dynasty">〔{{ it.dynasty }}〕</template></span>
-            </template>
-            <template v-else>
-              <span class="ic-source">{{ it.category }}</span>
-            </template>
+            <span class="ic-source">
+              <template v-if="activeTab === 'poems'">《{{ it.title }}》{{ it.author }}<template v-if="it.dynasty">〔{{ it.dynasty }}〕</template></template>
+              <template v-else>{{ it.category }}</template>
+            </span>
             <div class="ic-actions">
+              <button v-if="userStore.isLoggedIn" class="ic-btn" :class="{ starred: isFav(kindKey, kindId(it)) }" @click="toggleFav(kindKey, kindId(it))">
+                {{ isFav(kindKey, kindId(it)) ? '♥' : '♡' }}
+              </button>
               <button class="ic-btn" @click="pickRef(activeTab === 'poems' ? { type: '诗词', content: it.content } : { type: it.category || '素材', content: it.content })">
-                {{ isPicked(it.content) ? '✓ 已引用' : '＋ 引用到创作' }}
+                {{ isPicked(it.content) ? '✓ 已引用' : '＋ 引用' }}
               </button>
             </div>
           </div>
@@ -59,16 +82,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { api } from '../api/index.js'
 import { useWritingStore } from '../stores/writing.js'
+import { useUserStore } from '../stores/user.js'
 
 const writingStore = useWritingStore()
+const userStore = useUserStore()
 
-const segs = [
-  { key: 'poems', label: '诗词' },
-  { key: 'materials', label: '句子素材' },
-]
 const activeTab = ref('poems')
 const items = ref([])
 const cats = ref([])
@@ -77,12 +98,68 @@ const query = ref('')
 const loading = ref(false)
 const hero = ref(null)
 const heroLoading = ref(false)
+const favSet = ref(new Set())
 
+const BASE_SEGS = [
+  { key: 'poems', label: '诗词' },
+  { key: 'materials', label: '句子素材' },
+]
+const segs = computed(() => {
+  const base = [...BASE_SEGS]
+  if (userStore.isLoggedIn) base.push({ key: 'favorites', label: `收藏${favsCount.value ? ` (${favsCount.value})` : ''}` })
+  return base
+})
+const favsCount = computed(() => favSet.value.size)
+
+const kindKey = computed(() => (activeTab.value === 'poems' ? 'poem' : 'material'))
+
+function kindId(it) {
+  return activeTab.value === 'poems' ? it.poem_id : it.material_id
+}
+function favKey(kind, id) {
+  return kind + ':' + id
+}
+function isFav(kind, id) {
+  return !!id && favSet.value.has(favKey(kind, id))
+}
 function isPicked(content) {
   return writingStore.pickedRefs.some(r => r.content === content)
 }
 function pickRef(item) {
   writingStore.pickRef(item)
+}
+
+async function refreshFavs() {
+  if (!userStore.isLoggedIn) return
+  const res = await api.get('/api/inspire/favorites')
+  if (res.code === 0) {
+    const next = new Set()
+    for (const f of res.data.items || []) next.add(favKey(f.item_type, f.ref_id))
+    favSet.value = next
+  }
+}
+
+async function toggleFav(kind, id) {
+  if (!kind || !id) return
+  const key = favKey(kind, id)
+  let res
+  if (favSet.value.has(key)) {
+    res = await api.delete(`/api/inspire/favorites/${kind}/${id}`)
+    if (res.code === 0) {
+      favSet.value = new Set([...favSet.value].filter(k => k !== key))
+      if (activeTab.value === 'favorites') items.value = items.value.filter(i => !(i.item_type === kind && i.ref_id === id))
+    }
+  } else {
+    res = await api.post('/api/inspire/favorites', { item_type: kind, ref_id: id })
+    if (res.code === 0) {
+      favSet.value = new Set(favSet.value).add(key)
+      if (activeTab.value === 'favorites') await loadItems()
+    }
+  }
+}
+
+async function removeFav(it) {
+  await toggleFav(it.item_type, it.ref_id)
 }
 
 async function loadHero() {
@@ -93,19 +170,26 @@ async function loadHero() {
 }
 
 async function loadCats() {
-  if (activeTab.value === 'poems') {
-    const r = await api.get('/api/poems/categories')
-    if (r.code === 0) cats.value = r.data.categories || []
-  } else {
-    const r = await api.get('/api/materials/categories')
-    if (r.code === 0) cats.value = r.data.categories || []
-  }
+  if (activeTab.value === 'favorites') { cats.value = []; return }
+  const url = activeTab.value === 'poems' ? '/api/poems/categories' : '/api/materials/categories'
+  const r = await api.get(url)
+  if (r.code === 0) cats.value = r.data.categories || []
 }
 
 async function loadItems() {
   loading.value = true
-  const q = query.value.trim()
+  if (activeTab.value === 'favorites') {
+    const res = await api.get('/api/inspire/favorites')
+    if (res.code === 0) items.value = (res.data.items || []).map(f => ({
+      fav_id: f.fav_id, item_type: f.item_type, ref_id: f.ref_id,
+      title: f.title, author: f.author, content: f.content,
+    }))
+    else items.value = []
+    loading.value = false
+    return
+  }
   const poems = activeTab.value === 'poems'
+  const q = query.value.trim()
   let res
   if (q) {
     res = await api.get(`/api/${poems ? 'poems' : 'materials'}/search?q=${encodeURIComponent(q)}&page_size=12`)
@@ -134,11 +218,12 @@ function switchSeg(key) {
   items.value = []
   cats.value = []
   loadCats()
+  if (key === 'favorites' && userStore.isLoggedIn) refreshFavs()
   loadItems()
 }
 
 onMounted(async () => {
-  await Promise.all([loadHero(), loadCats(), loadItems()])
+  await Promise.all([loadHero(), refreshFavs(), loadCats(), loadItems()])
 })
 </script>
 
@@ -156,7 +241,8 @@ onMounted(async () => {
   color: var(--text-primary); margin: 0 0 0.8rem;
 }
 .hero-quote cite { font-style: normal; font-size: 0.85rem; color: var(--text-muted); }
-.hero-actions { display: flex; gap: 8px; margin-top: 1rem; }
+.hero-actions { display: flex; gap: 8px; margin-top: 1rem; flex-wrap: wrap; }
+.hero-actions .starred { color: #e0716b; }
 
 .seg-tabs {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 0.9rem;
@@ -194,12 +280,14 @@ onMounted(async () => {
 .ic-content.poem { font-size: 1.05rem; }
 .ic-meta { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: auto; }
 .ic-source { font-size: 0.75rem; color: var(--accent-primary); }
+.ic-actions { display: flex; gap: 6px; flex-shrink: 0; }
 .ic-btn {
   font-size: 0.72rem; padding: 3px 10px; border-radius: var(--radius-sm);
   background: rgba(196,163,90,0.08); border: 1px solid rgba(196,163,90,0.2);
   color: var(--accent-primary); cursor: pointer;
 }
 .ic-btn:hover { background: rgba(196,163,90,0.18); }
+.ic-btn.starred { color: #e0716b; border-color: rgba(224,113,107,0.4); background: rgba(224,113,107,0.08); }
 
 .center { text-align: center; }
 .muted { color: var(--text-muted); font-size: 0.9rem; }
