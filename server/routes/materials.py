@@ -1,6 +1,6 @@
-from flask import Blueprint, request
-from database.db import query
-from utils.helpers import ok, fail
+from flask import Blueprint, request, session
+from database.db import query, execute
+from utils.helpers import ok, fail, login_required
 
 materials_bp = Blueprint('materials', __name__)
 
@@ -64,3 +64,25 @@ def random_material():
     else:
         rows = query('SELECT * FROM materials ORDER BY RAND() LIMIT %s', [count])
     return ok({'materials': rows})
+
+
+@materials_bp.post('')
+@login_required
+def create_material():
+    """F3：手动收录短句素材（灵感馆"收录句子"）。"""
+    data = request.get_json() or {}
+    category = (data.get('category') or '').strip() or '随想'
+    content = (data.get('content') or '').strip()
+    if len(category) > 20:
+        return fail('分类过长，最多20字')
+    if not content:
+        return fail('请输入内容')
+    if len(content) > 2000:
+        return fail('内容过长，最多2000字')
+    title = (data.get('title') or '').strip() or content[:20]
+    tags = (data.get('tags') or '').strip()[:200]
+    material_id = execute(
+        'INSERT INTO materials (title, content, category, tags, source) VALUES (%s, %s, %s, %s, %s)',
+        (title, content, category, tags, 'user'),
+    )
+    return ok({'material_id': material_id}, msg='已收录到素材库')

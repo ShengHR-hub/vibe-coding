@@ -16,6 +16,7 @@
           <button class="btn btn-ghost btn-sm" v-if="hero" @click="toggleFav('poem', hero.poem_id)" :class="{ starred: isFav('poem', hero.poem_id) }">
             {{ isFav('poem', hero.poem_id) ? '♥ 已收藏' : '♡ 收藏' }}
           </button>
+          <button class="btn btn-primary btn-sm" @click="openAdd">＋ 收录句子</button>
         </template>
       </div>
     </section>
@@ -78,6 +79,20 @@
         </div>
       </div>
     </section>
+
+    <!-- 收录句子弹窗 -->
+    <div v-if="addOpen" class="modal-overlay" @click.self="closeAdd">
+      <div class="modal glass-card">
+        <h3>收录一句灵感</h3>
+        <input v-model="addCategory" placeholder="分类（如：景物描写 / 名言金句）" maxlength="20" />
+        <textarea v-model="addContent" rows="3" placeholder="把喜欢的句子抄进来，之后写续写/润色时可以直接引用…"></textarea>
+        <p class="modal-hint">收录后进入共享素材库，灵感馆与写作素材区都会出现，写作时可一键引用。</p>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" @click="closeAdd">取消</button>
+          <button class="btn btn-primary" @click="submitAdd" :disabled="adding">{{ adding ? '保存中…' : '收录' }}</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -86,9 +101,11 @@ import { ref, computed, onMounted } from 'vue'
 import { api } from '../api/index.js'
 import { useWritingStore } from '../stores/writing.js'
 import { useUserStore } from '../stores/user.js'
+import { useToast } from '../composables/useToast.js'
 
 const writingStore = useWritingStore()
 const userStore = useUserStore()
+const toast = useToast()
 
 const activeTab = ref('poems')
 const items = ref([])
@@ -127,6 +144,46 @@ function isPicked(content) {
 }
 function pickRef(item) {
   writingStore.pickRef(item)
+}
+
+// ---- 收录句子（F3）----
+const addOpen = ref(false)
+const addCategory = ref('')
+const addContent = ref('')
+const adding = ref(false)
+
+function openAdd() {
+  addCategory.value = ''
+  addContent.value = ''
+  addOpen.value = true
+}
+function closeAdd() {
+  if (adding.value) return
+  addOpen.value = false
+}
+async function submitAdd() {
+  const content = addContent.value.trim()
+  if (!content) { toast.info('请先写一句内容'); return }
+  adding.value = true
+  const res = await api.post('/api/materials', {
+    category: addCategory.value.trim() || '随想',
+    content,
+  })
+  adding.value = false
+  if (res.code === 0) {
+    toast.success('已收录到素材库')
+    addOpen.value = false
+    addCategory.value = ''
+    addContent.value = ''
+    loadCats()
+    if (activeTab.value === 'materials') {
+      activeCat.value = ''
+      query.value = ''
+      loadItems()
+    }
+  } else {
+    toast.error(res.msg)
+  }
 }
 
 async function refreshFavs() {
@@ -291,4 +348,22 @@ onMounted(async () => {
 
 .center { text-align: center; }
 .muted { color: var(--text-muted); font-size: 0.9rem; }
+
+/* 收录弹窗 */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 300;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex; align-items: center; justify-content: center;
+  padding: 1rem;
+}
+.modal { width: min(460px, 92vw); padding: 1.4rem 1.6rem; border-radius: var(--radius-lg); }
+.modal h3 { font-family: var(--font-serif); margin-bottom: 0.9rem; }
+.modal input, .modal textarea {
+  width: 100%; box-sizing: border-box; padding: 8px 12px; font-size: 0.88rem;
+  border-radius: var(--radius-sm); background: var(--bg-glass);
+  border: 1px solid var(--border-glass); color: var(--text-primary);
+  margin-bottom: 0.7rem;
+}
+.modal-hint { font-size: 0.76rem; color: var(--text-muted); margin: 0 0 0.8rem; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
 </style>
