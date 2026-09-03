@@ -46,7 +46,7 @@
         </div>
         <div class="card-body markdown-body" v-else v-html="renderParagraphBold(item.text)"></div>
         <div class="card-actions">
-          <button class="card-btn" @click="$emit('insert', stripHtml(item.text))">替换原文</button>
+          <button class="card-btn" @click="$emit('insert', stripHtml(item.text), 'replace')">替换原文</button>
         </div>
       </div>
     </div>

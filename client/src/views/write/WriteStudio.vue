@@ -288,20 +288,34 @@ const prompts = [
 const promptIdx = ref(Math.floor(Math.random() * prompts.length))
 const placeholderText = computed(() => prompts[promptIdx.value])
 
-function insertToEditor(text) {
+function insertToEditor(text, mode = 'cursor') {
+  const clean = (text || '').replace(/\s+$/, '')
   const el = editorRef.value
+  const hasSelection = el && el.selectionEnd > el.selectionStart
+
+  // append：追加到文末
+  if (mode === 'append' || (mode === 'replace' && !hasSelection)) {
+    writingStore.content = writingStore.content
+      ? writingStore.content.replace(/\s+$/, '') + '\n\n' + clean
+      : clean
+    nextTick(() => {
+      el?.focus()
+      if (el) el.setSelectionRange(el.value.length, el.value.length)
+    })
+    return
+  }
+
+  // cursor / replace（有选区）：在光标处插入或替换选区
   if (!el) {
-    writingStore.content += '\n' + text
+    writingStore.content = writingStore.content ? writingStore.content + '\n' + clean : clean
     return
   }
   const start = el.selectionStart
   const end = el.selectionEnd
-  const before = writingStore.content.slice(0, start)
-  const after = writingStore.content.slice(end)
-  writingStore.content = before + text + after
+  writingStore.content = writingStore.content.slice(0, start) + clean + writingStore.content.slice(end)
   nextTick(() => {
     el.focus()
-    const pos = start + text.length
+    const pos = start + clean.length
     el.setSelectionRange(pos, pos)
   })
 }

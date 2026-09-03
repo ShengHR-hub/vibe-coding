@@ -37,7 +37,7 @@
         <div class="card-body markdown-body" v-html="renderParagraphBold(item.text)"></div>
         <div class="card-actions">
           <button class="card-btn" @click="$emit('insert', stripHtml(item.text))">插入编辑器</button>
-          <button class="card-btn ghost" @click="$emit('insert', item.text)">替换为当前</button>
+          <button class="card-btn ghost" @click="$emit('insert', item.text, 'replace')">替换为当前</button>
         </div>
       </div>
     </div>

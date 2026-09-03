@@ -34,7 +34,7 @@
         </div>
         <div class="card-body diagnosis-body" v-html="renderDiagnosis(result)"></div>
         <div class="card-actions">
-          <button class="card-btn" @click="$emit('insert', '\n\n---\n【AI 诊断报告】\n' + result)">插入到文末</button>
+          <button class="card-btn" @click="$emit('insert', '\n\n---\n【AI 诊断报告】\n' + result, 'append')">插入到文末</button>
           <button class="card-btn ghost" @click="result = ''">清除</button>
         </div>
       </div>
