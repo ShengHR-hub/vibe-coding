@@ -25,6 +25,39 @@ def _save_conv(session_key, role, content):
     )
 
 
+def _build_work_context(user_id, work_id):
+    """W2a：组装作品上下文（简介 + 章节结构 + 主要角色卡），仅限本人作品。"""
+    work = query(
+        'SELECT work_id, user_id, title, type, summary FROM works WHERE work_id = %s',
+        (work_id,), one=True,
+    )
+    if not work or work['user_id'] != user_id:
+        return None
+    lines = [f"作品：《{work['title']}》（{work.get('type') or 'novel'}）"]
+    if work.get('summary'):
+        lines.append('简介：' + str(work['summary'])[:300])
+    chs = query(
+        'SELECT chapter_no, title FROM chapters WHERE work_id = %s ORDER BY chapter_no DESC LIMIT 30',
+        (work_id,),
+    )
+    if chs:
+        titles = '；'.join(f"第{c['chapter_no']}章 {c['title'] or ''}" for c in reversed(chs))
+        lines.append('章节结构：' + titles[:600])
+    chars = query(
+        'SELECT name, description, personality, background FROM rp_characters '
+        'WHERE work_id = %s LIMIT 6',
+        (work_id,),
+    )
+    if chars:
+        parts = []
+        for c in chars:
+            brief = '；'.join(x for x in (c.get('description'), c.get('personality'), c.get('background')) if x)
+            parts.append(f"{c['name']}（{brief[:120]}）")
+        lines.append('主要角色：' + ' '.join(parts))
+    context = '\n'.join(lines)
+    return context[:2000] if len(lines) > 1 else None
+
+
 def ai_quota(func):
     """AI 调用配额装饰器（W1a）：登录后、进入逻辑前按用户限流，超限返回 429。"""
     from functools import wraps
@@ -49,7 +82,15 @@ def ai_continue():
     if len(content) > 20000:
         return fail('内容过长，最多20000字')
 
-    messages = build_continue(content, style)
+    # W2a：可选携带 work_id，注入作品设定/章节/角色上下文（仅本人作品）
+    work_id = data.get('work_id')
+    try:
+        work_id = int(work_id) if work_id else None
+    except (TypeError, ValueError):
+        work_id = None
+    context = _build_work_context(session.get('user_id'), work_id) if work_id else None
+
+    messages = build_continue(content, style, context=context)
     conv_key = str(uuid.uuid4())
     _save_conv(conv_key, 'user', content)
 

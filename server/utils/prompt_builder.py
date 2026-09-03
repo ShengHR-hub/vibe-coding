@@ -1,10 +1,18 @@
 """所有 AI Prompt 模板集中管理"""
 
 
-def build_continue(content, style='现代'):
+def build_continue(content, style='现代', context=None):
+    """续写 prompt。context：作品设定参考（W2a），用于保持设定/人设/剧情连贯。"""
+    system = f'你是一位精通{style}风格的专业作家。请根据用户提供的上文，用{style}风格续写后续内容。保持文风一致，情节自然衔接。续写200-500字。'
+    user = f'请续写以下内容（只续写，不要重写上文）：\n\n{content}'
+    if context:
+        user += (
+            '\n\n=== 作品设定参考（仅用于保持世界观/人设/剧情连贯，'
+            '不得当作上文续写，也不得照抄）===\n' + context
+        )
     return [
-        {'role': 'system', 'content': f'你是一位精通{style}风格的专业作家。请根据用户提供的上文，用{style}风格续写后续内容。保持文风一致，情节自然衔接。续写200-500字。'},
-        {'role': 'user', 'content': f'请续写以下内容：\n\n{content}'}
+        {'role': 'system', 'content': system},
+        {'role': 'user', 'content': user}
     ]
 
 
