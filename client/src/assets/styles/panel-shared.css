@@ -210,3 +210,35 @@
   background: rgba(224, 113, 107, 0.08);
 }
 .ref-chip.ref-clear:hover { background: rgba(224, 113, 107, 0.16); }
+
+
+/* P4: 统一写作面板下拉/选择器风格（续写风格/润色模式等） */
+.panel select,
+.ai-content select {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 30px 8px 12px;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  background-color: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  background-image: linear-gradient(45deg, transparent 50%, var(--accent-primary) 50%),
+    linear-gradient(135deg, var(--accent-primary) 50%, transparent 50%);
+  background-position: calc(100% - 18px) calc(1em + 1px),
+    calc(100% - 13px) calc(1em + 1px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+.panel select:focus,
+.ai-content select:focus {
+  outline: none;
+  border-color: rgba(196, 163, 90, 0.5);
+}
+.panel select option {
+  background-color: #221d16;
+  color: var(--text-primary);
+}
