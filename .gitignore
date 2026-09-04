@@ -18,3 +18,4 @@ server/logs/
 Thumbs.db
 .audit-shots/
 audit_measure.py
+migrate_*.sql
