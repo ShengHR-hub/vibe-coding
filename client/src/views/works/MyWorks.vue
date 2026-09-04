@@ -36,7 +36,7 @@
           <span>{{ w.word_count || 0 }} 字</span>
           <span class="status-tag" :class="w.status">{{ statusLabel(w.status) }}</span>
           <span>{{ fmt(w.updated_at) }}</span>
-          <button class="btn btn-ghost btn-xs edit-link" @click.stop="$router.push(`/works/${w.work_id}/edit`)">编辑</button>
+          <button class="btn btn-ghost btn-xs edit-link" @click.stop="$router.push(`/write?work=${w.work_id}`)">编辑</button>
           <button class="btn btn-ghost btn-xs" @click.stop="exportWork(w)">导出</button>
           <button class="btn btn-ghost btn-xs delete-link" @click.stop="confirmDelete(w)">删除</button>
         </div>

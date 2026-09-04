@@ -3,7 +3,7 @@
     <div class="detail-header">
       <button class="btn btn-ghost" @click="$router.back()">&larr; 返回</button>
       <div class="header-actions">
-        <button class="btn btn-outline btn-sm" @click="$router.push(`/works/${work.work_id}/edit`)">编辑</button>
+        <button class="btn btn-outline btn-sm" @click="$router.push(`/write?work=${work.work_id}`)">编辑</button>
         <button v-if="work.type === 'novel'" class="btn btn-ghost btn-sm" @click="$router.push(`/works/${work.work_id}/volumes`)">卷管理</button>
         <button class="btn btn-ghost btn-sm" @click="sharePosterVisible = true">分享</button>
         <button class="btn btn-ghost btn-sm" @click="handleExport">导出</button>

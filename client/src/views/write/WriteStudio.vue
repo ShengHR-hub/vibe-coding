@@ -141,6 +141,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, onActivated, onDeactivated, watch, nextTick } from 'vue'
+import { useRoute } from 'vue-router'
 import { useWritingStore } from '../../stores/writing.js'
 import { api } from '../../api/index.js'
 import gsap from 'gsap'
@@ -163,6 +164,7 @@ import PomodoroTimer from '../../components/PomodoroTimer.vue'
 import { useToast } from '../../composables/useToast.js'
 const toast = useToast()
 const writingStore = useWritingStore()
+const route = useRoute()
 
 // ---- 成书工作流：三阶段 × 工具（P4-E1） ----
 const STAGES = [
@@ -504,6 +506,11 @@ onMounted(async () => {
   window.addEventListener('resize', checkMobile)
   window.addEventListener('keydown', onGlobalKeydown)
   startStatsTimer()
+  // P4：支持 /write?work=ID 直接打开已有作品（从「我的作品/详情 → 写作台」进入）
+  const qw = route.query.work
+  if (qw && !writingStore.currentWorkId) {
+    await writingStore.openWork(Number(qw))
+  }
   // 如果已有作品ID，加载章节列表
   if (writingStore.currentWorkId) {
     await writingStore.loadChapters(writingStore.currentWorkId)

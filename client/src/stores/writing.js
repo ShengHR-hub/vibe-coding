@@ -63,6 +63,12 @@ export const useWritingStore = defineStore('writing', () => {
     aiHistory.value.push({ role, text, time: Date.now() })
   }
 
+  async function openWork(workId) {
+    if (!workId) return
+    currentWorkId.value = workId
+    await loadChapters(workId)
+  }
+
   async function loadChapters(workId) {
     if (!workId) return
     const res = await api.get(`/api/works/${workId}`)
@@ -158,7 +164,7 @@ export const useWritingStore = defineStore('writing', () => {
     chapters, activeChapterId,
     pickedRefs, pickRef, clearRefs,
     setContent, addAiMessage, reset,
-    loadChapters, switchChapter, addChapter, removeChapter, reorderChapters,
+    loadChapters, openWork, switchChapter, addChapter, removeChapter, reorderChapters,
     getActiveChapterTitle, setActiveChapterTitle,
   }
 })

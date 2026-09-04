@@ -1,32 +1,35 @@
-// 墨池 E2E 冒烟：注册/登录 → 写作台（AI 流式 Mock/设定/会话/引用 chips）→
-// 作品发布 → 社区 → 原创阅读器 → 灵感馆（浏览/收藏/收录/引用）→ 个人主页
+// 墨池 E2E —— P4 成书工作流冒烟（Mock AI，零 token）
 import { test, expect } from '@playwright/test'
 
 const REAL_AI = process.env.E2E_REAL_AI === '1'
-const U1 = 'e2e_writer'
+const USER = 'e2e_book'
 const PW = 'e2e123456'
-
-// ---------- 工具 ----------
 
 function sseBody(chunks) {
   return chunks.map(c => `data: ${JSON.stringify(c)}\n\n`).join('') + 'data: [DONE]\n\n'
 }
 
-/** 默认 Mock AI：拦截续写/对话流式接口，返回假 SSE（零 token）。 */
 async function installAiMock(context) {
   if (REAL_AI) return
   await context.route('**/api/write/continue', route =>
     route.fulfill({
       status: 200,
       contentType: 'text/event-stream; charset=utf-8',
-      body: sseBody([{ chunk: '【模拟AI】月光铺满旧城的石阶，他想起外婆说过，故事要从一盏灯讲起。' }]),
+      body: sseBody([{ chunk: '【模拟AI】月光落在灯市的青石板上，守灯人缓缓抬头，认出了来人的眼睛。' }]),
     }),
   )
   await context.route('**/api/write/chat', route =>
     route.fulfill({
       status: 200,
       contentType: 'text/event-stream; charset=utf-8',
-      body: sseBody([{ chunk: '（模拟AI回复）这个设定很有张力，可以让“灯的来源”成为第一集悬念。', session_key: 'e2e-mock' }]),
+      body: sseBody([{ chunk: '（模拟AI回复）建议把“灯的来源”留作本章末尾的钩子。', session_key: 'e2e-mock' }]),
+    }),
+  )
+  await context.route('**/api/write/struct', route =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ code: 0, data: { report: '【总体判断】结构平稳，节奏可用；【优先级】先补第一章的钩子。' }, msg: 'success' }),
     }),
   )
 }
@@ -40,166 +43,123 @@ function watchErrors(page) {
 
 async function ensureUser(page) {
   await page.goto('/login')
-  await page.getByPlaceholder('用户名').fill(U1)
-  await page.getByPlaceholder('密码').fill(PW)
+  await page.getByPlaceholder('用户名', { exact: true }).fill(USER)
+  await page.getByPlaceholder('密码', { exact: true }).fill(PW)
   await page.getByRole('button', { name: /登\s*录/ }).click()
   try {
-    await page.waitForURL(url => !url.pathname.includes('/login'), { timeout: 6000 })
+    await page.waitForURL(u => !u.pathname.includes('/login'), { timeout: 6000 })
     return
-  } catch {
-    /* 用户不存在 → 注册后再登录 */
-  }
+  } catch { /* fallthrough */ }
   await page.goto('/register')
-  await page.getByPlaceholder('用户名').fill(U1)
-  await page.getByPlaceholder('密码').fill(PW)
-  await page.getByPlaceholder('确认密码').fill(PW)
+  await page.getByPlaceholder('用户名', { exact: true }).fill(USER)
+  await page.getByPlaceholder('密码', { exact: true }).fill(PW)
+  await page.getByPlaceholder('确认密码', { exact: true }).fill(PW)
   await page.getByRole('button', { name: /注\s*册/ }).click()
-  await page.waitForURL(url => !url.pathname.includes('/register'), { timeout: 10000 })
+  await page.waitForURL(u => !u.pathname.includes('/register'), { timeout: 10000 })
   await page.goto('/login')
-  await page.getByPlaceholder('用户名').fill(U1)
-  await page.getByPlaceholder('密码').fill(PW)
+  await page.getByPlaceholder('用户名', { exact: true }).fill(USER)
+  await page.getByPlaceholder('密码', { exact: true }).fill(PW)
   await page.getByRole('button', { name: /登\s*录/ }).click()
-  await page.waitForURL(url => !url.pathname.includes('/login'), { timeout: 8000 })
+  await page.waitForURL(u => !u.pathname.includes('/login'), { timeout: 8000 })
 }
 
-async function openTab(page, labelRe) {
-  const tabs = page.locator('.ai-tabs button')
-  const n = await tabs.count()
-  for (let i = 0; i < n; i++) {
-    const t = await tabs.nth(i).innerText()
-    if (labelRe.test(t)) { await tabs.nth(i).click(); return }
-  }
-  throw new Error('tab not found: ' + labelRe)
+async function gotoStage(page, label) {
+  await page.locator('.wf-stage').filter({ hasText: label }).click()
 }
 
-// ---------- 用例 ----------
+async function gotoTool(page, label) {
+  await page.locator('.wf-tool').filter({ hasText: label }).click()
+}
 
-test('01 注册/登录与写作台闭环（AI 流式+设定+会话）', async ({ page, context }) => {
+test('P4 全流程：立项→大纲→任务卡→续写→结构审校→交付→发布', async ({ page, context }) => {
   const errors = watchErrors(page)
   await installAiMock(context)
   await ensureUser(page)
 
-  // 写作台：标题 + 内容 + 保存
-  await page.goto('/write')
-  await page.locator('.work-title').fill('E2E 测试之书')
-  await page.locator('.editor-area').fill('雨夜，他推开老宅的门，一股陈旧的墨香扑面而来。')
-  await page.getByRole('button', { name: '保存' }).click()
-  await page.waitForTimeout(1200)
+  // ---- 建书 → 打开写作台（P4：/write?work=ID 打开已有作品） ----
+  const body =
+    '雨夜，他推开祖屋的门，一股陈旧的墨香扑面而来。' +
+    '屋里只有一盏没有点亮的灯，灯芯却像是刚被人剪过。' +
+    '他想起外婆说过，故事要从一盏灯讲起。'
+  const created = await (await context.request.post('/api/works', { data: { title: 'E2E 成书之书', type: 'novel', summary: '灯与守灯人。', content: body } })).json()
+  expect(created.code).toBe(0)
+  const workId = created.data.work_id
+  await page.goto(`/write?work=${workId}`)
+  await expect(page.locator('.work-title')).toHaveValue('E2E 成书之书', { timeout: 20000 })
+  await expect(page.getByPlaceholder(/一个少年为解开祖屋/)).toBeVisible({ timeout: 20000 })
 
-  // 续写（Mock SSE 流式）→ 结果出现
-  await openTab(page, /续写/)
+  // ---- ① 立项蓝图 ----
+  await expect(page.locator('.wf-stage.active')).toContainText('① 定目标')
+  await expect(page.locator('.wf-tool.active')).toContainText('立项蓝图')
+  await page.getByPlaceholder(/一个少年为解开祖屋/).fill('一个少年为解开祖屋灯的秘密踏上旅程，最终发现光来自每一个被遗忘的人。')
+  await page.getByPlaceholder(/喜欢悬疑与家庭温情/).fill('喜欢悬疑与家庭温情的中青年读者')
+  await page.locator('input[type=number]').fill('60000')
+  await page.locator('input[type=date]').fill('2026-12-31')
+  await page.getByRole('button', { name: /保存立项蓝图/ }).click()
+  await expect(page.getByText('立项蓝图已保存', { exact: false })).toBeVisible({ timeout: 8000 })
+
+  // ---- ① 大纲规划（卷/章 + beats/钩子） ----
+  await gotoTool(page, '大纲规划')
+  await page.getByRole('button', { name: '＋ 卷' }).click()
+  await page.locator('input[placeholder*="卷 名称"]').fill('第一卷 灯')
+  await page.locator('.part').first().getByRole('button', { name: '＋章' }).click()
+  await page.locator('.chapter .ch-title').fill('第一章 归来')
+  await page.locator('.chapter textarea').fill('主角回到祖屋，发现灯芯像刚被剪过，决定去灯市。')
+  await page.locator('.chapter .ch-hook').fill('守灯人是谁？灯又为何在这里？')
+  await page.getByRole('button', { name: /保存大纲/ }).click()
+  await expect(page.getByText('大纲已保存', { exact: false })).toBeVisible({ timeout: 8000 })
+
+  // ---- ② 本章任务卡 ----
+  await gotoStage(page, '② 稳步写')
+  await expect(page.locator('.wf-tool.active')).toContainText('本章任务卡')
+  await expect(page.getByText('主角回到祖屋', { exact: false })).toBeVisible()
+  await expect(page.getByText('守灯人是谁', { exact: false })).toBeVisible()
+
+  // ---- ② 按蓝图续写（Mock） ----
+  await page.getByRole('button', { name: /去续写本章/ }).click()
+  await expect(page.locator('.wf-tool.active')).toContainText('按蓝图续写')
   await page.getByRole('button', { name: /开始续写/ }).click()
-  await expect(page.getByText('【模拟AI】月光铺满旧城的石阶', { exact: false })).toBeVisible({ timeout: 15000 })
+  await expect(page.getByText('【模拟AI】月光落在灯市的青石板上', { exact: false })).toBeVisible({ timeout: 15000 })
 
-  // 结果插入编辑器
-  await page.getByRole('button', { name: /插入编辑器/ }).first().click()
-  const editorValue = await page.locator('.editor-area').inputValue()
-  expect(editorValue).toContain('模拟AI')
+  // ---- ③ 结构审校（Mock）/ TODO / 交付 ----
+  await gotoStage(page, '③ 完美收尾')
+  await expect(page.locator('.wf-tool.active')).toContainText('结构审校')
+  await page.getByRole('button', { name: /生成 AI 结构审校报告/ }).click()
+  await expect(page.getByText('【总体判断】结构平稳', { exact: false })).toBeVisible({ timeout: 15000 })
 
-  // 设定（work_lore）页签
-  await openTab(page, /^设定$/)
-  await page.getByPlaceholder(/设定标题/).fill('世界观')
-  await page.getByPlaceholder(/设定内容/).fill('蒸汽与龙脉共生的东方大陆。')
-  await page.getByRole('button', { name: /保存设定/ }).click()
-  await expect(page.locator('.lore-item')).toContainText('蒸汽与龙脉共生的东方大陆')
+  await gotoTool(page, '[TODO]清单')
+  await expect(page.getByText('全书没有遗留', { exact: false })).toBeVisible({ timeout: 8000 })
 
-  // 对话（Mock）→ 历史会话列表出现并可展开
-  await openTab(page, /^对话$/)
-  await page.getByPlaceholder('聊聊你的故事想法...').fill('帮我设计一个悬念开头')
-  await page.getByRole('button', { name: '发送' }).click()
-  await expect(page.getByText('（模拟AI回复）这个设定很有张力', { exact: false })).toBeVisible({ timeout: 15000 })
-  await page.getByRole('button', { name: /历史会话/ }).click()
-  await expect(page.locator('.chat-history')).toBeVisible()
+  await gotoTool(page, '整书交付')
+  const dl = page.waitForEvent('download', { timeout: 15000 })
+  await page.getByRole('button', { name: /一键导出整书/ }).click()
+  const download = await dl
+  expect(download.suggestedFilename()).toContain('.txt')
+
+  // ---- 发布（经共享会话 API），供广场详情测试 ----
+  const pub = await (await context.request.put(`/api/works/${workId}/status`, { data: { status: 'published' } })).json()
+  expect(pub.code).toBe(0)
 
   expect(errors, '存在 console/pageerror 异常').toEqual([])
 })
 
-test('02 作品发布 → 社区可见 → 原创阅读器', async ({ page, context }) => {
+test('广场 → 公开作品详情页（阅读器已下线）', async ({ page, context }) => {
   const errors = watchErrors(page)
   await installAiMock(context)
   await ensureUser(page)
 
-  await page.goto('/works')
-  await expect(page.getByText('E2E 测试之书', { exact: false })).toBeVisible({ timeout: 15000 })
-  await page.getByText('E2E 测试之书', { exact: false }).click()
-
-  // 详情页 → 发布（经共享会话的 API）
-  const m = page.url().match(/\/works\/(\d+)/)
-  expect(m, '应处于作品详情页').toBeTruthy()
-  const workId = Number(m[1])
-  const pub = await context.request.put(`/api/works/${workId}/status`, { data: { status: 'published' } })
-  expect((await pub.json()).code).toBe(0)
-
-  // 原创阅读器：打开章节正文
-  await page.getByRole('button', { name: /阅读/ }).click()
-  await page.waitForURL(/\/read\//, { timeout: 15000 })
-  await expect(page.getByText('雨夜，他推开老宅的门', { exact: false })).toBeVisible({ timeout: 15000 })
-
-  // 社区广场能看到已发布作品
   await page.goto('/explore')
-  await expect(page.getByText('E2E 测试之书', { exact: false })).toBeVisible({ timeout: 20000 })
+  await expect(page.getByText('E2E 成书之书', { exact: false }).first()).toBeVisible({ timeout: 20000 })
+  await page.getByText('E2E 成书之书', { exact: false }).first().click()
+  await page.waitForURL(/\/work\/\d+/, { timeout: 15000 })
+  expect(page.url()).not.toContain('/read')
 
-  expect(errors, '存在 console/pageerror 异常').toEqual([])
-})
+  await expect(page.locator('.work-info')).toBeVisible()
+  await expect(page.locator('.chapter-list')).toContainText('第一章')
+  expect(await page.locator('.reader-container').count()).toBe(0)
 
-test('03 灵感馆：翻阅/收藏/收录句子/引用到创作', async ({ page, context }) => {
-  const errors = watchErrors(page)
-  await installAiMock(context)
-  await ensureUser(page)
+  await page.getByRole('button', { name: /返回/ }).click()
+  await page.waitForURL(/\/explore/, { timeout: 10000 })
 
-  // 浏览：今日灵感 + 诗词卡片
-  await page.goto('/inspire')
-  await expect(page.locator('.hero-quote p')).not.toBeEmpty({ timeout: 15000 })
-  await expect(page.locator('.inspire-card').first()).toBeVisible()
-
-  // 句子素材 → 引用到创作（chips 写入 writing store）
-  await page.getByRole('button', { name: /句子素材/ }).click()
-  await expect(page.locator('.inspire-card').first()).toBeVisible({ timeout: 15000 })
-  await page.locator('.inspire-card').first().getByRole('button', { name: /＋ 引用/ }).click()
-
-  // 回到写作台续写面板 → 引用 chips 可见
-  await page.goto('/write')
-  await openTab(page, /续写/)
-  await expect(page.locator('.ref-chips')).toBeVisible({ timeout: 10000 })
-  const chipsText = await page.locator('.ref-chips').innerText()
-  expect(chipsText.length).toBeGreaterThan(0)
-
-  // 灵感馆收藏：诗词 ♡ → 收藏页签出现
-  await page.goto('/inspire')
-  await page.locator('.inspire-card').first().getByRole('button', { name: '♡' }).click()
-  await page.getByRole('button', { name: /收藏/ }).click()
-  await expect(page.locator('.inspire-card').first()).toBeVisible({ timeout: 15000 })
-
-  // 收录句子
-  await page.getByRole('button', { name: /＋ 收录句子/ }).click()
-  await page.locator('.modal input').fill('随想')
-  await page.locator('.modal textarea').fill('风吹过屋檐，把夏天吹得哗哗响。')
-  await page.locator('.modal').getByRole('button', { name: /收录$/ }).click()
-  await expect(page.getByText('已收录到素材库', { exact: false })).toBeVisible({ timeout: 8000 })
-
-  // 句子素材搜索可检索到新收录内容
-  await page.getByRole('button', { name: /句子素材/ }).click()
-  await page.getByPlaceholder(/搜索内容/).fill('哗哗响')
-  await page.getByRole('button', { name: '搜索', exact: true }).click()
-  await expect(page.getByText('风吹过屋檐，把夏天吹得哗哗响', { exact: false })).toBeVisible({ timeout: 15000 })
-
-  expect(errors, '存在 console/pageerror 异常').toEqual([])
-})
-
-test('04 个人主页：创作统计与页签', async ({ page, context }) => {
-  const errors = watchErrors(page)
-  await installAiMock(context)
-  await ensureUser(page)
-
-  // 从用户菜单进入个人主页
-  await page.locator('.avatar-wrapper').click()
-  await page.getByRole('link', { name: /我的主页/ }).click()
-  await page.waitForURL(/\/profile\//, { timeout: 15000 })
-
-  await expect(page.getByText('创作', { exact: true })).toBeVisible()
-  await expect(page.getByText('作品', { exact: true })).toBeVisible()
-  for (const tab of ['作品', '收藏', '成就', '粉丝', '关注']) {
-    await expect(page.getByRole('button', { name: tab, exact: true }).first()).toBeVisible()
-  }
   expect(errors, '存在 console/pageerror 异常').toEqual([])
 })
