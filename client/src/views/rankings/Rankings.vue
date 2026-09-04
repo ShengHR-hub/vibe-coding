@@ -198,7 +198,7 @@ async function loadAuthors() {
   if (res.code === 0) authors.value = res.data.authors
 }
 
-function goWork(id) { router.push(`/read/${id}`) }
+function goWork(id) { router.push(`/work/${id}`) }
 function goProfile(id) { router.push(`/profile/${id}`) }
 
 function rankClass(idx) {

@@ -27,7 +27,7 @@
       <div v-else-if="simError" class="center error">{{ simError }}</div>
       <div v-else-if="similarWorks.length === 0" class="center muted">暂无相似作品</div>
       <div v-else class="works-grid">
-        <div v-for="w in similarWorks" :key="w.work_id" class="work-card glass-card" @click="$router.push(`/read/${w.work_id}`)">
+        <div v-for="w in similarWorks" :key="w.work_id" class="work-card glass-card" @click="$router.push(`/work/${w.work_id}`)">
           <div class="card-type">{{ typeLabelMap[w.type] || w.type }}</div>
           <h4>{{ w.title }}</h4>
           <p v-if="w.summary" class="card-summary">{{ w.summary }}</p>
@@ -49,7 +49,7 @@
       <div v-else>
         <p v-if="recReason" class="rec-reason">{{ recReason }}</p>
         <div class="works-grid">
-          <div v-for="w in recItems" :key="w.work_id" class="work-card glass-card" @click="$router.push(`/read/${w.work_id}`)">
+          <div v-for="w in recItems" :key="w.work_id" class="work-card glass-card" @click="$router.push(`/work/${w.work_id}`)">
             <div class="card-type">{{ typeLabelMap[w.type] || w.type }}</div>
             <h4>{{ w.title }}</h4>
             <p v-if="w.summary" class="card-summary">{{ w.summary }}</p>

@@ -43,7 +43,7 @@
 
     <!-- 作品网格 -->
     <div v-else class="works-grid">
-      <div v-for="w in works" :key="w.work_id" class="work-card glass-card" :class="`type-${w.type}`" @click="$router.push(`/read/${w.work_id}`)">
+      <div v-for="w in works" :key="w.work_id" class="work-card glass-card" :class="`type-${w.type}`" @click="$router.push(`/work/${w.work_id}`)">
         <div class="card-cover" :class="coverClass(w.type)"></div>
         <div class="card-body">
           <div class="card-type">{{ typeLabel(w.type) }}</div>

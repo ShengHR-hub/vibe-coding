@@ -5,7 +5,6 @@
       <div class="header-actions">
         <button class="btn btn-outline btn-sm" @click="$router.push(`/works/${work.work_id}/edit`)">编辑</button>
         <button v-if="work.type === 'novel'" class="btn btn-ghost btn-sm" @click="$router.push(`/works/${work.work_id}/volumes`)">卷管理</button>
-        <button class="btn btn-ghost btn-sm" @click="$router.push(`/read/${work.work_id}`)">阅读</button>
         <button class="btn btn-ghost btn-sm" @click="sharePosterVisible = true">分享</button>
         <button class="btn btn-ghost btn-sm" @click="handleExport">导出</button>
         <button class="btn btn-ghost btn-sm" @click="confirmDelete">删除</button>

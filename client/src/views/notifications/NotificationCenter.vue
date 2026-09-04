@@ -76,9 +76,9 @@ async function handleClick(n) {
   if (n.type === 'achievement') {
     if (userStore.user?.user_id) router.push({ path: `/profile/${userStore.user.user_id}`, query: { tab: 'achievements' } })
   } else if (n.related_id) {
-    const routes = { follow: 'profile', comment: 'read', reply: 'read', like: 'read', favorite: 'read' }
-    const path = routes[n.type] || 'read'
-    router.push(path === 'profile' ? `/profile/${n.related_id}` : `/read/${n.related_id}`)
+    const routes = { follow: 'profile', comment: 'work', reply: 'work', like: 'work', favorite: 'work' }
+    const path = routes[n.type] || 'work'
+    router.push(path === 'profile' ? `/profile/${n.related_id}` : `/work/${n.related_id}`)
   }
 }
 

@@ -140,7 +140,7 @@
       <div v-if="loadingTab" class="center"><LoadingSpinner /></div>
       <div v-else-if="tabItems.length === 0" class="center muted">暂无作品</div>
       <div v-else class="works-grid">
-        <div v-for="w in tabItems" :key="w.work_id" class="work-card glass-card" @click="$router.push(`/read/${w.work_id}`)">
+        <div v-for="w in tabItems" :key="w.work_id" class="work-card glass-card" @click="openWork(w)">
           <div class="card-type">{{ typeLabel(w.type) }}</div>
           <h3>{{ w.title }}</h3>
           <p v-if="w.summary" class="card-summary">{{ w.summary }}</p>
@@ -163,7 +163,7 @@
       <div v-if="loadingTab" class="center"><LoadingSpinner /></div>
       <div v-else-if="tabItems.length === 0" class="center muted">暂无收藏</div>
       <div v-else class="works-grid">
-        <div v-for="w in tabItems" :key="w.work_id" class="work-card glass-card" @click="$router.push(`/read/${w.work_id}`)">
+        <div v-for="w in tabItems" :key="w.work_id" class="work-card glass-card" @click="openWork(w)">
           <div class="card-type">{{ typeLabel(w.type) }}</div>
           <h3>{{ w.title }}</h3>
           <p class="card-meta">
@@ -326,7 +326,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { api } from '../../api/index.js'
 import { useUserStore } from '../../stores/user.js'
 import LoadingSpinner from '../../components/LoadingSpinner.vue'
@@ -335,6 +335,7 @@ import NavBar from '../../components/NavBar.vue'
 import { useToast } from '../../composables/useToast.js'
 const toast = useToast()
 const route = useRoute()
+const router = useRouter()
 const userStore = useUserStore()
 
 const profile = ref(null)
@@ -459,6 +460,11 @@ function switchTab(key) {
   activeTab.value = key
   tabPage.value = 1
   loadTab()
+}
+
+function openWork(w) {
+  const mine = userStore.user && Number(w.user_id) === Number(userStore.user.user_id)
+  router.push(mine ? `/works/${w.work_id}` : `/work/${w.work_id}`)
 }
 
 async function doFollow() {
