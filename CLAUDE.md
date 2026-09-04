@@ -8,7 +8,8 @@ Vue3 + Flask + MySQL + 多供应商大模型网关（阿里云 qwen3.8-flash 主
 
 ## 启动命令
 
-> **一键启动（推荐给用户演示）**：双击根目录 `启动开发服务.bat`（或 `powershell -ExecutionPolicy Bypass -File .\start-dev.ps1`），自动检测 MySQL 并分别弹出后端 :5000 / 前端 :5173 窗口，就绪后开浏览器；停止用 `停止开发服务.bat`。
+> **一键启动（双击，推荐给用户演示）**：`启动开发服务.bat` —— 弹出后端 :5000 / 前端 :5173 窗口并自动开浏览器；`停止开发服务.bat` 停止。
+> **Agent/命令行静默拉起（本会话恢复后用这个）**：`powershell -ExecutionPolicy Bypass -File .\dev-up.ps1` —— 不开窗口、后端+前端先后台启动、并行等待就绪后打印地址与日志位置（日志：`server/logs/dev-*.log`，停止：`dev-down.ps1`）。等价于 `start-dev.ps1 -Headless -NoBrowser`。
 
 ```bash
 # 初始化数据库（一次性）

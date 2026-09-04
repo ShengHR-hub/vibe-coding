@@ -74,11 +74,8 @@ inkstone/
 
 ## 快速启动（开发模式）
 
-**推荐：双击根目录 `启动开发服务.bat`** —— 自动检测 MySQL、分别弹出后端(:5000)/前端(:5173)窗口并等待就绪后打开浏览器；`停止开发服务.bat` 一键停止。也可命令行执行：
-
-```bash
-powershell -ExecutionPolicy Bypass -File .\start-dev.ps1   # 加 -NoBrowser 不开浏览器
-```
+**推荐：双击根目录 `启动开发服务.bat`** —— 自动检测 MySQL、分别弹出后端(:5000)/前端(:5173)窗口并等待就绪后打开浏览器；`停止开发服务.bat` 一键停止。
+**命令行/后台静默**：`powershell -ExecutionPolicy Bypass -File .\dev-up.ps1`（不开窗口、日志写 `server/logs/`，停止用 `dev-down.ps1`）；窗口模式等价命令 `start-dev.ps1`（可加 `-NoBrowser`）。
 
 手动启动（等价于脚本内部动作）：
 
