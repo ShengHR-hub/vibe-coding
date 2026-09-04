@@ -8,6 +8,8 @@ Vue3 + Flask + MySQL + 多供应商大模型网关（阿里云 qwen3.8-flash 主
 
 ## 启动命令
 
+> **一键启动（推荐给用户演示）**：双击根目录 `启动开发服务.bat`（或 `powershell -ExecutionPolicy Bypass -File .\start-dev.ps1`），自动检测 MySQL 并分别弹出后端 :5000 / 前端 :5173 窗口，就绪后开浏览器；停止用 `停止开发服务.bat`。
+
 ```bash
 # 初始化数据库（一次性）
 mysql -u root -p123456 < server/database/schema.sql
