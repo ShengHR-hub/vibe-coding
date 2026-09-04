@@ -168,9 +168,9 @@ const route = useRoute()
 
 // ---- 成书工作流：三阶段 × 工具（P4-E1） ----
 const STAGES = [
-  { key: 'plan', label: '① 定目标', desc: '命题 · 大纲 · 设定 · 人设' },
-  { key: 'write', label: '② 稳步写', desc: '任务卡 · 续写 · 素材引用' },
-  { key: 'review', label: '③ 完美收尾', desc: '结构 · 润色 · 诊断 · 导出' },
+  { key: 'plan', label: '起：定目标', desc: '命题 · 大纲 · 设定 · 人设' },
+  { key: 'write', label: '承：稳推进', desc: '任务卡 · 续写 · 素材引用' },
+  { key: 'review', label: '合：精收尾', desc: '结构 · 润色 · 诊断 · 导出' },
 ]
 
 const tools = [

@@ -89,7 +89,7 @@ test('P4 全流程：立项→大纲→任务卡→续写→结构审校→交�
   await expect(page.getByPlaceholder(/一个少年为解开祖屋/)).toBeVisible({ timeout: 20000 })
 
   // ---- ① 立项蓝图 ----
-  await expect(page.locator('.wf-stage.active')).toContainText('① 定目标')
+  await expect(page.locator('.wf-stage.active')).toContainText('起：定目标')
   await expect(page.locator('.wf-tool.active')).toContainText('立项蓝图')
   await page.getByPlaceholder(/一个少年为解开祖屋/).fill('一个少年为解开祖屋灯的秘密踏上旅程，最终发现光来自每一个被遗忘的人。')
   await page.getByPlaceholder(/喜欢悬疑与家庭温情/).fill('喜欢悬疑与家庭温情的中青年读者')
@@ -110,7 +110,7 @@ test('P4 全流程：立项→大纲→任务卡→续写→结构审校→交�
   await expect(page.getByText('大纲已保存', { exact: false })).toBeVisible({ timeout: 8000 })
 
   // ---- ② 本章任务卡 ----
-  await gotoStage(page, '② 稳步写')
+  await gotoStage(page, '承：稳推进')
   await expect(page.locator('.wf-tool.active')).toContainText('本章任务卡')
   await expect(page.getByText('主角回到祖屋', { exact: false })).toBeVisible()
   await expect(page.getByText('守灯人是谁', { exact: false })).toBeVisible()
@@ -122,7 +122,7 @@ test('P4 全流程：立项→大纲→任务卡→续写→结构审校→交�
   await expect(page.getByText('【模拟AI】月光落在灯市的青石板上', { exact: false })).toBeVisible({ timeout: 15000 })
 
   // ---- ③ 结构审校（Mock）/ TODO / 交付 ----
-  await gotoStage(page, '③ 完美收尾')
+  await gotoStage(page, '合：精收尾')
   await expect(page.locator('.wf-tool.active')).toContainText('结构审校')
   await page.getByRole('button', { name: /生成 AI 结构审校报告/ }).click()
   await expect(page.getByText('【总体判断】结构平稳', { exact: false })).toBeVisible({ timeout: 15000 })
