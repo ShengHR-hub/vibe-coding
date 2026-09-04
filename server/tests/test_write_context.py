@@ -82,3 +82,25 @@ def test_continue_without_work_id_still_works(auth_client, capture_stream):
     user_msg = capture_stream['messages'][-1]['content']
     assert '设定参考' not in user_msg
     assert '雨一直下' in user_msg
+
+
+def test_continue_injects_next_outline_plan(auth_client, capture_stream):
+    """P4-E3：计划中有大纲时，注入「下一章计划」的 beats/钩子。"""
+    work_id = _create_work_with_context(auth_client)  # 已建 2 章
+    outline = [
+        {'kind': 'part', 'title': '第一卷 灯的秘密', 'children': [
+            {'kind': 'chapter', 'title': '第一章 归来', 'beats': '回到祖屋。', 'hook': '灯是谁留的？'},
+            {'kind': 'chapter', 'title': '第二章 旧信', 'beats': '发现一封没有署名的信。', 'hook': '信中提到母亲。'},
+            {'kind': 'chapter', 'title': '第三章 灯市', 'beats': '灯市的守灯人说出真相的开端。', 'hook': '守灯人是谁？'},
+        ]},
+    ]
+    r = auth_client.put(f'/api/plan/{work_id}', json={'outline': outline})
+    assert r.get_json()['code'] == 0
+
+    r = auth_client.post('/api/write/continue', json={'content': '夜色渐深。', 'work_id': work_id})
+    assert r.status_code == 200
+    user_msg = capture_stream['messages'][-1]['content']
+    assert '大纲参考' in user_msg
+    assert '灯市' in user_msg
+    assert '守灯人说出真相的开端' in user_msg
+    assert '守灯人是谁' in user_msg

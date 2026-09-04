@@ -82,6 +82,43 @@ def _build_work_context(user_id, work_id):
         for l in lore:
             parts.append(f"{l['title']}：{str(l['content'])[:80]}")
         lines.append('作品设定（work_lore）：' + '；'.join(parts))
+
+    # P4-E3：注入大纲中的「本章/下章计划」（beats + 钩子）
+    plan = query('SELECT outline_json FROM book_plans WHERE work_id = %s', (work_id,), one=True)
+    if plan and plan.get('outline_json'):
+        try:
+            outline = json.loads(plan['outline_json'])
+        except (TypeError, ValueError):
+            outline = None
+        if isinstance(outline, list):
+            planned = []
+
+            def _walk(nodes):
+                for n in nodes:
+                    if not isinstance(n, dict):
+                        continue
+                    if n.get('kind') == 'chapter':
+                        planned.append(n)
+                    elif n.get('children'):
+                        _walk(n.get('children'))
+
+            _walk(outline)
+            if planned:
+                created = query(
+                    'SELECT COUNT(*) AS c FROM chapters WHERE work_id = %s', (work_id,), one=True
+                )['c']
+                idx = min(created, len(planned) - 1)
+                target = planned[idx]
+                bits = []
+                if target.get('title'):
+                    bits.append(f"《{target['title']}》")
+                if target.get('beats'):
+                    bits.append('要点：' + str(target['beats'])[:150])
+                if target.get('hook'):
+                    bits.append('钩子：' + str(target['hook'])[:100])
+                if bits:
+                    lines.append('大纲参考（写作时应朝向）：' + '；'.join(bits))
+
     context = '\n'.join(lines)
     return context[:2000] if len(lines) > 1 else None
 

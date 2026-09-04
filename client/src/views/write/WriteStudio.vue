@@ -146,7 +146,7 @@ import { api } from '../../api/index.js'
 import gsap from 'gsap'
 import ContinuePanel from './ContinuePanel.vue'
 import InspirePanel from './InspirePanel.vue'
-import OutlinePanel from './OutlinePanel.vue'
+import OutlineTreePanel from './OutlineTreePanel.vue'
 import CharacterPanel from './CharacterPanel.vue'
 import LorePanel from './LorePanel.vue'
 import PolishPanel from './PolishPanel.vue'
@@ -175,7 +175,7 @@ const tools = [
   // ① 定目标
   { key: 'blueprint', stage: 'plan', label: '立项蓝图', icon: '🧭', comp: BlueprintPanel },
   { key: 'inspire', stage: 'plan', label: '选题灵感', icon: '☆', comp: InspirePanel },
-  { key: 'outline', stage: 'plan', label: '三级大纲', icon: '≡', comp: OutlinePanel },
+  { key: 'outline', stage: 'plan', label: '大纲规划', icon: '≡', comp: OutlineTreePanel },
   { key: 'lore', stage: 'plan', label: '设定库', icon: '❖', comp: LorePanel },
   { key: 'character', stage: 'plan', label: '角色设定', icon: '♛', comp: CharacterPanel },
   // ② 稳步写
