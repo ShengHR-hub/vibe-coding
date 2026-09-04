@@ -94,17 +94,28 @@
         </div>
       </div>
 
-      <!-- AI 面板 -->
+      <!-- AI 面板：成书工作流 -->
       <div class="ai-panel glass-card" :class="{ 'mobile-open': mobilePanelOpen }" v-show="!isFocusMode">
-        <div class="ai-tabs">
+        <div class="wf-stages">
           <button
-            v-for="tab in tabs" :key="tab.key"
-            class="ai-tab"
-            :class="{ active: activeTab === tab.key }"
-            @click="switchTab(tab.key)"
+            v-for="s in STAGES" :key="s.key"
+            class="wf-stage"
+            :class="{ active: activeStage === s.key }"
+            @click="switchStage(s.key)"
           >
-            <span class="tab-icon">{{ tab.icon }}</span>
-            <span class="tab-label">{{ tab.label }}</span>
+            <span class="wf-s-label">{{ s.label }}</span>
+            <span class="wf-s-desc">{{ s.desc }}</span>
+          </button>
+        </div>
+        <div class="wf-tools">
+          <button
+            v-for="t in stageTools" :key="t.key"
+            class="wf-tool"
+            :class="{ active: activeTab === t.key }"
+            @click="switchTool(t.key)"
+          >
+            <span class="tab-icon">{{ t.icon }}</span>
+            <span class="tab-label">{{ t.label }}</span>
           </button>
         </div>
         <div class="ai-content">
@@ -139,54 +150,55 @@ import OutlinePanel from './OutlinePanel.vue'
 import CharacterPanel from './CharacterPanel.vue'
 import LorePanel from './LorePanel.vue'
 import PolishPanel from './PolishPanel.vue'
-import PromptPanel from './PromptPanel.vue'
-import PoemPanel from './PoemPanel.vue'
 import ChatPanel from './ChatPanel.vue'
-import MaterialPanel from './MaterialPanel.vue'
 import DiagnosePanel from './DiagnosePanel.vue'
+import RefPanel from './RefPanel.vue'
 import PomodoroTimer from '../../components/PomodoroTimer.vue'
 
 import { useToast } from '../../composables/useToast.js'
 const toast = useToast()
 const writingStore = useWritingStore()
 
-// ---- Tab 状态 ----
-const activeTab = ref('continue')
-const tabTransitionName = ref('tab-slide-right')
-
-const tabs = [
-  { key: 'continue', label: '续写', icon: '→' },
-  { key: 'inspire', label: '灵感', icon: '☆' },
-  { key: 'outline', label: '大纲', icon: '≡' },
-  { key: 'character', label: '角色', icon: '♛' },
-  { key: 'lore', label: '设定', icon: '❖' },
-  { key: 'polish', label: '润色', icon: '♦' },
-  { key: 'chat', label: '对话', icon: ' ' },
-  { key: 'poem', label: '诗词', icon: ' ' },
-  { key: 'material', label: '素材', icon: ' ' },
-  { key: 'prompt', label: '提示', icon: '✎' },
-  { key: 'diagnose', label: '诊断', icon: '⚕' },
+// ---- 成书工作流：三阶段 × 工具（P4-E1） ----
+const STAGES = [
+  { key: 'plan', label: '① 定目标', desc: '命题 · 大纲 · 人设 · 设定' },
+  { key: 'write', label: '② 稳步写', desc: '按计划推进初稿' },
+  { key: 'review', label: '③ 完美收尾', desc: '审校 · 润色 · 交付' },
 ]
 
-const componentMap = {
-  continue: ContinuePanel,
-  inspire: InspirePanel,
-  outline: OutlinePanel,
-  character: CharacterPanel,
-  lore: LorePanel,
-  polish: PolishPanel,
-  chat: ChatPanel,
-  poem: PoemPanel,
-  material: MaterialPanel,
-  prompt: PromptPanel,
-  diagnose: DiagnosePanel,
-}
-const activeComponent = computed(() => componentMap[activeTab.value])
+const tools = [
+  // ① 定目标
+  { key: 'inspire', stage: 'plan', label: '选题灵感', icon: '☆', comp: InspirePanel },
+  { key: 'outline', stage: 'plan', label: '三级大纲', icon: '≡', comp: OutlinePanel },
+  { key: 'lore', stage: 'plan', label: '设定库', icon: '❖', comp: LorePanel },
+  { key: 'character', stage: 'plan', label: '角色设定', icon: '♛', comp: CharacterPanel },
+  // ② 稳步写
+  { key: 'continue', stage: 'write', label: '按蓝图续写', icon: '→', comp: ContinuePanel },
+  { key: 'coach', stage: 'write', label: '写作教练', icon: ' ', comp: ChatPanel },
+  { key: 'refs', stage: 'write', label: '素材引用', icon: '✦', comp: RefPanel },
+  // ③ 完美收尾
+  { key: 'polish', stage: 'review', label: '逐章润色', icon: '♦', comp: PolishPanel },
+  { key: 'diagnose', stage: 'review', label: '内容诊断', icon: '⚕', comp: DiagnosePanel },
+]
 
-function switchTab(key) {
-  const newIdx = tabs.findIndex(t => t.key === key)
-  const oldIdx = tabs.findIndex(t => t.key === activeTab.value)
-  tabTransitionName.value = newIdx > oldIdx ? 'tab-slide-left' : 'tab-slide-right'
+const activeStage = ref('plan')
+const activeTab = ref('inspire')
+const tabTransitionName = ref('tab-slide-left')
+const stageTools = computed(() => tools.filter(t => t.stage === activeStage.value))
+const activeComponent = computed(() => tools.find(t => t.key === activeTab.value)?.comp)
+
+function switchStage(key) {
+  if (activeStage.value === key) return
+  activeStage.value = key
+  const first = stageTools.value[0]
+  if (first) switchTool(first.key)
+}
+
+function switchTool(key) {
+  const curIdx = tools.findIndex(t => t.key === activeTab.value)
+  const nxtIdx = tools.findIndex(t => t.key === key)
+  if (nxtIdx < 0) return
+  tabTransitionName.value = nxtIdx >= curIdx ? 'tab-slide-left' : 'tab-slide-right'
   activeTab.value = key
 }
 
@@ -814,6 +826,40 @@ onUnmounted(() => {
   overflow: hidden; flex-shrink: 0;
   box-shadow: -4px 0 32px rgba(0, 0, 0, 0.3);
   border-left: 1px solid rgba(196, 163, 90, 0.06);
+}
+/* P4-E1：成书工作流（阶段导航 + 工具） */
+.wf-stages {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
+  padding: 8px 8px 0;
+}
+.wf-stage {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 6px 4px; border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-glass);
+  color: var(--text-muted); cursor: pointer; text-align: center;
+  transition: all 0.2s;
+}
+.wf-stage:hover { border-color: rgba(196, 163, 90, 0.3); }
+.wf-stage.active {
+  background: rgba(196, 163, 90, 0.12);
+  border-color: rgba(196, 163, 90, 0.45);
+  color: var(--accent-primary);
+}
+.wf-s-label { font-size: 0.72rem; font-weight: 600; }
+.wf-s-desc { font-size: 0.58rem; opacity: 0.75; line-height: 1.3; }
+.wf-tools { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px 8px 2px; }
+.wf-tool {
+  font-size: 0.72rem; padding: 3px 10px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-glass);
+  color: var(--text-muted); cursor: pointer; transition: all 0.2s;
+}
+.wf-tool:hover { border-color: rgba(196, 163, 90, 0.3); }
+.wf-tool.active {
+  color: var(--accent-primary);
+  border-color: rgba(196, 163, 90, 0.5);
+  background: rgba(196, 163, 90, 0.1);
 }
 .ai-tabs {
   display: grid;
