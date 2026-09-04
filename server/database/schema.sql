@@ -372,3 +372,19 @@ CREATE TABLE inspiration_favorites (
     UNIQUE KEY uk_fav_item (user_id, item_type, ref_id),
     CONSTRAINT inspiration_favorites_ibfk_1 FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 27. 作品立项计划表（P4：一作一计划；outline_json 存三级大纲树 beats/hook，二期可拆规范表）
+CREATE TABLE book_plans (
+    plan_id INT AUTO_INCREMENT PRIMARY KEY,
+    work_id INT NOT NULL,
+    logline VARCHAR(1000) DEFAULT '',
+    audience VARCHAR(500) DEFAULT '',
+    target_words INT DEFAULT 0,
+    deadline DATE NULL,
+    stage ENUM('plan', 'write', 'review', 'done') DEFAULT 'plan',
+    outline_json MEDIUMTEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_plan_work (work_id),
+    CONSTRAINT book_plans_ibfk_1 FOREIGN KEY (work_id) REFERENCES works (work_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
