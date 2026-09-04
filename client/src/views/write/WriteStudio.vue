@@ -153,6 +153,11 @@ import PolishPanel from './PolishPanel.vue'
 import ChatPanel from './ChatPanel.vue'
 import DiagnosePanel from './DiagnosePanel.vue'
 import RefPanel from './RefPanel.vue'
+import BlueprintPanel from './BlueprintPanel.vue'
+import TaskCardPanel from './TaskCardPanel.vue'
+import StructurePanel from './StructurePanel.vue'
+import TodoPanel from './TodoPanel.vue'
+import FinalizePanel from './FinalizePanel.vue'
 import PomodoroTimer from '../../components/PomodoroTimer.vue'
 
 import { useToast } from '../../composables/useToast.js'
@@ -168,21 +173,26 @@ const STAGES = [
 
 const tools = [
   // ① 定目标
+  { key: 'blueprint', stage: 'plan', label: '立项蓝图', icon: '🧭', comp: BlueprintPanel },
   { key: 'inspire', stage: 'plan', label: '选题灵感', icon: '☆', comp: InspirePanel },
   { key: 'outline', stage: 'plan', label: '三级大纲', icon: '≡', comp: OutlinePanel },
   { key: 'lore', stage: 'plan', label: '设定库', icon: '❖', comp: LorePanel },
   { key: 'character', stage: 'plan', label: '角色设定', icon: '♛', comp: CharacterPanel },
   // ② 稳步写
+  { key: 'task', stage: 'write', label: '本章任务卡', icon: '📋', comp: TaskCardPanel },
   { key: 'continue', stage: 'write', label: '按蓝图续写', icon: '→', comp: ContinuePanel },
   { key: 'coach', stage: 'write', label: '写作教练', icon: ' ', comp: ChatPanel },
   { key: 'refs', stage: 'write', label: '素材引用', icon: '✦', comp: RefPanel },
   // ③ 完美收尾
+  { key: 'struct', stage: 'review', label: '结构审校', icon: '🔍', comp: StructurePanel },
   { key: 'polish', stage: 'review', label: '逐章润色', icon: '♦', comp: PolishPanel },
   { key: 'diagnose', stage: 'review', label: '内容诊断', icon: '⚕', comp: DiagnosePanel },
+  { key: 'todo', stage: 'review', label: '[TODO]清单', icon: '☑', comp: TodoPanel },
+  { key: 'final', stage: 'review', label: '整书交付', icon: '🚀', comp: FinalizePanel },
 ]
 
 const activeStage = ref('plan')
-const activeTab = ref('inspire')
+const activeTab = ref('blueprint')
 const tabTransitionName = ref('tab-slide-left')
 const stageTools = computed(() => tools.filter(t => t.stage === activeStage.value))
 const activeComponent = computed(() => tools.find(t => t.key === activeTab.value)?.comp)
@@ -201,6 +211,16 @@ function switchTool(key) {
   tabTransitionName.value = nxtIdx >= curIdx ? 'tab-slide-left' : 'tab-slide-right'
   activeTab.value = key
 }
+
+function onGotoTool(e) {
+  const tool = e?.detail?.tool
+  const t = tools.find(x => x.key === tool)
+  if (!t) return
+  activeStage.value = t.stage
+  switchTool(t.key)
+}
+onMounted(() => window.addEventListener('inkstone:goto-tool', onGotoTool))
+onUnmounted(() => window.removeEventListener('inkstone:goto-tool', onGotoTool))
 
 function onTabBeforeEnter(el) {
   gsap.set(el, { opacity: 0, x: tabTransitionName.value === 'tab-slide-left' ? 40 : -40 })
