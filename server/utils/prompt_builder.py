@@ -165,6 +165,27 @@ def build_chat_system():
     }
 
 
+def build_struct_review(chapters_summary, outline_text=None):
+    """P4-E3b：第一轮结构审校 prompt（对照大纲审全书结构与节奏）。"""
+    system = (
+        '你是一位资深图书编辑，负责书籍的第一轮"结构审校"。请从结构与节奏层面诊断全书，'
+        '不要逐句改文。'
+    )
+    user = '请对以下书稿做结构审校，输出：\n'
+    user += '1. 【总体判断】1-2 句全书结构与节奏评价\n'
+    user += '2. 【结构问题】列出：章节冗余/跑题/顺序不合理/篇幅失衡/与大纲脱节（有则写，无则写"无明显"）\n'
+    user += '3. 【逐章建议】每章 1 句（如何取舍、承接、压缩或展开）\n'
+    user += '4. 【优先级】给出最该先处理的三件事\n'
+    user += '请用中文、条理清晰，控制在 600 字内。\n\n'
+    if outline_text:
+        user += f'=== 原定大纲（摘要）===\n{outline_text[:1200]}\n\n'
+    user += '=== 当前章节（章名 + 字数 + 开头节选）===\n' + chapters_summary[:12000]
+    return [
+        {'role': 'system', 'content': system},
+        {'role': 'user', 'content': user},
+    ]
+
+
 def build_summary(chapter_title, chapter_content):
     """生成章节摘要的 prompt"""
     return [

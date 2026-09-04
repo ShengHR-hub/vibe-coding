@@ -17,6 +17,14 @@
       </div>
       <p v-else class="ok">✓ 目前没有明显结构问题（大纲数量与正文基本一致、无过短章节）</p>
 
+      <div class="ai-block">
+        <button class="btn btn-primary btn-sm" @click="aiReview" :disabled="reviewing">
+          {{ reviewing ? '审校中…' : '⚡ 生成 AI 结构审校报告' }}
+        </button>
+        <p v-if="reportErr" class="err">{{ reportErr }}</p>
+        <div v-if="report" class="report" v-html="renderParagraphBold(report)"></div>
+      </div>
+
       <div class="check-block">
         <p class="b-label">第一轮 · 结构审校自查清单（对照大纲逐项看）</p>
         <ul class="check-list">
@@ -34,10 +42,16 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { api } from '../../api/index.js'
 import { useWritingStore } from '../../stores/writing.js'
+import { useToast } from '../../composables/useToast.js'
+import { renderParagraphBold } from '../../utils/render.js'
 
 const writingStore = useWritingStore()
+const toast = useToast()
 const workId = computed(() => writingStore.currentWorkId)
 const planOutline = ref([])
+const report = ref('')
+const reviewing = ref(false)
+const reportErr = ref('')
 
 function flatChapters(nodes, out = []) {
   for (const n of nodes || []) {
@@ -68,6 +82,19 @@ const problems = computed(() => {
   return out
 })
 
+async function aiReview() {
+  if (!workId.value) return
+  reviewing.value = true
+  reportErr.value = ''
+  const res = await api.post('/api/write/struct', { work_id: workId.value })
+  reviewing.value = false
+  if (res.code === 0) {
+    report.value = res.data.report
+  } else {
+    reportErr.value = res.msg || '生成失败'
+  }
+}
+
 async function load() {
   if (!workId.value) return
   const res = await api.get(`/api/plan/${workId.value}`)
@@ -91,6 +118,9 @@ watch([workId, () => writingStore.activeChapterId], () => load())
 .p-mark { color: #e0716b; font-weight: 700; font-size: 0.78rem; flex-shrink: 0; }
 .p-text { font-size: 0.84rem; color: var(--text-secondary); line-height: 1.6; }
 .ok { font-size: 0.86rem; color: #4caf7d; margin: 6px 0; }
+.ai-block { margin: 12px 0 4px; }
+.report { margin-top: 10px; padding: 10px 12px; background: rgba(196,163,90,0.05); border: 1px solid rgba(196,163,90,0.12); border-radius: var(--radius-md); font-size: 0.86rem; color: var(--text-secondary); line-height: 1.85; }
+.err { font-size: 0.8rem; color: #e0716b; margin-top: 6px; }
 .check-block { margin-top: 14px; }
 .b-label { font-size: 0.74rem; color: var(--text-muted); margin: 0 0 6px; }
 .check-list { margin: 0; padding-left: 1.2rem; font-size: 0.84rem; color: var(--text-secondary); line-height: 2; }

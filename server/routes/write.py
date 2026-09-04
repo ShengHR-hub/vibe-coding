@@ -6,7 +6,8 @@ from utils.mimos import chat_completion, chat_completion_stream
 from utils.prompt_builder import (
     build_continue, build_inspire, build_outline,
     build_character, build_polish, build_prompt_suggestion,
-    build_chat_system, build_diagnose, build_summary, build_references_text
+    build_chat_system, build_diagnose, build_summary, build_references_text,
+    build_struct_review,
 )
 from utils.logger import log_ai_call
 import json, uuid
@@ -402,6 +403,72 @@ def ai_summary():
     _save_conv(conv_key, 'user', f'[摘要] {chapter_title}: {content[:100]}...')
     _save_conv(conv_key, 'assistant', result)
     return ok({'summary': result})
+
+
+# ---------------------------------------------------------------------------
+# P4-E3b：第一轮结构审校（AI 辅助，对照大纲审全书结构/节奏）
+# ---------------------------------------------------------------------------
+
+@write_bp.post('/struct')
+@login_required
+@ai_quota
+def ai_struct_review():
+    data = request.get_json() or {}
+    work_id = data.get('work_id')
+    try:
+        work_id = int(work_id) if work_id else None
+    except (TypeError, ValueError):
+        work_id = None
+    if not work_id:
+        return fail('缺少作品ID')
+    work = query('SELECT work_id, user_id, title FROM works WHERE work_id = %s', (work_id,), one=True)
+    if not work or work['user_id'] != session.get('user_id'):
+        return fail('作品不存在', code=404)
+
+    chapters = query(
+        'SELECT chapter_no, title, word_count, content FROM chapters '
+        'WHERE work_id = %s ORDER BY chapter_no LIMIT 60',
+        (work_id,),
+    )
+    if not chapters:
+        return fail('作品还没有章节内容')
+
+    lines = []
+    for c in chapters:
+        head = ' '.join(str(c.get('content') or '').split())[:150]
+        lines.append(f"第{c['chapter_no']}章《{c.get('title') or ''}》（{c.get('word_count') or 0}字）：{head}")
+    chapters_summary = '\n'.join(lines)
+
+    outline_text = ''
+    plan = query('SELECT outline_json FROM book_plans WHERE work_id = %s', (work_id,), one=True)
+    if plan and plan.get('outline_json'):
+        try:
+            outline = json.loads(plan['outline_json'])
+        except (TypeError, ValueError):
+            outline = None
+        if isinstance(outline, list):
+            texts = []
+
+            def _walk(nodes):
+                for n in nodes:
+                    if not isinstance(n, dict):
+                        continue
+                    if n.get('kind') in ('part', 'chapter') and n.get('title'):
+                        texts.append(str(n['title']))
+                    if n.get('children'):
+                        _walk(n.get('children'))
+
+            _walk(outline)
+            outline_text = ' / '.join(texts)
+
+    messages = build_struct_review(chapters_summary, outline_text or None)
+    try:
+        result = chat_completion(messages)
+        log_ai_call(current_app, session.get('user_id'), '/struct', success=True)
+    except Exception as e:
+        log_ai_call(current_app, session.get('user_id'), '/struct', success=False, error=str(e))
+        return fail('结构审校生成失败，请稍后再试')
+    return ok({'report': result})
 
 
 # ---------------------------------------------------------------------------
