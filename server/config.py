@@ -32,6 +32,8 @@ class Config:
     AI_FALLBACK_BASE_URL = os.environ.get('AI_FALLBACK_BASE_URL', '')
     AI_FALLBACK_API_KEY = os.environ.get('AI_FALLBACK_API_KEY', '')
     AI_FALLBACK_MODEL = os.environ.get('AI_FALLBACK_MODEL', '')
+    # 智谱 GLM-4.7 系列 thinking：默认对 bigmodel.cn 自动 enabled，可用 disabled 关闭
+    AI_THINKING = os.environ.get('AI_THINKING', '')
 
     # MiMo（原厂商，Anthropic 风格）
     MIMO_API_KEY = os.environ.get('MIMO_API_KEY', '')

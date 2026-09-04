@@ -94,7 +94,7 @@ def _openai_headers(key):
     }
 
 
-def _openai_body(messages, model, temperature, max_tokens, stream=False):
+def _openai_body(messages, model, temperature, max_tokens, stream=False, base=''):
     body = {
         'model': model,
         'messages': [
@@ -106,6 +106,14 @@ def _openai_body(messages, model, temperature, max_tokens, stream=False):
     }
     if stream:
         body['stream'] = True
+    # GLM-4.7 系列要求 thinking 参数：智谱域默认开启，可用 AI_THINKING=disabled 关闭
+    thinking = (getattr(Config, 'AI_THINKING', '') or '').strip().lower()
+    if not thinking and 'bigmodel.cn' in (base or ''):
+        thinking = 'enabled'
+    if thinking in ('enabled', '1', 'true', 'yes'):
+        body['thinking'] = {'type': 'enabled'}
+    elif thinking in ('disabled', '0', 'false', 'no'):
+        body['thinking'] = {'type': 'disabled'}
     return body
 
 
@@ -150,7 +158,7 @@ def chat_completion(messages, temperature=0.7, max_tokens=2048):
             resp = requests.post(
                 f'{base.rstrip("/")}/chat/completions',
                 headers=_openai_headers(key),
-                json=_openai_body(messages, model, temperature, max_tokens),
+                json=_openai_body(messages, model, temperature, max_tokens, stream=False, base=base),
                 timeout=_TIMEOUT,
             )
             resp.raise_for_status()
@@ -204,7 +212,7 @@ def chat_completion_stream(messages, temperature=0.7, max_tokens=2048):
                 resp = requests.post(
                     f'{base.rstrip("/")}/chat/completions',
                     headers=_openai_headers(key),
-                    json=_openai_body(messages, model, temperature, max_tokens, stream=True),
+                    json=_openai_body(messages, model, temperature, max_tokens, stream=True, base=base),
                     timeout=_TIMEOUT,
                     stream=True,
                 )

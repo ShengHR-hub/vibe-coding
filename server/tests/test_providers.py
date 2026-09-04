@@ -26,6 +26,23 @@ def test_openai_stream_text():
     assert mimos._openai_stream_text({'choices': []}) == ''
 
 
+def test_openai_body_glm_thinking_auto(monkeypatch):
+    # bigmodel 域默认自动 thinking=enabled
+    monkeypatch.setattr(cfg_mod.Config, 'AI_THINKING', '')
+    body = mimos._openai_body([{'role': 'user', 'content': 'u'}], 'glm-4.7-flash', 0.7, 100,
+                              base='https://open.bigmodel.cn/api/paas/v4')
+    assert body.get('thinking') == {'type': 'enabled'}
+    # 非 bigmodel（如百炼）不加 thinking
+    body2 = mimos._openai_body([{'role': 'user', 'content': 'u'}], 'qwen3.8-flash', 0.7, 100,
+                               base='https://ws.example.aliyuncs.com/compatible-mode/v1')
+    assert 'thinking' not in body2
+    # 显式 disabled 可覆盖
+    monkeypatch.setattr(cfg_mod.Config, 'AI_THINKING', 'disabled')
+    body3 = mimos._openai_body([{'role': 'user', 'content': 'u'}], 'glm-4.7-flash', 0.7, 100,
+                               base='https://open.bigmodel.cn/api/paas/v4')
+    assert body3.get('thinking') == {'type': 'disabled'}
+
+
 def test_providers_chain_openai_with_fallback(monkeypatch):
     monkeypatch.setattr(cfg_mod.Config, 'AI_PROVIDER', 'openai')
     monkeypatch.setattr(cfg_mod.Config, 'AI_BASE_URL', 'https://a.example/v1')
