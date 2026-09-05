@@ -388,3 +388,14 @@ CREATE TABLE book_plans (
     UNIQUE KEY uk_plan_work (work_id),
     CONSTRAINT book_plans_ibfk_1 FOREIGN KEY (work_id) REFERENCES works (work_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 28. 闪念便签表（P6-A：用户随时记录灵感片段，仅本人可见）
+CREATE TABLE user_notes (
+    note_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    KEY idx_notes_user (user_id),
+    CONSTRAINT user_notes_ibfk_1 FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
