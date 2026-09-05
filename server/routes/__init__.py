@@ -18,6 +18,7 @@ def register_blueprints(app):
     from routes.rp import rp_bp
     from routes.inspire import inspire_bp
     from routes.plans import plan_bp
+    from routes.notes import notes_bp
 
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(write_bp, url_prefix='/api/write')
@@ -38,5 +39,6 @@ def register_blueprints(app):
     app.register_blueprint(rp_bp, url_prefix='/api/rp')
     app.register_blueprint(inspire_bp, url_prefix='/api/inspire')
     app.register_blueprint(plan_bp, url_prefix='/api/plan')
+    app.register_blueprint(notes_bp, url_prefix='/api/notes')
 
     # 注：书/书库/阅读相关蓝图已下线（P2-R2），表清理见 R3
