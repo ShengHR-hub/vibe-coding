@@ -6,6 +6,7 @@ const routes = [
   { path: '/login', name: 'Login', component: () => import('../views/Login.vue'), meta: { guest: true } },
   { path: '/register', name: 'Register', component: () => import('../views/Register.vue'), meta: { guest: true } },
   { path: '/write', name: 'Write', component: () => import('../views/write/WriteStudio.vue'), meta: { auth: true } },
+  { path: '/write/plain', name: 'PlainWrite', component: () => import('../views/write/PlainWrite.vue'), meta: { auth: true } },
   { path: '/works', name: 'Works', component: () => import('../views/works/MyWorks.vue'), meta: { auth: true } },
   { path: '/works/:id', name: 'WorkDetail', component: () => import('../views/works/WorkDetail.vue') },
   { path: '/works/:id/edit', name: 'WorkEditor', component: () => import('../views/works/WorkEditor.vue'), meta: { auth: true } },
