@@ -23,6 +23,16 @@ const props = defineProps({
   class: { type: String, default: "" },
 })
 
+// ---- P6-A 性能保护：自动降级档位（防无 GPU 加速/低配机 CPU 拉满卡死）----
+// 档位 0 = 正常全配；档位越高渲染越省。软渲染（SwiftShader/llvmpipe）直接落最低档。
+// 若最低档仍撑不住（软件渲染流体 10+ 次全屏运算，CPU 扛不动）→ 停帧保静态，CPU 归零。
+const DEGRADES = [
+  { dye: 1440, sim: 128, pressureIterations: 20, shading: true,  splatForce: 6000, label: 'full'   },
+  { dye: 720,  sim: 96,  pressureIterations: 12, shading: false, splatForce: 4500, label: 'mid'    },
+  { dye: 360,  sim: 64,  pressureIterations: 8,  shading: false, splatForce: 3000, label: 'safety' },
+  { dye: 240,  sim: 48,  pressureIterations: 4,  shading: false, splatForce: 2200, label: 'ultra'  },
+]
+
 function pointerPrototype() {
   return {
     id: -1, texcoordX: 0, texcoordY: 0,
@@ -560,18 +570,87 @@ onMounted(() => {
   updateKeywords()
   initFramebuffers()
 
+  // ---- P6-A 性能保护：降级引擎 ----
+  // config 默认取全配（档位 0），软渲染直降最低档；运行中帧率跌破阈值逐档降。
+  let degradeLevel = 0
+  const maxDegrade = DEGRADES.length - 1
+  // 帧率监测窗口（在 applyDegrade 前声明，避免 TDZ）
+  let _fpsFrames = 0
+  let _fpsWindowStart = performance.now()
+  const FPS_WINDOW_MS = 3000
+  const FPS_THRESHOLD = 32
+  // 终极兜底：最低档仍低于此帧率 → 停帧保静态（CPU 归零）。软渲染下流体多 pass 运算上限很低，
+  // 20fps 以下对交互而言已明显迟钝，静态光晕对低配机是更安全的体验。
+  const STOP_FPS = 20
+  let _stopped = false
+
+  function detectSoftwareRenderer() {
+    try {
+      const dbg = gl.getExtension('WEBGL_debug_renderer_info')
+      if (!dbg) return false
+      const r = String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) || '').toLowerCase()
+      // 仅命中软渲染标识（SwiftShader/llvmpipe/软件驱动/基本显示适配器），
+      // 并确保没有真实硬件厂商名（防止 ANGLE (NVIDIA/AMD/Intel... 被误判）
+      const isSoft = /swiftshader|llvmpipe|softwar|basic render driver|microsoft basic/i.test(r)
+      const isRealGPU = /nvidia|amd|ati|radeon|geforce|rtx|gtx|intel|iris|uhd|apple|qualcomm|mali|adreno/i.test(r)
+      return isSoft && !isRealGPU
+    } catch { return false }
+  }
+
+  function applyDegrade(nextLevel) {
+    degradeLevel = Math.max(degradeLevel, nextLevel)
+    const d = DEGRADES[degradeLevel]
+    config.DYE_RESOLUTION = d.dye
+    config.SIM_RESOLUTION = d.sim
+    config.PRESSURE_ITERATIONS = d.pressureIterations
+    config.SHADING = d.shading
+    config.SPLAT_FORCE = d.splatForce
+    if (degradeLevel > 0) console.info(`[FluidCursor] 性能降级 → ${d.label}（${d.dye} 分辨率）`)
+    initFramebuffers()
+    updateKeywords()
+    // 帧率监测窗口重置
+    _fpsFrames = 0
+    _fpsWindowStart = performance.now()
+  }
+
+  if (detectSoftwareRenderer()) {
+    // 无 GPU 加速直接最低档，避免 CPU 软渲染拉满（用户 Edge/教学机场景）
+    applyDegrade(maxDegrade)
+  }
+
+  function checkFpsHealth() {
+    const now = performance.now()
+    const elapsed = now - _fpsWindowStart
+    if (elapsed < FPS_WINDOW_MS) return
+    const avgFps = (_fpsFrames * 1000) / elapsed
+    _fpsFrames = 0
+    _fpsWindowStart = now
+    if (avgFps < FPS_THRESHOLD && degradeLevel < maxDegrade) {
+      applyDegrade(degradeLevel + 1)
+    }
+    // 终极兜底：已到最低档仍撑不住 → 停帧，保留静态画面（CPU 归零，绝不卡死电脑）
+    if (avgFps < STOP_FPS && degradeLevel >= maxDegrade && !_stopped) {
+      _stopped = true
+      console.info('[FluidCursor] 极端低配 → 停帧保静态')
+      if (rafId) cancelAnimationFrame(rafId)
+      rafId = null
+    }
+  }
+
   let lastUpdateTime = Date.now()
   let colorUpdateTimer = 0.0
 
   function updateFrame() {
-    if (disposed) return
+    if (disposed || _stopped) return
     const dt = calcDeltaTime()
     if (resizeCanvas()) initFramebuffers()
     updateColors(dt)
     applyInputs()
     step(dt)
     render(null)
-    rafId = requestAnimationFrame(updateFrame)
+    _fpsFrames++
+    checkFpsHealth()
+    if (!_stopped) rafId = requestAnimationFrame(updateFrame)
   }
 
   function calcDeltaTime() {
@@ -831,11 +910,25 @@ onMounted(() => {
   watch(() => props.dyeResolution, (v) => { config.DYE_RESOLUTION = v; initFramebuffers() })
   watch(() => props.shading, (v) => { config.SHADING = v; updateKeywords() })
 
+  // 后台标签暂停：切走停渲染（多个标签同时跑流体=白烧 CPU），切回恢复（已停帧则不恢复）
+  function handleVisibilityChange() {
+    if (document.hidden) {
+      if (rafId) { cancelAnimationFrame(rafId); rafId = null }
+      if (!disposed && !_stopped) console.info('[FluidCursor] 后台暂停渲染')
+    } else if (!rafId && !disposed && !_stopped) {
+      lastUpdateTime = Date.now()
+      rafId = requestAnimationFrame(updateFrame)
+      console.info('[FluidCursor] 恢复渲染')
+    }
+  }
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+
   updateFrame()
 
   onUnmounted(() => {
     disposed = true
     if (rafId) cancelAnimationFrame(rafId)
+    document.removeEventListener('visibilitychange', handleVisibilityChange)
     window.removeEventListener("mousedown", handleMouseDown)
     window.removeEventListener("mousemove", handleMouseMove)
     document.body.removeEventListener("mousemove", handleFirstMouseMove)
