@@ -118,42 +118,61 @@ function selectedText() {
 
 // textarea 内不能用 Range API 取坐标（内容不在 DOM 里渲染），
 // 用「镜像 div」法：复制 textarea 样式，把前 N 个字符放进隐藏 div 测量光标位置
-function getCaretPos(el, pos) {
-  const styles = window.getComputedStyle(el)
-  const mirror = document.createElement('div')
-  // 只复制影响文本排版的属性，避免 width/height/overflow 等干扰
-  const copyProps = [
+// 性能：镜像 div 全局复用一次（仅首次创建），滚动/划词只改文本重排，避免反复建删 DOM
+let _mirror = null
+let _mirrorText = null
+let _mirrorCaret = null
+
+function getMirror(el, styles) {
+  if (!_mirror) {
+    _mirror = document.createElement('div')
+    _mirror.style.position = 'fixed'
+    _mirror.style.visibility = 'hidden'
+    _mirror.style.boxSizing = 'content-box'
+    _mirror.style.height = 'auto'
+    _mirror.style.zIndex = '-1'
+    // 文本 div + 末尾占位 span（量光标的位置，经典 textarea-caret-position 思路）
+    _mirrorText = document.createElement('div')
+    _mirrorCaret = document.createElement('span')
+    _mirrorCaret.textContent = ' '
+    _mirrorText.appendChild(_mirrorCaret)
+    _mirror.appendChild(_mirrorText)
+    document.body.appendChild(_mirror)
+  }
+  // 同步样式（字体/内边距等影响排版，需要每次跟随 textarea）
+  for (const p of [
     'fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'lineHeight',
     'letterSpacing', 'wordSpacing', 'textTransform', 'textIndent', 'tabSize',
     'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
     'borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth',
-    'boxSizing', 'whiteSpace', 'wordWrap', 'wordBreak',
-  ]
-  for (const p of copyProps) mirror.style[p] = styles[p]
-  mirror.style.position = 'absolute'
-  mirror.style.top = '0px'
-  mirror.style.left = '0px'
-  mirror.style.visibility = 'hidden'
-  mirror.style.boxSizing = 'content-box'
+    'whiteSpace', 'wordWrap', 'wordBreak',
+  ]) _mirror.style[p] = styles[p]
+  return _mirror
+}
+
+function getCaretPos(el, pos) {
+  const styles = window.getComputedStyle(el)
+  const mirror = getMirror(el, styles)
+  // 镜像覆盖在 textarea 的视口位置上：mirrorRect 即 textarea 起点，无需再手动加偏移
+  const elRect = el.getBoundingClientRect()
+  mirror.style.top = `${elRect.top}px`
+  mirror.style.left = `${elRect.left}px`
   // 内容区等宽：clientWidth 含 padding，减掉左右 padding 才与 textarea 换行一致
   const padL = parseFloat(styles.paddingLeft) || 0
   const padR = parseFloat(styles.paddingRight) || 0
   mirror.style.width = `${Math.max(20, el.clientWidth - padL - padR)}px`
-  mirror.style.height = 'auto'
-  mirror.style.zIndex = '-1'
-  document.body.appendChild(mirror)
+  // 关键：文本放 div，光标位置用末尾独立占位 span 量——不能用同一个 span 装全部文本，
+  // 那样量到的是文本开头而非光标
+  _mirrorText.textContent = el.value.slice(0, pos)
+  _mirrorText.appendChild(_mirrorCaret)
 
-  // 用 <span> 包裹最后一个字符来精确测量（经典 textarea-caret-position 思路）
-  const span = document.createElement('span')
-  span.textContent = el.value.slice(0, pos) || ' '
-  mirror.appendChild(span)
-
-  // span 相对 mirror 的位置 + mirror 视口位置 = 光标视口坐标；减去 textarea 自身滚动
   const mirrorRect = mirror.getBoundingClientRect()
-  const x = mirrorRect.left + span.offsetLeft - el.scrollLeft
-  const y = mirrorRect.top + span.offsetTop - el.scrollTop
-  document.body.removeChild(mirror)
-  return { x, y }
+  const caretLeft = _mirrorCaret.offsetLeft
+  const caretTop = _mirrorCaret.offsetTop
+  return {
+    x: mirrorRect.left + caretLeft - el.scrollLeft,
+    y: mirrorRect.top + caretTop - el.scrollTop,
+  }
 }
 
 function updateMenu() {
@@ -275,9 +294,14 @@ function onDocMouseup(e) {
   }
 }
 
+let _scrollRaf = null
 function onDocScroll() {
-  // 滚动时刷新位置
-  if (menuVisible.value) updateMenu()
+  // rAF 节流：快速滚动只刷新一次位置，不反复重建镜像布局
+  if (!menuVisible.value || _scrollRaf) return
+  _scrollRaf = requestAnimationFrame(() => {
+    _scrollRaf = null
+    if (menuVisible.value) updateMenu()
+  })
 }
 
 function onEditorKeyup(e) {
@@ -312,6 +336,13 @@ onUnmounted(() => {
   window.removeEventListener('mouseup', onDocMouseup)
   window.removeEventListener('scroll', onDocScroll, true)
   unbindEditor(props.editor)
+  if (_scrollRaf) cancelAnimationFrame(_scrollRaf)
+  if (_mirror) {
+    _mirror.remove()
+    _mirror = null
+    _mirrorText = null
+    _mirrorCaret = null
+  }
 })
 </script>
 

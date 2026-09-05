@@ -12,6 +12,17 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    // Windows 上原子写入（临时文件+rename）会触发 watcher EBUSY 崩溃，忽略这些临时模式
+    watch: {
+      ignored: [
+        '**/.*.tmpdir/**',
+        '**/*.tmp',
+        '**/.*.tmp*',
+        '**/node_modules/**',
+        '**/.git/**',
+        '**/dist/**',
+      ],
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:5000',
