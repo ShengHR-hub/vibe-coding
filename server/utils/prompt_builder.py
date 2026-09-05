@@ -84,6 +84,52 @@ def build_polish(text, mode='流畅', references=None):
     ]
 
 
+def build_fix(text):
+    """错字/病句检查：返回结构化 JSON（原文→建议）供一键替换。"""
+    return [
+        {'role': 'system', 'content': (
+            '你是一位严谨的文字校对编辑，负责检查错别字与病句。'
+            '只检查错字（字形相近/读音相近的误用）、用词不当、语病（搭配不当/成分残缺/杂糅/歧义）。'
+            '不要改写作风格，不要为"换词更好"而建议，只在确有错误时给出。\n'
+            '返回纯 JSON 数组（不要 markdown 代码块），每项格式：\n'
+            '{"original":"原文中的错误片段（务必与原文一字不差）","suggestion":"建议改为","reason":"原因，一句话"}'
+        )},
+        {'role': 'user', 'content': f'请检查以下文字：\n\n{text}'}
+    ]
+
+
+def build_interpret(text):
+    """翻译/解释选中内容（古诗句→白话释义+意境+用典）。"""
+    return [
+        {'role': 'system', 'content': (
+            '你是一位博学的古典文学讲解者，同时熟悉现代白话文。'
+            '请解释以下内容：1.【释义】用白话把意思讲清楚；2.【意境】一句话概括所传达的画面或情绪；'
+            '3.【用典/出处】如有典故或出处请注明，没有则省略。'
+            '语言简洁有温度，总长度控制在 250 字以内。'
+        )},
+        {'role': 'user', 'content': f'{text}'}
+    ]
+
+
+def build_find_lines(intent, pool_text):
+    """意境找句：从素材池中挑最贴合意境的条目 + 创作几句原创句子。"""
+    system = (
+        '你是一位精通古典诗词与现代文学素材的选句编辑。'
+        '用户会用一句话描述想描写的意境，你需要从素材库中挑选最贴合的条目。\n'
+        '返回纯 JSON 对象（不要 markdown 代码块），格式：\n'
+        '{"picks":[{"idx":3,"reason":"贴合原因一句话"}],"created":["原创句子1","原创句子2"]}\n'
+        '要求：\n'
+        '1. picks 挑选 3-6 条，idx 必须来自素材清单中的序号，reason 说明意境/意象吻合点；\n'
+        '2. created 生成 2-3 句贴合意境的原创佳句（可以是现代诗或古风），不要引用清单原文；\n'
+        '3. 若素材库确实没有贴合的，picks 可返回空数组，但 created 必须给出原创句。'
+    )
+    user = f'用户想描写的意境：{intent}\n\n=== 素材清单（[序号] 类型 标题（作者）：内容）===\n{pool_text}'
+    return [
+        {'role': 'system', 'content': system},
+        {'role': 'user', 'content': user},
+    ]
+
+
 def build_prompt_suggestion(context):
     return [
         {'role': 'system', 'content': '你是一位写作指导。用户卡文了，请根据当前情节提供3-5个剧情走向建议，每个包含：方向描述、可能的冲突点或反转。帮用户打开思路。'},

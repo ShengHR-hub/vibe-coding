@@ -7,10 +7,10 @@ from utils.prompt_builder import (
     build_continue, build_inspire, build_outline,
     build_character, build_polish, build_prompt_suggestion,
     build_chat_system, build_diagnose, build_summary, build_references_text,
-    build_struct_review,
+    build_struct_review, build_fix, build_interpret, build_find_lines,
 )
 from utils.logger import log_ai_call
-import json, uuid
+import json, uuid, time
 
 logger = logging.getLogger(__name__)
 
@@ -551,3 +551,241 @@ def delete_conversation(session_key):
         (user_id, session_key),
     )
     return ok(msg='会话已删除')
+
+
+# ---------------------------------------------------------------------------
+# 划词快捷操作（2026-09）：选中文字 → 查错 / 翻译解释 / 意境找句
+# ---------------------------------------------------------------------------
+
+def _extract_json(text):
+    """从 AI 输出中提取 JSON（兼容 markdown 代码块包裹与前后杂文）。"""
+    if not text:
+        return None
+    t = text.strip()
+    if t.startswith('```'):
+        # 剥掉 ```json ... ``` 围栏
+        lines = t.splitlines()
+        if lines and lines[0].strip().startswith('```'):
+            lines = lines[1:]
+        if lines and lines[-1].strip() == '```':
+            lines = lines[:-1]
+        t = '\n'.join(lines).strip()
+    # 找到第一个 { 或 [ 与配对的结尾
+    start = -1
+    for i, ch in enumerate(t):
+        if ch in '{[':
+            start = i
+            break
+    if start < 0:
+        return None
+    stack = []
+    for i in range(start, len(t)):
+        ch = t[i]
+        if ch in '{[':
+            stack.append(ch)
+        elif ch in '}]':
+            if stack and ((ch == '}' and stack[-1] == '{') or (ch == ']' and stack[-1] == '[')):
+                stack.pop()
+                if not stack:
+                    end = i + 1
+                    break
+    try:
+        return json.loads(t[start:end])
+    except (json.JSONDecodeError, UnboundLocalError, ValueError):
+        return None
+
+
+@write_bp.post('/fix')
+@login_required
+@ai_quota
+def ai_fix():
+    """错字/病句检查：返回结构化 [{original, suggestion, reason}]，前端可一键替换。"""
+    data = request.get_json()
+    text = (data.get('text') or '').strip()
+    if not text:
+        return fail('请先选中需要检查的文字')
+    if len(text) < 4:
+        return fail('选中的文字太短，至少 4 个字')
+    if len(text) > 5000:
+        return fail('内容过长，最多检查 5000 字')
+
+    messages = build_fix(text)
+    try:
+        raw = chat_completion(messages, temperature=0.2)
+        log_ai_call(current_app, session.get('user_id'), '/fix', success=True)
+    except Exception as e:
+        logger.error(f'AI fix error: {e}')
+        log_ai_call(current_app, session.get('user_id'), '/fix', success=False, error=str(e))
+        return fail('检查失败，请稍后再试')
+
+    fixes = _extract_json(raw)
+    if not isinstance(fixes, list):
+        # 单对象兜底：包一层
+        if isinstance(fixes, dict):
+            fixes = [fixes]
+        else:
+            fixes = []
+    cleaned = []
+    for f in fixes[:20]:
+        if not isinstance(f, dict):
+            continue
+        original = str(f.get('original') or '').strip()
+        suggestion = str(f.get('suggestion') or '').strip()
+        reason = str(f.get('reason') or '').strip()
+        if original and suggestion and original in text:
+            cleaned.append({
+                'original': original[:200],
+                'suggestion': suggestion[:200],
+                'reason': reason[:200],
+            })
+    return ok({'fixes': cleaned})
+
+
+@write_bp.post('/interpret')
+@login_required
+@ai_quota
+def ai_interpret():
+    """翻译/解释选中内容（古诗句→白话释义 + 意境 + 用典）。"""
+    data = request.get_json()
+    text = (data.get('text') or '').strip()
+    if not text:
+        return fail('请先选中需要解释的内容')
+    if len(text) > 2000:
+        return fail('内容过长，最多解释 2000 字')
+
+    messages = build_interpret(text)
+    try:
+        result = chat_completion(messages, temperature=0.4)
+        log_ai_call(current_app, session.get('user_id'), '/interpret', success=True)
+    except Exception as e:
+        logger.error(f'AI interpret error: {e}')
+        log_ai_call(current_app, session.get('user_id'), '/interpret', success=False, error=str(e))
+        return fail('解释失败，请稍后再试')
+    return ok({'explanation': result})
+
+
+# 意境找句缓存：intent → (ts, result)；TTL 10 分钟，防重复消耗 token
+_FIND_LINES_CACHE = {}
+_FIND_LINES_TTL = 600
+_FIND_LINES_CACHE_MAX = 50
+
+
+def _load_find_pool():
+    """拉全量本地素材池（诗词 + 素材），每条压缩为单行文本。"""
+    rows = query(
+        "SELECT 'poem' AS kind, poem_id AS id, title, author, content, category "
+        'FROM poems ORDER BY poem_id'
+    )
+    mats = query(
+        "SELECT 'material' AS kind, material_id AS id, title, content, category "
+        'FROM materials ORDER BY material_id'
+    )
+    pool = []
+    for r in rows + mats:
+        content = ' '.join(str(r.get('content') or '').split())
+        if not content:
+            continue
+        pool.append({
+            'kind': r['kind'],
+            'id': r['id'],
+            'title': str(r.get('title') or ''),
+            'author': str(r.get('author') or ''),
+            'category': str(r.get('category') or ''),
+            'content': content,
+        })
+    return pool
+
+
+@write_bp.post('/find-lines')
+@login_required
+@ai_quota
+def ai_find_lines():
+    """意境找句：本地库语义匹配（AI 打分排序）+ AI 原创句子。"""
+    data = request.get_json()
+    intent = (data.get('intent') or '').strip()
+    if not intent:
+        return fail('请描述你想描写的意境，比如"夕阳下离别的惆怅"')
+    if len(intent) > 200:
+        return fail('意境描述过长，最多 200 字')
+
+    cache_key = intent
+    hit = _FIND_LINES_CACHE.get(cache_key)
+    now = time.time()
+    if hit and now - hit[0] < _FIND_LINES_TTL:
+        return ok(hit[1])
+
+    pool = _load_find_pool()
+    if not pool:
+        return fail('本地素材库为空，请先在灵感馆收录句子')
+
+    # 素材池压缩：每条最多保留 60 字，总长限制在 12000 字内
+    lines = []
+    for i, p in enumerate(pool):
+        snippet = p['content'][:60]
+        head = f"[{i}] {p['kind']} "
+        if p['title']:
+            head += f"《{p['title']}》"
+        if p['author']:
+            head += f"（{p['author']}）"
+        elif p.get('category'):
+            head += f"（{p['category']}）"
+        lines.append(f'{head}：{snippet}')
+    pool_text = '\n'.join(lines)[:12000]
+
+    messages = build_find_lines(intent, pool_text)
+    try:
+        raw = chat_completion(messages, temperature=0.6, max_tokens=2048)
+        log_ai_call(current_app, session.get('user_id'), '/find-lines', success=True)
+    except Exception as e:
+        logger.error(f'AI find-lines error: {e}')
+        log_ai_call(current_app, session.get('user_id'), '/find-lines', success=False, error=str(e))
+        return fail('找句失败，请稍后再试')
+
+    parsed = _extract_json(raw)
+    picks, created = [], []
+    if isinstance(parsed, dict):
+        picks = parsed.get('picks') if isinstance(parsed.get('picks'), list) else []
+        created_raw = parsed.get('created') if isinstance(parsed.get('created'), list) else []
+        created = [str(c).strip() for c in created_raw if str(c).strip()][:4]
+    elif isinstance(parsed, list):
+        # 兜底：如果是数组说明模型只给了 picks
+        picks = parsed
+
+    local = []
+    for p in picks[:6]:
+        if not isinstance(p, dict):
+            continue
+        try:
+            idx = int(p.get('idx'))
+        except (TypeError, ValueError):
+            continue
+        if 0 <= idx < len(pool):
+            item = pool[idx]
+            local.append({
+                'kind': item['kind'],
+                'id': item['id'],
+                'title': item['title'],
+                'author': item['author'],
+                'category': item['category'],
+                'content': item['content'],
+                'reason': str(p.get('reason') or '')[:120],
+            })
+    # 去重（同一句可能被选两次）
+    seen = set()
+    uniq_local = []
+    for it in local:
+        key = it['kind'] + ':' + str(it['id'])
+        if key in seen:
+            continue
+        seen.add(key)
+        uniq_local.append(it)
+    if not uniq_local and not created:
+        return fail('没有找到合适的句子，换个描述试试')
+
+    result = {'intent': intent, 'local': uniq_local, 'created': created}
+    _FIND_LINES_CACHE[cache_key] = (now, result)
+    if len(_FIND_LINES_CACHE) > _FIND_LINES_CACHE_MAX:
+        # 淘汰最旧
+        oldest = min(_FIND_LINES_CACHE, key=lambda k: _FIND_LINES_CACHE[k][0])
+        _FIND_LINES_CACHE.pop(oldest, None)
+    return ok(result)
