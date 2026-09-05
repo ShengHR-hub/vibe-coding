@@ -1,7 +1,6 @@
-"""AI 网关：支持多 Provider（MiMo Anthropic 风格 / OpenAI 兼容），可按序回退。
+"""AI 网关：OpenAI 兼容主供商 + 兜底供应商，主供商失败自动回退。
 
 配置（server/.env）：
-- AI_PROVIDER = mimo | openai            # 默认 mimo（保留原行为）
 - AI_BASE_URL / AI_API_KEY / AI_MODEL    # OpenAI 兼容主供商（如阿里云百炼/火山方舟/智谱）
 - AI_FALLBACK_ENABLED=1                  # 开启后主供商失败自动回退
 - AI_FALLBACK_BASE_URL / _API_KEY / _MODEL
@@ -36,56 +35,20 @@ def _guarded_messages(messages):
 # ---------- 供应商解析 ----------
 
 def _providers():
-    """按优先级返回 [(kind, base, key, model)]；kind: 'mimo' | 'openai'。"""
-    prov = (getattr(Config, 'AI_PROVIDER', '') or 'mimo').strip().lower()
+    """按优先级返回 [(kind, base, key, model)]；kind: 'openai'。"""
     chain = []
-    if prov == 'mimo':
-        chain.append(('mimo', Config.MIMO_BASE_URL, Config.MIMO_API_KEY, Config.MIMO_MODEL))
-    else:
+    if Config.AI_BASE_URL and Config.AI_API_KEY and Config.AI_MODEL:
         chain.append(('openai', Config.AI_BASE_URL, Config.AI_API_KEY, Config.AI_MODEL))
     if str(getattr(Config, 'AI_FALLBACK_ENABLED', '0') or '0') in ('1', 'true', 'yes'):
         fb = ('openai', Config.AI_FALLBACK_BASE_URL, Config.AI_FALLBACK_API_KEY, Config.AI_FALLBACK_MODEL)
         if fb[1] and fb[2]:
             chain.append(fb)
-    # 至少确保有一条可用
-    if not chain and Config.MIMO_API_KEY:
-        chain.append(('mimo', Config.MIMO_BASE_URL, Config.MIMO_API_KEY, Config.MIMO_MODEL))
+    if not chain:
+        chain.append(('openai', Config.AI_BASE_URL, Config.AI_API_KEY, Config.AI_MODEL))
     return chain
 
 
 # ---------- 协议构造与解析 ----------
-
-def _mimo_headers(key):
-    return {
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'Content-Type': 'application/json',
-    }
-
-
-def _mimo_body(messages, model, temperature, max_tokens, stream=False):
-    system = None
-    turns = []
-    for m in messages:
-        role = m.get('role', 'user')
-        content = m.get('content', '')
-        if role == 'system':
-            system = content
-        elif role in ('user', 'assistant'):
-            turns.append({'role': role, 'content': content})
-    body = {
-        'model': model,
-        'messages': turns,
-        'max_tokens': max_tokens,
-        'temperature': temperature,
-        'thinking': {'type': 'disabled'},
-    }
-    if system:
-        body['system'] = system
-    if stream:
-        body['stream'] = True
-    return body
-
 
 def _openai_headers(key):
     return {
@@ -138,23 +101,11 @@ def _openai_stream_text(obj):
 # ---------- 非流式 ----------
 
 def chat_completion(messages, temperature=0.7, max_tokens=2048):
-    """非流式调用（MiMo Anthropic 或 OpenAI 兼容），主供商失败自动回退。"""
+    """非流式调用（OpenAI 兼容），主供商失败自动回退。"""
     messages = _guarded_messages(messages)
     last_err = None
     for kind, base, key, model in _providers():
         try:
-            if kind == 'mimo':
-                resp = requests.post(
-                    f'{base}/v1/messages',
-                    headers=_mimo_headers(key),
-                    json=_mimo_body(messages, model, temperature, max_tokens),
-                    timeout=_TIMEOUT,
-                )
-                resp.raise_for_status()
-                data = resp.json()
-                return '\n'.join(
-                    b.get('text', '') for b in data.get('content', []) if b.get('type') == 'text'
-                )
             resp = requests.post(
                 f'{base.rstrip("/")}/chat/completions',
                 headers=_openai_headers(key),
@@ -181,33 +132,6 @@ def chat_completion_stream(messages, temperature=0.7, max_tokens=2048):
         last_err = None
         for kind, base, key, model in _providers():
             try:
-                if kind == 'mimo':
-                    resp = requests.post(
-                        f'{base}/v1/messages',
-                        headers=_mimo_headers(key),
-                        json=_mimo_body(messages, model, temperature, max_tokens, stream=True),
-                        timeout=_TIMEOUT,
-                        stream=True,
-                    )
-                    resp.raise_for_status()
-                    resp.encoding = 'utf-8'
-                    for line in resp.iter_lines(decode_unicode=True):
-                        if not line or not line.startswith('data:'):
-                            continue
-                        chunk = line[5:].strip()
-                        if not chunk:
-                            continue
-                        try:
-                            obj = json.loads(chunk)
-                        except json.JSONDecodeError:
-                            continue
-                        if obj.get('type') == 'content_block_delta':
-                            delta = obj.get('delta', {})
-                            if delta.get('type') == 'text_delta' and delta.get('text'):
-                                yield delta['text']
-                        elif obj.get('type') == 'message_stop':
-                            return
-                    return
                 # OpenAI 兼容流
                 resp = requests.post(
                     f'{base.rstrip("/")}/chat/completions',

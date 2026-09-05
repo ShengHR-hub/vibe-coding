@@ -85,7 +85,7 @@ mysql -u root -p < server/database/schema.sql
 cd server && python -m database.seed
 
 # 2. 环境变量
-cp server/.env.example server/.env   # 填 SECRET_KEY / MYSQL_* / AI_PROVIDER+AI_API_KEY...
+cp server/.env.example server/.env   # 填 SECRET_KEY / MYSQL_* / AI_BASE_URL+AI_API_KEY+AI_MODEL（OpenAI 兼容）
 
 # 3. 后端（端口 5000）
 cd server && python app.py

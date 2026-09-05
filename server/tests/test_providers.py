@@ -1,4 +1,4 @@
-"""多 Provider 网关：解析与协议纯函数（无网络）。"""
+"""OpenAI 兼容网关：解析与协议纯函数（无网络）。"""
 import config as cfg_mod
 from utils import mimos
 
@@ -44,7 +44,6 @@ def test_openai_body_glm_thinking_auto(monkeypatch):
 
 
 def test_providers_chain_openai_with_fallback(monkeypatch):
-    monkeypatch.setattr(cfg_mod.Config, 'AI_PROVIDER', 'openai')
     monkeypatch.setattr(cfg_mod.Config, 'AI_BASE_URL', 'https://a.example/v1')
     monkeypatch.setattr(cfg_mod.Config, 'AI_API_KEY', 'k1')
     monkeypatch.setattr(cfg_mod.Config, 'AI_MODEL', 'm1')
@@ -58,10 +57,11 @@ def test_providers_chain_openai_with_fallback(monkeypatch):
     assert chain[1] == ('openai', 'https://b.example/v1', 'k2', 'm2')
 
 
-def test_providers_mimo_default(monkeypatch):
-    monkeypatch.setattr(cfg_mod.Config, 'AI_PROVIDER', 'mimo')
-    monkeypatch.setattr(cfg_mod.Config, 'MIMO_BASE_URL', 'https://mimo.example')
-    monkeypatch.setattr(cfg_mod.Config, 'MIMO_API_KEY', 'mk')
-    monkeypatch.setattr(cfg_mod.Config, 'MIMO_MODEL', 'mimo-v2.5')
+def test_providers_chain_openai_default(monkeypatch):
+    monkeypatch.setattr(cfg_mod.Config, 'AI_BASE_URL', 'https://a.example/v1')
+    monkeypatch.setattr(cfg_mod.Config, 'AI_API_KEY', 'k1')
+    monkeypatch.setattr(cfg_mod.Config, 'AI_MODEL', 'm1')
+    monkeypatch.setattr(cfg_mod.Config, 'AI_FALLBACK_ENABLED', '0')
     chain = mimos._providers()
-    assert chain[0][0] == 'mimo'
+    assert len(chain) == 1
+    assert chain[0] == ('openai', 'https://a.example/v1', 'k1', 'm1')

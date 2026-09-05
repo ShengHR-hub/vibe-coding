@@ -44,7 +44,7 @@ cd /srv/inkstone
 cd server
 python3 -m venv .venv && . .venv/bin/activate
 pip install -r requirements.txt gunicorn   # 生产额外安装 gunicorn
-cp .env.example .env                        # 填入 SECRET_KEY / MySQL 密码 / MIMO_API_KEY
+cp .env.example .env                        # 填入 SECRET_KEY / MySQL 密码 / AI_API_KEY
 # 修改 .env：MYSQL_HOST=127.0.0.1 MYSQL_USER=inkstone MYSQL_PASSWORD=*** MYSQL_DB=inkstone
 
 # 3.4 数据库初始化（建用户与库）
