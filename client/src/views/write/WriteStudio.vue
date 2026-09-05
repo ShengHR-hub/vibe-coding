@@ -88,6 +88,22 @@
           :placeholder="placeholderText"
           @keydown="onEditorKeydown"
         ></textarea>
+        <!-- 划词快捷操作（润色 / 查错 / 翻译 / 找句） -->
+        <SelectionPopup :editor="editorRef" @find="openFindLines" />
+        <!-- 快捷找句入口 -->
+        <button class="float-find-btn" title="按意境找句" @click="openFindLines('')">
+          <span class="ffb-ico">✦</span>找句
+        </button>
+        <!-- 找句模态层 -->
+        <div v-if="findOpen" class="modal-overlay" @click.self="closeFindLines">
+          <div class="modal find-modal">
+            <div class="find-modal-head">
+              <h3 class="find-modal-title">意境找句</h3>
+              <button class="find-modal-close" @click="closeFindLines">✕</button>
+            </div>
+            <FindLinesPanel :initial-intent="findIntent" />
+          </div>
+        </div>
         <!-- 专注模式退出提示 -->
         <div class="focus-hint" v-if="isFocusMode">
           按 <kbd>Esc</kbd> 退出专注模式
@@ -160,6 +176,8 @@ import StructurePanel from './StructurePanel.vue'
 import TodoPanel from './TodoPanel.vue'
 import FinalizePanel from './FinalizePanel.vue'
 import PomodoroTimer from '../../components/PomodoroTimer.vue'
+import SelectionPopup from '../../components/SelectionPopup.vue'
+import FindLinesPanel from '../../components/FindLinesPanel.vue'
 
 import { useToast } from '../../composables/useToast.js'
 const toast = useToast()
@@ -359,6 +377,21 @@ function toggleFocus() {
   if (isFocusMode.value) {
     nextTick(() => editorRef.value?.focus())
   }
+}
+
+// ---- 意境找句（划词菜单「找句」或角落按钮打开） ----
+const findOpen = ref(false)
+const findIntent = ref('')
+function openFindLines(prefill = '') {
+  const sel = editorRef.value
+  if (!prefill && sel && sel.selectionEnd > sel.selectionStart) {
+    prefill = sel.value.substring(sel.selectionStart, sel.selectionEnd).trim()
+  }
+  findIntent.value = prefill || ''
+  findOpen.value = true
+}
+function closeFindLines() {
+  findOpen.value = false
 }
 
 function onEditorKeydown(e) {
@@ -983,6 +1016,43 @@ onUnmounted(() => {
   box-shadow: 0 4px 24px rgba(196,163,90,0.35);
   z-index: 99; align-items: center; justify-content: center;
   cursor: pointer; border: none;
+}
+
+/* ====== 快捷找句入口 ====== */
+.float-find-btn {
+  position: absolute; right: 18px; top: 12px;
+  display: flex; align-items: center; gap: 5px;
+  padding: 6px 14px; font-size: 0.8rem;
+  border-radius: var(--radius-full);
+  background: rgba(196, 163, 90, 0.1);
+  border: 1px solid rgba(196, 163, 90, 0.3);
+  color: var(--accent-primary); cursor: pointer;
+  transition: all 0.2s; z-index: 20;
+}
+.float-find-btn:hover { background: rgba(196, 163, 90, 0.2); }
+.ffb-ico { font-size: 0.85rem; }
+.focus-mode .float-find-btn { display: none; }
+
+/* ====== 找句模态层 ====== */
+.find-modal { width: min(640px, 92vw); max-height: 82vh; overflow-y: auto; }
+.find-modal-head {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 0.8rem;
+}
+.find-modal-title { font-family: var(--font-serif); margin: 0; font-size: 1.1rem; }
+.find-modal-close {
+  background: none; border: none; color: var(--text-muted);
+  font-size: 1rem; cursor: pointer; padding: 4px 8px;
+}
+.find-modal-close:hover { color: var(--text-primary); }
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 600;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex; align-items: center; justify-content: center;
+  padding: 1rem;
+}
+.modal {
+  padding: 1.4rem 1.6rem; border-radius: var(--radius-lg);
 }
 
 /* ====== 响应式 ====== */

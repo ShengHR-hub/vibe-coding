@@ -28,20 +28,26 @@
           {{ t.label }}
         </button>
         <span class="flex-spacer"></span>
-        <template v-if="activeTab !== 'favorites'">
+        <template v-if="activeTab !== 'favorites' && activeTab !== 'intent'">
           <input class="inspire-search" v-model="query" placeholder="搜索内容 / 作者…" @keydown.enter="doSearch" />
           <button class="btn btn-primary btn-sm" @click="doSearch">搜索</button>
           <button class="btn btn-ghost btn-sm" @click="refresh" :disabled="loading">{{ loading ? '…' : '换一批' }}</button>
         </template>
       </div>
 
-      <div class="cat-chips" v-if="activeTab !== 'favorites' && cats.length">
+      <div class="cat-chips" v-if="activeTab === 'poems' && cats.length">
         <span class="cat-chip" :class="{ active: activeCat === '' }" @click="pickCat('')">全部</span>
         <span v-for="c in cats" :key="c.category" class="cat-chip" :class="{ active: activeCat === c.category }" @click="pickCat(c.category)">
           {{ c.category }}<small> {{ c.count }}</small>
         </span>
       </div>
 
+      <!-- 意境找句（F：按意思搜诗句 → 引用 / AI 原创） -->
+      <div v-if="activeTab === 'intent'" class="intent-area">
+        <FindLinesPanel />
+      </div>
+
+      <template v-else>
       <div v-if="loading" class="center muted" style="padding: 3rem 0">灵感加载中…</div>
       <div v-else-if="items.length === 0" class="center muted" style="padding: 3rem 0">
         {{ activeTab === 'favorites' ? '还没有收藏，去诗词/素材里点 ♡ 收藏吧' : '暂无内容，换个分类或关键词试试' }}
@@ -78,6 +84,7 @@
           </div>
         </div>
       </div>
+      </template>
     </section>
 
     <!-- 收录句子弹窗 -->
@@ -102,6 +109,7 @@ import { api } from '../api/index.js'
 import { useWritingStore } from '../stores/writing.js'
 import { useUserStore } from '../stores/user.js'
 import { useToast } from '../composables/useToast.js'
+import FindLinesPanel from '../components/FindLinesPanel.vue'
 
 const writingStore = useWritingStore()
 const userStore = useUserStore()
@@ -118,6 +126,7 @@ const heroLoading = ref(false)
 const favSet = ref(new Set())
 
 const BASE_SEGS = [
+  { key: 'intent', label: '意境找句' },
   { key: 'poems', label: '诗词' },
   { key: 'materials', label: '句子素材' },
 ]
@@ -274,12 +283,18 @@ function switchSeg(key) {
   query.value = ''
   items.value = []
   cats.value = []
+  // 意境找句页不加载素材列表
+  if (key === 'intent') return
   loadCats()
   if (key === 'favorites' && userStore.isLoggedIn) refreshFavs()
   loadItems()
 }
 
 onMounted(async () => {
+  if (activeTab.value === 'intent') {
+    await Promise.all([loadHero(), refreshFavs()])
+    return
+  }
   await Promise.all([loadHero(), refreshFavs(), loadCats(), loadItems()])
 })
 </script>
@@ -317,6 +332,8 @@ onMounted(async () => {
   background: var(--bg-glass); border: 1px solid var(--border-glass); color: var(--text-primary);
   width: 220px; max-width: 60vw;
 }
+
+.intent-area { padding: 0.4rem 0 1rem; }
 
 .cat-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 1rem; }
 .cat-chip {
