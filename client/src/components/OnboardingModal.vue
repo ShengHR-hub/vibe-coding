@@ -62,7 +62,8 @@ function choose(mode) {
 .ob-overlay {
   position: fixed; inset: 0; z-index: 900;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(10, 12, 20, 0.6); backdrop-filter: blur(4px);
+  /* 纯色遮罩（跟项目其他 modal 惯例一致），不用 backdrop-filter——全屏模糊每帧合成会卡 GPU */
+  background: rgba(0, 0, 0, 0.55);
 }
 .ob-card {
   width: min(480px, 92vw); padding: 22px 24px; border-radius: 16px;
