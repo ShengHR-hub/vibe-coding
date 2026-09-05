@@ -54,6 +54,12 @@
             <span class="portal-sub">发现作品 · 互动交流 · 排行榜</span>
             <span class="portal-line"></span>
           </router-link>
+          <router-link to="/write/plain" class="portal-card portal-plain">
+            <span class="portal-en">Plain Writing</span>
+            <span class="portal-title">纯净写作</span>
+            <span class="portal-sub">无干扰 · 写完就走 · 保存导出</span>
+            <span class="portal-line"></span>
+          </router-link>
         </div>
         <p class="hero-hint">Scroll to explore</p>
         <span class="scroll-arrow">&darr;</span>
@@ -741,6 +747,10 @@ onUnmounted(() => {
   background: rgba(52,211,153,0.04);
   box-shadow: 0 20px 60px rgba(52,211,153,0.08);
 }
+.portal-plain:hover {
+  background: rgba(96,165,250,0.04);
+  box-shadow: 0 20px 60px rgba(96,165,250,0.08);
+}
 .portal-en {
   font-family: var(--font-display);
   font-size: 0.7rem; font-weight: 600;
@@ -766,6 +776,7 @@ onUnmounted(() => {
 .portal-write .portal-line { background: var(--accent-primary); }
 .portal-read .portal-line { background: var(--accent-purple); }
 .portal-community .portal-line { background: #34d399; }
+.portal-plain .portal-line { background: #60a5fa; }
 .portal-card:hover .portal-line { width: 60%; }
 .hero-hint {
   font-family: var(--font-display);
