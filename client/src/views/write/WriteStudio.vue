@@ -24,6 +24,7 @@
       <div class="header-right">
         <span class="word-badge">{{ writingStore.wordCount }}<small> 字</small></span>
         <PomodoroTimer @complete="onPomodoroComplete" />
+        <button class="header-btn" title="使用说明 / 模式选择" @click="onboardingRef?.open()">?</button>
         <button class="header-btn" @click="toggleFocus" title="专注模式">
           <span class="hbtn-icon">⛶</span>
         </button>
@@ -152,6 +153,9 @@
     <button class="mobile-toggle" v-if="!isFocusMode" @click="mobilePanelOpen = !mobilePanelOpen">
       <span>{{ mobilePanelOpen ? '✕' : '✦' }}</span>
     </button>
+
+    <!-- 使用说明弹窗（首次进入 + 右上角可重开） -->
+    <OnboardingModal ref="onboardingRef" />
   </div>
 </template>
 
@@ -178,6 +182,7 @@ import FinalizePanel from './FinalizePanel.vue'
 import PomodoroTimer from '../../components/PomodoroTimer.vue'
 import SelectionPopup from '../../components/SelectionPopup.vue'
 import FindLinesPanel from '../../components/FindLinesPanel.vue'
+import OnboardingModal from '../../components/OnboardingModal.vue'
 
 import { useToast } from '../../composables/useToast.js'
 const toast = useToast()
@@ -239,7 +244,15 @@ function onGotoTool(e) {
   activeStage.value = t.stage
   switchTool(t.key)
 }
-onMounted(() => window.addEventListener('inkstone:goto-tool', onGotoTool))
+// ---- 使用说明弹窗（P6-A）：首次进入弹出，选择存 localStorage，可手动重开 ----
+const onboardingRef = ref(null)
+
+onMounted(() => {
+  window.addEventListener('inkstone:goto-tool', onGotoTool)
+  if (!localStorage.getItem('inkstone_mode')) {
+    onboardingRef.value?.open()
+  }
+})
 onUnmounted(() => window.removeEventListener('inkstone:goto-tool', onGotoTool))
 
 function onTabBeforeEnter(el) {
