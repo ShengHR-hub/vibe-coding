@@ -156,6 +156,9 @@
 
     <!-- 使用说明弹窗（首次进入 + 右上角可重开） -->
     <OnboardingModal ref="onboardingRef" />
+
+    <!-- 闪念便签（右下角悬浮，Ctrl+Shift+N） -->
+    <NotesFloat />
   </div>
 </template>
 
@@ -183,6 +186,7 @@ import PomodoroTimer from '../../components/PomodoroTimer.vue'
 import SelectionPopup from '../../components/SelectionPopup.vue'
 import FindLinesPanel from '../../components/FindLinesPanel.vue'
 import OnboardingModal from '../../components/OnboardingModal.vue'
+import NotesFloat from '../../components/NotesFloat.vue'
 
 import { useToast } from '../../composables/useToast.js'
 const toast = useToast()
