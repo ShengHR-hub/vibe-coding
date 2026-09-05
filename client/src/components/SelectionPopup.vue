@@ -79,7 +79,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { api } from '../api/index.js'
 
 const props = defineProps({
@@ -116,15 +116,44 @@ function selectedText() {
   return el.value.substring(el.selectionStart, el.selectionEnd).trim()
 }
 
-function getRangeRect() {
-  const el = props.editor
-  if (!el) return null
-  const r = document.createRange()
-  r.setStart(el, 0)
-  r.setEnd(el, el.selectionEnd)
-  const rects = r.getClientRects()
-  if (!rects.length) return null
-  return rects[rects.length - 1]
+// textarea 内不能用 Range API 取坐标（内容不在 DOM 里渲染），
+// 用「镜像 div」法：复制 textarea 样式，把前 N 个字符放进隐藏 div 测量光标位置
+function getCaretPos(el, pos) {
+  const styles = window.getComputedStyle(el)
+  const mirror = document.createElement('div')
+  // 只复制影响文本排版的属性，避免 width/height/overflow 等干扰
+  const copyProps = [
+    'fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'lineHeight',
+    'letterSpacing', 'wordSpacing', 'textTransform', 'textIndent', 'tabSize',
+    'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
+    'borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth',
+    'boxSizing', 'whiteSpace', 'wordWrap', 'wordBreak',
+  ]
+  for (const p of copyProps) mirror.style[p] = styles[p]
+  mirror.style.position = 'absolute'
+  mirror.style.top = '0px'
+  mirror.style.left = '0px'
+  mirror.style.visibility = 'hidden'
+  mirror.style.boxSizing = 'content-box'
+  // 内容区等宽：clientWidth 含 padding，减掉左右 padding 才与 textarea 换行一致
+  const padL = parseFloat(styles.paddingLeft) || 0
+  const padR = parseFloat(styles.paddingRight) || 0
+  mirror.style.width = `${Math.max(20, el.clientWidth - padL - padR)}px`
+  mirror.style.height = 'auto'
+  mirror.style.zIndex = '-1'
+  document.body.appendChild(mirror)
+
+  // 用 <span> 包裹最后一个字符来精确测量（经典 textarea-caret-position 思路）
+  const span = document.createElement('span')
+  span.textContent = el.value.slice(0, pos) || ' '
+  mirror.appendChild(span)
+
+  // span 相对 mirror 的位置 + mirror 视口位置 = 光标视口坐标；减去 textarea 自身滚动
+  const mirrorRect = mirror.getBoundingClientRect()
+  const x = mirrorRect.left + span.offsetLeft - el.scrollLeft
+  const y = mirrorRect.top + span.offsetTop - el.scrollTop
+  document.body.removeChild(mirror)
+  return { x, y }
 }
 
 function updateMenu() {
@@ -141,13 +170,13 @@ function updateMenu() {
   selStart = el.selectionStart
   selEnd = el.selectionEnd
   selText = text
-  const rect = getRangeRect()
-  if (!rect) return
+  const caret = getCaretPos(el, selEnd)
+  if (!caret) return
   // 浮在选区下方
   const pad = 8
-  let x = rect.left
-  let y = rect.bottom + pad
-  if (y + 44 > window.innerHeight) y = rect.top - 36 - pad
+  let x = caret.x
+  let y = caret.y + pad
+  if (y + 44 > window.innerHeight) y = caret.y - 36 - pad
   if (x + 300 > window.innerWidth) x = Math.max(8, window.innerWidth - 300)
   pos.value = { x: Math.max(8, x), y: Math.max(8, y) }
   menuVisible.value = true
@@ -164,9 +193,9 @@ async function runAction(kind) {
   resultVisible.value = true
   menuVisible.value = false
   // 结果卡片定位在选区上方偏右，避免与菜单重叠
-  const rect = getRangeRect()
-  let x = rect ? rect.left : pos.value.x
-  let y = rect ? rect.top - 20 : pos.value.y
+  const caret = getCaretPos(props.editor, selStart)
+  let x = caret ? caret.x : pos.value.x
+  let y = caret ? caret.y - 20 : pos.value.y
   if (y < 8) y = 8
   if (x + 380 > window.innerWidth) x = Math.max(8, window.innerWidth - 380)
   resultPos.value = { x, y }
@@ -230,16 +259,18 @@ function closeResult() {
 }
 
 // ---- 全局监听 ----
-function onDocMouseup() {
+function onDocMouseup(e) {
   const el = props.editor
   if (!el) return
-  const sel = document.getSelection()
-  // 编辑器内选中才显示
-  const inEditor = sel && sel.anchorNode && el.contains(sel.anchorNode)
-  if (inEditor) {
+  // 点击弹窗/结果卡片内部不处理（避免误隐藏）
+  const t = e.target
+  if (t && t.closest && t.closest('.sp-menu, .sp-result')) return
+  // textarea 自身有选区（selectionStart/End 最可靠，不依赖 document selection）
+  const hasSel = el.selectionStart !== el.selectionEnd
+  // 焦点在编辑器内才响应（点弹窗按钮时 mousedown.prevent 保住了焦点）
+  if (hasSel && el === document.activeElement) {
     updateMenu()
-  } else {
-    // 点击弹窗/结果卡片内部不隐藏
+  } else if (menuVisible.value) {
     menuVisible.value = false
   }
 }
@@ -259,15 +290,28 @@ function onEditorKeyup(e) {
   }
 }
 
+function bindEditor(el) {
+  if (el) el.addEventListener('keyup', onEditorKeyup)
+}
+
+function unbindEditor(el) {
+  if (el) el.removeEventListener('keyup', onEditorKeyup)
+}
+
+watch(() => props.editor, (el, old) => {
+  unbindEditor(old)
+  bindEditor(el)
+})
+
 onMounted(() => {
   window.addEventListener('mouseup', onDocMouseup)
   window.addEventListener('scroll', onDocScroll, true)
-  props.editor?.addEventListener('keyup', onEditorKeyup)
+  bindEditor(props.editor)
 })
 onUnmounted(() => {
   window.removeEventListener('mouseup', onDocMouseup)
   window.removeEventListener('scroll', onDocScroll, true)
-  props.editor?.removeEventListener('keyup', onEditorKeyup)
+  unbindEditor(props.editor)
 })
 </script>
 
