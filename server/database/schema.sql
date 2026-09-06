@@ -389,10 +389,11 @@ CREATE TABLE book_plans (
     CONSTRAINT book_plans_ibfk_1 FOREIGN KEY (work_id) REFERENCES works (work_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 28. 闪念便签表（P6-A：用户随时记录灵感片段，仅本人可见）
+-- 28. 闪念便签表（P6-A：用户随时记录灵感片段，仅本人可见；P6-B2：note_kind 区分便签/AI主线）
 CREATE TABLE user_notes (
     note_id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
+    note_kind VARCHAR(16) NOT NULL DEFAULT 'note',
     content TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
