@@ -204,11 +204,10 @@ import RelationPanel from './RelationPanel.vue'
 import LorePanel from './LorePanel.vue'
 import PolishPanel from './PolishPanel.vue'
 import ChatPanel from './ChatPanel.vue'
-import DiagnosePanel from './DiagnosePanel.vue'
 import RefPanel from './RefPanel.vue'
 import BlueprintPanel from './BlueprintPanel.vue'
 import TaskCardPanel from './TaskCardPanel.vue'
-import StructurePanel from './StructurePanel.vue'
+import ReviewPanel from './ReviewPanel.vue'
 import TodoPanel from './TodoPanel.vue'
 import FinalizePanel from './FinalizePanel.vue'
 import PomodoroTimer from '../../components/PomodoroTimer.vue'
@@ -243,9 +242,8 @@ const tools = [
   { key: 'coach', stage: 'write', label: '写作教练', icon: ' ', comp: ChatPanel },
   { key: 'refs', stage: 'write', label: '素材引用', icon: '✦', comp: RefPanel },
   // ③ 完美收尾
-  { key: 'struct', stage: 'review', label: '结构审校', icon: '🔍', comp: StructurePanel },
+  { key: 'review', stage: 'review', label: '审校诊断', icon: '∞', comp: ReviewPanel },
   { key: 'polish', stage: 'review', label: '逐章润色', icon: '♦', comp: PolishPanel },
-  { key: 'diagnose', stage: 'review', label: '内容诊断', icon: '⚕', comp: DiagnosePanel },
   { key: 'todo', stage: 'review', label: '[TODO]清单', icon: '☑', comp: TodoPanel },
   { key: 'final', stage: 'review', label: '整书交付', icon: '🚀', comp: FinalizePanel },
 ]
