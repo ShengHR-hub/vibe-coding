@@ -200,6 +200,7 @@ import ContinuePanel from './ContinuePanel.vue'
 import InspirePanel from './InspirePanel.vue'
 import OutlineTreePanel from './OutlineTreePanel.vue'
 import CharacterPanel from './CharacterPanel.vue'
+import RelationPanel from './RelationPanel.vue'
 import LorePanel from './LorePanel.vue'
 import PolishPanel from './PolishPanel.vue'
 import ChatPanel from './ChatPanel.vue'
@@ -235,6 +236,7 @@ const tools = [
   { key: 'outline', stage: 'plan', label: '大纲规划', icon: '≡', comp: OutlineTreePanel },
   { key: 'lore', stage: 'plan', label: '设定库', icon: '❖', comp: LorePanel },
   { key: 'character', stage: 'plan', label: '角色设定', icon: '♛', comp: CharacterPanel },
+  { key: 'relation', stage: 'plan', label: '关系图', icon: '⚯', comp: RelationPanel },
   // ② 稳步写
   { key: 'task', stage: 'write', label: '本章任务卡', icon: '📋', comp: TaskCardPanel },
   { key: 'continue', stage: 'write', label: '按蓝图续写', icon: '→', comp: ContinuePanel },

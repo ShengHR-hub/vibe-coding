@@ -401,3 +401,15 @@ CREATE TABLE user_notes (
     KEY idx_notes_user (user_id),
     CONSTRAINT user_notes_ibfk_1 FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 29. 角色关系表（P6-C3：作品角色关系图——手动维护的有向边：谁 与 谁 是什么关系）
+CREATE TABLE work_relations (
+    relation_id INT AUTO_INCREMENT PRIMARY KEY,
+    work_id INT NOT NULL,
+    source VARCHAR(30) NOT NULL,
+    relation VARCHAR(30) NOT NULL,
+    target VARCHAR(30) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT work_relations_ibfk_1 FOREIGN KEY (work_id) REFERENCES works (work_id) ON DELETE CASCADE,
+    INDEX idx_relations_work (work_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
