@@ -51,8 +51,7 @@ function choose(mode) {
   if (mode === 'plain') {
     router.push('/write/plain')
   } else if (mode === 'guide') {
-    // 二期创作工坊占位：暂无独立页，先留写作台并提示
-    toast.info('创作工坊正在建设中，先带你到写作台')
+    router.push('/workshop')
   }
   // pro：留在当前写作台
 }
