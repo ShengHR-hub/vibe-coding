@@ -8,6 +8,8 @@ from utils.prompt_builder import (
     build_character, build_polish, build_prompt_suggestion,
     build_chat_system, build_diagnose, build_summary, build_references_text,
     build_struct_review, build_fix, build_interpret, build_find_lines,
+    build_mainline, build_volume_outline, build_chapter_plot,
+    build_extract_points, build_unstick,
 )
 from utils.logger import log_ai_call
 import json, uuid, time
@@ -789,3 +791,151 @@ def ai_find_lines():
         oldest = min(_FIND_LINES_CACHE, key=lambda k: _FIND_LINES_CACHE[k][0])
         _FIND_LINES_CACHE.pop(oldest, None)
     return ok(result)
+
+
+# ============ 二期 P6-B1：AI 生成后端引擎 ============
+
+
+@write_bp.post('/mainline')
+@login_required
+@ai_quota
+def ai_mainline():
+    """从灵感/闪念生成整体主线大方向（结果由前端决定存 book_plans 或即时展示）。"""
+    data = request.get_json()
+    inspiration = (data.get('inspiration') or '').strip()
+    if not inspiration:
+        return fail('请提供灵感素材')
+    if len(inspiration) > 8000:
+        return fail('灵感素材过长，最多8000字')
+    requirements = (data.get('requirements') or '').strip()[:2000]
+    messages = build_mainline(inspiration, requirements)
+    try:
+        result = chat_completion(messages)
+        log_ai_call(current_app, session.get('user_id'), '/mainline', success=True)
+    except Exception as e:
+        logger.error(f'AI mainline error: {e}')
+        log_ai_call(current_app, session.get('user_id'), '/mainline', success=False, error=str(e))
+        return fail('主线生成失败，请稍后再试')
+    conv_key = str(uuid.uuid4())
+    _save_conv(conv_key, 'user', inspiration)
+    _save_conv(conv_key, 'assistant', result)
+    return ok({'mainline': result})
+
+
+@write_bp.post('/volume-outline')
+@login_required
+@ai_quota
+def ai_volume_outline():
+    """依据主线生成卷级故事曲线草稿。"""
+    data = request.get_json()
+    mainline = (data.get('mainline') or '').strip()
+    if not mainline:
+        return fail('请先提供整体主线')
+    if len(mainline) > 12000:
+        return fail('主线过长，最多12000字')
+    volume_count = data.get('volume_count') or 3
+    messages = build_volume_outline(mainline, volume_count)
+    try:
+        result = chat_completion(messages)
+        log_ai_call(current_app, session.get('user_id'), '/volume-outline', success=True)
+    except Exception as e:
+        logger.error(f'AI volume-outline error: {e}')
+        log_ai_call(current_app, session.get('user_id'), '/volume-outline', success=False, error=str(e))
+        return fail('大纲生成失败，请稍后再试')
+    conv_key = str(uuid.uuid4())
+    _save_conv(conv_key, 'user', mainline)
+    _save_conv(conv_key, 'assistant', result)
+    return ok({'outline': result})
+
+
+@write_bp.post('/chapter-plot')
+@login_required
+@ai_quota
+def ai_chapter_plot():
+    """任务卡：按上下文+主线+灵感生成本章剧情要点（非持久化，前端即时展示/编辑）。"""
+    data = request.get_json()
+    work_id = data.get('work_id')
+    try:
+        work_id = int(work_id) if work_id else None
+    except (TypeError, ValueError):
+        work_id = None
+    context = _build_work_context(session.get('user_id'), work_id) if work_id else ''
+    if not context:
+        return fail('作品不存在或不属于你', code=404)
+    inspire_text = (data.get('inspiration') or '').strip()[:4000]
+    mainline = (data.get('mainline') or '').strip()[:6000]
+    chapter_no = data.get('chapter_no') or 0
+    try:
+        chapter_no = int(chapter_no)
+    except (TypeError, ValueError):
+        chapter_no = 0
+    messages = build_chapter_plot(context, inspire_text, mainline, chapter_no)
+    try:
+        result = chat_completion(messages)
+        log_ai_call(current_app, session.get('user_id'), '/chapter-plot', success=True)
+    except Exception as e:
+        logger.error(f'AI chapter-plot error: {e}')
+        log_ai_call(current_app, session.get('user_id'), '/chapter-plot', success=False, error=str(e))
+        return fail('本章剧情生成失败，请稍后再试')
+    conv_key = str(uuid.uuid4())
+    _save_conv(conv_key, 'user', f'chapter-plot work={work_id}')
+    _save_conv(conv_key, 'assistant', result)
+    return ok({'plot': result})
+
+
+@write_bp.post('/extract-points')
+@login_required
+@ai_quota
+def ai_extract_points():
+    """写完一章后提取 要点/钩子/前情提要（UI 依大纲树结构填入或展示）。"""
+    data = request.get_json()
+    chapter_content = (data.get('content') or '').strip()
+    if not chapter_content:
+        return fail('本章内容为空')
+    if len(chapter_content) > 20000:
+        return fail('内容过长，最多20000字')
+    chapter_title = (data.get('chapter_title') or '').strip()[:100]
+    messages = build_extract_points(chapter_content, chapter_title)
+    try:
+        result = chat_completion(messages)
+        log_ai_call(current_app, session.get('user_id'), '/extract-points', success=True)
+    except Exception as e:
+        logger.error(f'AI extract-points error: {e}')
+        log_ai_call(current_app, session.get('user_id'), '/extract-points', success=False, error=str(e))
+        return fail('要点提取失败，请稍后再试')
+    conv_key = str(uuid.uuid4())
+    _save_conv(conv_key, 'user', chapter_title or 'extract-points')
+    _save_conv(conv_key, 'assistant', result)
+    return ok({'points': result})
+
+
+@write_bp.post('/unstick')
+@login_required
+@ai_quota
+def ai_unstick():
+    """卡壳时：读本章实时内容+前几章摘要，生成接下来写什么（可反复重新生成）。"""
+    data = request.get_json()
+    chapter_content = (data.get('content') or '').strip()
+    if not chapter_content:
+        return fail('本章还没有内容，先写几行再点「卡壳了」')
+    if len(chapter_content) > 20000:
+        return fail('内容过长，最多20000字')
+    work_id = data.get('work_id')
+    try:
+        work_id = int(work_id) if work_id else None
+    except (TypeError, ValueError):
+        work_id = None
+    context = _build_work_context(session.get('user_id'), work_id) if work_id else ''
+    last_summary = (data.get('last_summary') or '').strip()[:3000]
+    messages = build_unstick(context, chapter_content, last_summary)
+    try:
+        result = chat_completion(messages)
+        log_ai_call(current_app, session.get('user_id'), '/unstick', success=True)
+    except Exception as e:
+        logger.error(f'AI unstick error: {e}')
+        log_ai_call(current_app, session.get('user_id'), '/unstick', success=False, error=str(e))
+        return fail('生成失败，请稍后再试')
+    conv_key = str(uuid.uuid4())
+    _save_conv(conv_key, 'user', 'unstick')
+    _save_conv(conv_key, 'assistant', result)
+    return ok({'suggestions': result})
