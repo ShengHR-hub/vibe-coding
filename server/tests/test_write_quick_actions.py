@@ -172,3 +172,80 @@ def test_find_lines_rejects_bad_idx(auth_client, stub_completion):
 def test_find_lines_requires_intent(auth_client):
     r = auth_client.post('/api/write/find-lines', json={'intent': ''})
     assert r.get_json()['code'] != 0
+
+
+# ---------- 二期 P6-B1：AI 生成引擎 ----------
+
+def test_mainline_requires_login(client):
+    r = client.post('/api/write/mainline', json={'inspiration': '雨夜里会说话的猫'})
+    assert r.get_json()['code'] == 401
+
+
+def test_mainline_generates(auth_client, stub_completion):
+    r = auth_client.post('/api/write/mainline', json={'inspiration': '雨夜里会说话的猫'})
+    assert r.get_json()['code'] == 0
+    assert r.get_json()['data']['mainline'] == 'stub'
+    system_msg = stub_completion['messages'][0]['content']
+    assert '主线' in system_msg
+    user_msg = stub_completion['messages'][-1]['content']
+    assert '雨夜里会说话的猫' in user_msg
+
+
+def test_mainline_requires_inspiration(auth_client, stub_completion):
+    r = auth_client.post('/api/write/mainline', json={'inspiration': ''})
+    assert r.get_json()['code'] != 0
+
+
+def test_volume_outline_generates(auth_client, stub_completion):
+    r = auth_client.post('/api/write/volume-outline', json={'mainline': '命题：少年追光', 'volume_count': 3})
+    assert r.get_json()['code'] == 0
+    assert r.get_json()['data']['outline'] == 'stub'
+    user_msg = stub_completion['messages'][-1]['content']
+    assert '3 卷' in user_msg
+
+
+def test_volume_outline_requires_mainline(auth_client, stub_completion):
+    r = auth_client.post('/api/write/volume-outline', json={'mainline': ''})
+    assert r.get_json()['code'] != 0
+
+
+def test_chapter_plot_requires_work(auth_client, stub_completion):
+    r = auth_client.post('/api/write/chapter-plot', json={'work_id': 999999})
+    assert r.get_json()['code'] == 404
+
+
+def test_chapter_plot_generates(auth_client, sample_work, stub_completion):
+    r = auth_client.post('/api/write/chapter-plot', json={
+        'work_id': sample_work, 'inspiration': '猫说人话', 'mainline': '猫与少女的羁绊', 'chapter_no': 1,
+    })
+    assert r.get_json()['code'] == 0
+    assert r.get_json()['data']['plot'] == 'stub'
+    assert '测试作品' in stub_completion['messages'][-1]['content']
+
+
+def test_extract_points_requires_content(auth_client, stub_completion):
+    r = auth_client.post('/api/write/extract-points', json={'content': ''})
+    assert r.get_json()['code'] != 0
+
+
+def test_extract_points_generates(auth_client, stub_completion):
+    r = auth_client.post('/api/write/extract-points', json={
+        'content': '这是本章的内容。' * 10, 'chapter_title': '第一章',
+    })
+    assert r.get_json()['code'] == 0
+    assert r.get_json()['data']['points'] == 'stub'
+    assert '第一章' in stub_completion['messages'][-1]['content']
+
+
+def test_unstick_requires_content(auth_client, stub_completion):
+    r = auth_client.post('/api/write/unstick', json={'content': ''})
+    assert r.get_json()['code'] != 0
+
+
+def test_unstick_generates(auth_client, sample_work, stub_completion):
+    r = auth_client.post('/api/write/unstick', json={
+        'content': '他推开门，愣住了。', 'work_id': sample_work,
+    })
+    assert r.get_json()['code'] == 0
+    assert r.get_json()['data']['suggestions'] == 'stub'
+    assert '他推开门' in stub_completion['messages'][-1]['content']
