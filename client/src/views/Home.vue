@@ -452,9 +452,9 @@ onMounted(async () => {
     if (res.code === 0) featuredPoems.value = res.data.poems
   } catch {}
 
-  // 登录后进入首页自动弹使用说明（「今天不再弹」由 GuideModal 判断）
+  // 登录后进入首页自动弹使用说明（auto=true：GuideModal 会查「今天不再弹」）
   if (userStore.isLoggedIn) {
-    setTimeout(() => window.dispatchEvent(new CustomEvent('inkstone:open-guide')), 800)
+    setTimeout(() => window.dispatchEvent(new CustomEvent('inkstone:open-guide', { detail: { auto: true } })), 800)
   }
 
   // 获取等级定义（从 API 而非硬编码）

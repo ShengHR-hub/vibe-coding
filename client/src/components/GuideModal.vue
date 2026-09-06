@@ -49,7 +49,10 @@ const todayOnly = ref(false)
 const GUIDE_KEY = 'inkstone_guide_dismiss'
 
 function todayStr() {
-  return new Date().toISOString().slice(0, 10)
+  const d = new Date()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${mm}-${dd}`
 }
 
 function open(auto = false) {
@@ -64,8 +67,10 @@ function close() {
   todayOnly.value = false
 }
 
-function onOpenGuide() {
-  open(false)
+function onOpenGuide(e) {
+  // 事件详情里 auto=true 表示「首页登录后自动弹出」，需查今天不再弹；
+  // 头像菜单手动打开不带 auto，始终弹
+  open(e?.detail?.auto === true)
 }
 
 onMounted(() => window.addEventListener('inkstone:open-guide', onOpenGuide))
