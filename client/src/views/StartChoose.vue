@@ -37,21 +37,27 @@
 .sc-kicker { font-size: 0.72rem; letter-spacing: 0.3em; color: var(--accent-primary); margin-bottom: 0.6rem; }
 .sc-title { font-family: var(--font-serif); font-size: 1.8rem; margin: 0 0 0.6rem; color: var(--text-primary); }
 .sc-desc { color: var(--text-secondary); font-size: 0.88rem; }
-.sc-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.2rem; max-width: 900px; width: 100%; }
+.sc-cards { display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap; max-width: 940px; width: 100%; }
 .sc-card {
-  position: relative; display: flex; flex-direction: column; gap: 8px;
-  padding: 2rem 1.6rem; border-radius: var(--radius-lg, 14px); text-decoration: none;
-  background: var(--bg-card, var(--bg-panel)); border: 1px solid var(--border-glass, rgba(196,163,90,0.2));
-  transition: all 0.22s ease; overflow: hidden;
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  padding: 2rem 1.8rem; border-radius: 2px; text-decoration: none; overflow: hidden;
+  flex: 1 1 220px; max-width: 300px;
+  background: transparent; border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.sc-card:hover { transform: translateY(-4px); border-color: rgba(196, 163, 90, 0.5); }
-.sc-en { font-size: 0.7rem; letter-spacing: 0.25em; color: var(--text-muted); }
-.sc-name { font-family: var(--font-serif); font-size: 1.3rem; color: var(--text-primary); }
-.sc-sub { font-size: 0.82rem; line-height: 1.8; color: var(--text-secondary); }
-.sc-line { width: 36px; height: 2px; background: var(--accent-primary); transition: width 0.25s; }
-.sc-card:hover .sc-line { width: 70%; }
-.sc-tag { font-size: 0.72rem; color: var(--accent-primary); }
+.sc-card:hover { transform: translateY(-3px); border-color: rgba(255, 255, 255, 0.15); }
+.sc-newbie:hover { background: rgba(196, 163, 90, 0.04); box-shadow: 0 20px 60px rgba(196, 163, 90, 0.08); }
+.sc-pro:hover { background: rgba(167, 139, 250, 0.04); box-shadow: 0 20px 60px rgba(167, 139, 250, 0.08); }
+.sc-plain:hover { background: rgba(96, 165, 250, 0.04); box-shadow: 0 20px 60px rgba(96, 165, 250, 0.08); }
+.sc-en { font-family: var(--font-display); font-size: 0.7rem; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; color: var(--text-muted); opacity: 0.5; margin-bottom: 0.6rem; }
+.sc-name { font-family: var(--font-serif); font-size: 1.35rem; font-weight: 700; color: var(--text-primary); letter-spacing: 0.12em; margin-bottom: 0.5rem; text-align: center; }
+.sc-sub { font-size: 0.78rem; color: var(--text-muted); letter-spacing: 0.05em; line-height: 1.8; text-align: center; }
+.sc-line { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 0; height: 1px; transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+.sc-card:hover .sc-line { width: 60%; }
 .sc-newbie .sc-line { background: var(--accent-primary); }
 .sc-pro .sc-line { background: var(--accent-purple, #a78bfa); }
 .sc-plain .sc-line { background: #60a5fa; }
+.sc-tag { font-size: 0.68rem; letter-spacing: 0.08em; color: var(--accent-primary); opacity: 0.9; }
+.sc-pro .sc-tag { color: var(--accent-purple, #a78bfa); }
+.sc-plain .sc-tag { color: #60a5fa; }
 </style>

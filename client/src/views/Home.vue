@@ -719,14 +719,16 @@ onUnmounted(() => {
 }
 .hero-cta { margin-bottom: 2.5rem; }
 .hero-portals {
-  display: flex; gap: 2rem; justify-content: center;
+  display: flex; gap: 1.5rem; justify-content: center;
   margin-bottom: 2.5rem; flex-wrap: wrap;
+  max-width: 940px; margin-inline: auto;
 }
 .portal-card {
-  display: flex; flex-direction: column; align-items: center;
-  padding: 2rem 2.8rem; border-radius: 2px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 2rem 1.8rem; border-radius: 2px;
   text-decoration: none; transition: all 0.5s cubic-bezier(0.16,1,0.3,1);
-  min-width: 220px; position: relative; overflow: hidden;
+  flex: 1 1 220px; max-width: 300px;
+  position: relative; overflow: hidden;
   background: transparent;
   border: 1px solid rgba(255,255,255,0.08);
 }

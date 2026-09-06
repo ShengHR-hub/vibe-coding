@@ -69,6 +69,20 @@
           {{ savingProto ? '保存中…' : '保存主角设定（写进设定库）' }}
         </button>
       </section>
+
+      <!-- 区块 5：角色卡（AI 生成 / 手改，同老手台「角色设定」） -->
+      <section class="ws-sec">
+        <h3 class="ws-sec-title">角色卡</h3>
+        <p class="ws-sec-desc">给 AI 一句灵感，一键生成整套角色卡；每张都能手改、手填、删除。</p>
+        <CharacterPanel />
+      </section>
+
+      <!-- 区块 6：关系图（手动维护） -->
+      <section class="ws-sec">
+        <h3 class="ws-sec-title">关系图</h3>
+        <p class="ws-sec-desc">谁 和 谁 是什么关系，随手记下：A → 关系 → B。</p>
+        <RelationPanel />
+      </section>
     </template>
   </div>
 </template>
@@ -79,6 +93,8 @@ import { api } from '../../api/index.js'
 import { useWritingStore } from '../../stores/writing.js'
 import { useToast } from '../../composables/useToast.js'
 import { outlineToText, parseOutlineTree, hasVolumeMark } from '../../utils/outlineTree.js'
+import CharacterPanel from './CharacterPanel.vue'
+import RelationPanel from './RelationPanel.vue'
 
 const writingStore = useWritingStore()
 const toast = useToast()

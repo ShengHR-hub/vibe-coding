@@ -82,14 +82,24 @@
             @blur="onChapterTitleBlur"
             placeholder="章节标题"
           />
-          <button
-            class="formal-toggle"
-            :class="{ 'is-formal': activeChapterFormal }"
-            @click="onToggleFormal"
-            :title="activeChapterFormal ? '当前为正式稿，点击改回草稿' : '标记本章为正式稿（交付只导正式稿）'"
-          >
-            {{ activeChapterFormal ? '正式稿 ✓' : '标为正式稿' }}
-          </button>
+          <div class="title-actions">
+            <button
+              class="formal-toggle"
+              :class="{ 'is-formal': activeChapterFormal }"
+              @click="onToggleFormal"
+              :title="activeChapterFormal ? '当前为正式稿，点击改回草稿' : '标记本章为正式稿（交付只导正式稿）'"
+            >
+              {{ activeChapterFormal ? '正式稿 ✓' : '标为正式稿' }}
+            </button>
+            <!-- 快捷找句入口 -->
+            <button class="float-find-btn" title="按意境找句" @click="openFindLines('')">
+              <span class="ffb-ico">✦</span>找句
+            </button>
+            <!-- 卡壳了：让 AI 给续写方向 -->
+            <button class="float-unstick-btn" title="写不下去了？让 AI 给你接下去的方向" @click="openUnstick" :disabled="unstickLoading || !writingStore.content.trim()">
+              <span class="ffb-ico">?</span>{{ unstickLoading ? 'AI 思考中…' : '卡壳了' }}
+            </button>
+          </div>
         </div>
         <textarea
           ref="editorRef"
@@ -100,14 +110,6 @@
         ></textarea>
         <!-- 划词快捷操作（润色 / 查错 / 翻译 / 找句） -->
         <SelectionPopup :editor="editorRef" @find="openFindLines" />
-        <!-- 快捷找句入口 -->
-        <button class="float-find-btn" title="按意境找句" @click="openFindLines('')">
-          <span class="ffb-ico">✦</span>找句
-        </button>
-        <!-- 卡壳了：让 AI 给续写方向 -->
-        <button class="float-unstick-btn" title="写不下去了？让 AI 给你接下去的方向" @click="openUnstick" :disabled="unstickLoading || !writingStore.content.trim()">
-          <span class="ffb-ico">?</span>{{ unstickLoading ? 'AI 思考中…' : '卡壳了' }}
-        </button>
         <!-- 找句模态层 -->
         <div v-if="findOpen" class="modal-overlay" @click.self="closeFindLines">
           <div class="modal find-modal">
@@ -924,6 +926,12 @@ onUnmounted(() => {
   align-items: center;
   gap: 10px;
 }
+.title-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
 .chapter-title-input {
   flex: 1;
   font-family: var(--font-serif);
@@ -1146,14 +1154,14 @@ onUnmounted(() => {
 
 /* ====== 快捷找句入口 ====== */
 .float-find-btn {
-  position: absolute; right: 18px; top: 12px;
-  display: flex; align-items: center; gap: 5px;
-  padding: 6px 14px; font-size: 0.8rem;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 12px; font-size: 0.72rem;
   border-radius: var(--radius-full);
   background: rgba(196, 163, 90, 0.1);
   border: 1px solid rgba(196, 163, 90, 0.3);
   color: var(--accent-primary); cursor: pointer;
-  transition: all 0.2s; z-index: 20;
+  transition: all 0.2s;
+  white-space: nowrap;
 }
 .float-find-btn:hover { background: rgba(196, 163, 90, 0.2); }
 .ffb-ico { font-size: 0.85rem; }
@@ -1161,14 +1169,14 @@ onUnmounted(() => {
 
 /* ====== 卡壳了（P6-B4） ====== */
 .float-unstick-btn {
-  position: absolute; right: 100px; top: 12px;
   display: inline-flex; align-items: center; gap: 5px;
-  padding: 6px 14px; font-size: 0.8rem;
+  padding: 5px 12px; font-size: 0.72rem;
   border-radius: var(--radius-full);
   background: rgba(196, 163, 90, 0.1);
   border: 1px solid rgba(196, 163, 90, 0.3);
   color: var(--accent-primary); cursor: pointer;
-  transition: all 0.2s; z-index: 20;
+  transition: all 0.2s;
+  white-space: nowrap;
 }
 .float-unstick-btn:hover:not(:disabled) { background: rgba(196, 163, 90, 0.2); }
 .float-unstick-btn:disabled { opacity: 0.5; cursor: not-allowed; }

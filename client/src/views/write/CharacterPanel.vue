@@ -130,6 +130,7 @@ async function genCards() {
   if (res.code === 0) {
     toast.success(res.msg || '角色卡已生成')
     await loadCards()
+    broadcastChanged()
   } else toast.error(res.msg)
 }
 
@@ -153,6 +154,7 @@ async function saveEdit() {
     editingId.value = null
     toast.success('角色卡已更新')
     await loadCards()
+    broadcastChanged()
   } else toast.error(res.msg)
 }
 
@@ -166,6 +168,7 @@ async function addCard() {
     showAdd.value = false
     toast.success('角色卡已保存')
     await loadCards()
+    broadcastChanged()
   } else toast.error(res.msg)
 }
 
@@ -174,15 +177,27 @@ async function removeCard(card) {
   if (res.code === 0) {
     toast.success('已删除')
     await loadCards()
+    broadcastChanged()
   } else toast.error(res.msg)
 }
 
 function onTrigger(e) { if (e.detail?.tab === props.tabKey) loadCards() }
+/** 角色卡变化广播：关系图详情编辑 / 本面板增删改后通知对方刷新 */
+function broadcastChanged() {
+  window.dispatchEvent(new CustomEvent('inkstone:rp-characters-changed'))
+}
+function onCardsChanged() {
+  loadCards()
+}
 onMounted(() => {
   window.addEventListener('inkstone:trigger-ai', onTrigger)
+  window.addEventListener('inkstone:rp-characters-changed', onCardsChanged)
   if (workId.value) loadCards()
 })
-onUnmounted(() => window.removeEventListener('inkstone:trigger-ai', onTrigger))
+onUnmounted(() => {
+  window.removeEventListener('inkstone:trigger-ai', onTrigger)
+  window.removeEventListener('inkstone:rp-characters-changed', onCardsChanged)
+})
 </script>
 
 <style scoped>
