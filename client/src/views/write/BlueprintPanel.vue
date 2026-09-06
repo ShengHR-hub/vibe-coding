@@ -3,20 +3,25 @@
     <div class="panel-input-area">
       <p v-if="!workId" class="hint">💡 先在顶部「保存」一次作品（生成 work_id），即可为这本书立项。</p>
       <template v-else>
-        <label class="field-label">一句话命题 Logline</label>
+        <label class="field-label">一句话命题 Logline <span class="opt-tag">可稍后补</span></label>
         <textarea v-model="logline" rows="2" placeholder="例：一个少年为解开祖屋「灯的秘密」踏上旅程，最终发现光来自每一个被遗忘的人。"></textarea>
+        <p class="hint small" v-if="!logline.trim()">没想好可以先跳过——写的过程中随时回来补。AI 续写/任务卡会在缺命题时更侧重你的实际文字。</p>
 
-        <label class="field-label">目标读者画像</label>
-        <input v-model="audience" placeholder="例：喜欢悬疑与家庭温情的中青年读者" />
-
-        <div class="row">
-          <div class="col">
-            <label class="field-label">目标字数</label>
-            <input v-model.number="targetWords" type="number" min="0" placeholder="80000" />
-          </div>
-          <div class="col">
-            <label class="field-label">交稿日</label>
-            <input v-model="deadline" type="date" />
+        <button class="btn btn-ghost btn-full" @click="advOpen = !advOpen">
+          {{ advOpen ? '收起进阶设置 ▾' : '进阶设置 ▸（读者画像 / 字数 / 交稿日）' }}
+        </button>
+        <div v-if="advOpen" class="adv-box">
+          <label class="field-label">目标读者画像</label>
+          <input v-model="audience" placeholder="例：喜欢悬疑与家庭温情的中青年读者" />
+          <div class="row">
+            <div class="col">
+              <label class="field-label">目标字数</label>
+              <input v-model.number="targetWords" type="number" min="0" placeholder="80000" />
+            </div>
+            <div class="col">
+              <label class="field-label">交稿日</label>
+              <input v-model="deadline" type="date" />
+            </div>
           </div>
         </div>
 
@@ -42,6 +47,7 @@ const audience = ref('')
 const targetWords = ref(0)
 const deadline = ref('')
 const saving = ref(false)
+const advOpen = ref(false)
 
 async function load() {
   if (!workId.value) return
@@ -58,11 +64,9 @@ async function load() {
 
 async function save() {
   if (!workId.value) return
-  const text = logline.value.trim()
-  if (!text) { toast.info('先写一句话命题 Logline'); return }
   saving.value = true
   const res = await api.put(`/api/plan/${workId.value}`, {
-    logline: text,
+    logline: logline.value.trim(),
     audience: audience.value.trim(),
     target_words: targetWords.value || 0,
     deadline: deadline.value || null,
@@ -89,4 +93,6 @@ watch(workId, (v) => { if (v) load() })
 }
 .row { display: flex; gap: 10px; margin-top: 6px; }
 .col { flex: 1; }
+.opt-tag { font-size: 0.7rem; color: var(--text-muted); border: 1px dashed var(--border-glass); padding: 1px 8px; border-radius: 999px; margin-left: 6px; font-weight: 400; }
+.adv-box { margin: 4px 0 8px; padding: 4px 10px 8px; border: 1px dashed rgba(196,163,90,0.25); border-radius: 10px; }
 </style>
