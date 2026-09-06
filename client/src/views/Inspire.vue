@@ -28,7 +28,7 @@
           {{ t.label }}
         </button>
         <span class="flex-spacer"></span>
-        <template v-if="activeTab !== 'favorites' && activeTab !== 'intent'">
+        <template v-if="activeTab !== 'favorites' && activeTab !== 'intent' && activeTab !== 'my'">
           <input class="inspire-search" v-model="query" placeholder="搜索内容 / 作者…" @keydown.enter="doSearch" />
           <button class="btn btn-primary btn-sm" @click="doSearch">搜索</button>
           <button class="btn btn-ghost btn-sm" @click="refresh" :disabled="loading">{{ loading ? '…' : '换一批' }}</button>
@@ -45,6 +45,76 @@
       <!-- 意境找句（F：按意思搜诗句 → 引用 / AI 原创） -->
       <div v-if="activeTab === 'intent'" class="intent-area">
         <FindLinesPanel />
+      </div>
+
+      <!-- 我的灵感：便签 / AI 主线 / 收藏 三区聚合（P6-B2） -->
+      <div v-else-if="activeTab === 'my'" class="my-area">
+        <div class="my-card glass-card">
+          <div class="my-card-head">
+            <span class="my-title">✨ 闪念便签</span>
+            <span class="my-sub">写作中随手记下的点子（写作台右下角 📝 也可记）</span>
+          </div>
+          <div class="my-list">
+            <p v-if="!notes.length" class="muted my-empty">还没有便签，去写作台点 📝 记一个闪念吧</p>
+            <div v-for="n in notes" :key="'n' + n.note_id" class="my-item">
+              <p class="my-text">{{ n.content }}</p>
+              <div class="my-item-foot">
+                <span class="my-time">{{ (n.updated_at || '').slice(5, 16) }}</span>
+                <button class="ic-btn" @click="deleteNote(n.note_id)">✕</button>
+              </div>
+            </div>
+            <div class="my-add-row">
+              <input v-model="noteDraft" class="my-input" placeholder="记一个闪念…（回车保存）" @keydown.enter="addNote" />
+              <button class="btn btn-primary btn-sm" @click="addNote" :disabled="!noteDraft.trim()">记下</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="my-card glass-card">
+          <div class="my-card-head">
+            <span class="my-title">🧭 AI 主线</span>
+            <span class="my-sub">让 AI 从灵感里帮你定整体大方向，随时生成/重新生成</span>
+          </div>
+          <textarea v-model="mainlineInput" class="my-input my-textarea" rows="2" placeholder="贴几条灵感/闪念，或直接描述你脑海里的故事…"></textarea>
+          <button class="btn btn-primary btn-sm" @click="genMainline" :disabled="mainlineLoading || !mainlineInput.trim()">
+            {{ mainlineLoading ? '生成中…' : '生成整体主线' }}
+          </button>
+          <div v-if="mainlineResult" class="my-result">
+            <p class="my-result-text">{{ mainlineResult }}</p>
+            <div class="my-item-foot">
+              <span class="my-time">AI 生成</span>
+              <button class="ic-btn" @click="saveMainline">保存到我的灵感</button>
+              <button class="ic-btn" @click="mainlineResult = ''">放弃</button>
+            </div>
+          </div>
+          <div v-if="mainlines.length" class="my-list">
+            <p class="muted my-empty" style="text-align:left">已保存的主线：</p>
+            <div v-for="m in mainlines" :key="'m' + m.note_id" class="my-item">
+              <p class="my-text">{{ m.content }}</p>
+              <div class="my-item-foot">
+                <span class="my-time">{{ (m.updated_at || '').slice(5, 16) }}</span>
+                <button class="ic-btn" @click="deleteNote(m.note_id)">✕</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="my-card glass-card">
+          <div class="my-card-head">
+            <span class="my-title">💛 我的收藏</span>
+            <span class="my-sub">在诗词/素材里点 ♡ 收藏的内容</span>
+          </div>
+          <div class="my-list">
+            <p v-if="!favItems.length" class="muted my-empty">还没有收藏，去诗词/素材里点 ♡ 吧</p>
+            <div v-for="f in favItems" :key="'f' + f.fav_id" class="my-item">
+              <p class="my-text">{{ f.content }}</p>
+              <div class="my-item-foot">
+                <span class="my-time">{{ f.item_type === 'poem' ? `《${f.title}》${f.author}` : (f.title || '素材') }}</span>
+                <button class="ic-btn" @click="removeFav(f)">✕</button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <template v-else>
@@ -127,13 +197,16 @@ const favSet = ref(new Set())
 
 const BASE_SEGS = [
   { key: 'intent', label: '意境找句' },
+  { key: 'my', label: '我的灵感' },
   { key: 'poems', label: '诗词' },
   { key: 'materials', label: '句子素材' },
 ]
 const segs = computed(() => {
   const base = [...BASE_SEGS]
   if (userStore.isLoggedIn) base.push({ key: 'favorites', label: `收藏${favsCount.value ? ` (${favsCount.value})` : ''}` })
-  return base
+  // 「我的灵感」是个人数据，未登录不显示
+  const all = base.filter(s => s.key !== 'my' || userStore.isLoggedIn)
+  return all
 })
 const favsCount = computed(() => favSet.value.size)
 
@@ -285,9 +358,71 @@ function switchSeg(key) {
   cats.value = []
   // 意境找句页不加载素材列表
   if (key === 'intent') return
+  // 我的灵感页加载三区数据
+  if (key === 'my') {
+    if (userStore.isLoggedIn) {
+      loadMyNotes()
+      loadMyFavs()
+    }
+    return
+  }
   loadCats()
   if (key === 'favorites' && userStore.isLoggedIn) refreshFavs()
   loadItems()
+}
+
+// ---- 我的灵感（P6-B2）：便签 / AI 主线 / 收藏 三区聚合 ----
+const notes = ref([])
+const mainlines = ref([])
+const favItems = ref([])
+const noteDraft = ref('')
+const mainlineInput = ref('')
+const mainlineResult = ref('')
+const mainlineLoading = ref(false)
+
+async function loadMyNotes() {
+  if (!userStore.isLoggedIn) return
+  const res = await api.get('/api/notes')
+  if (res.code === 0) {
+    const all = res.data.items || []
+    notes.value = all.filter(i => i.kind === 'note')
+    mainlines.value = all.filter(i => i.kind === 'mainline')
+  }
+}
+
+async function loadMyFavs() {
+  if (!userStore.isLoggedIn) return
+  const res = await api.get('/api/inspire/favorites')
+  if (res.code === 0) favItems.value = res.data.items || []
+}
+
+async function addNote() {
+  const text = noteDraft.value.trim()
+  if (!text) return
+  const res = await api.post('/api/notes', { content: text })
+  if (res.code === 0) { noteDraft.value = ''; loadMyNotes() }
+}
+
+async function deleteNote(noteId) {
+  await api.delete(`/api/notes/${noteId}`)
+  loadMyNotes()
+}
+
+async function genMainline() {
+  const inspiration = mainlineInput.value.trim()
+  if (!inspiration || mainlineLoading.value) return
+  mainlineLoading.value = true
+  const res = await api.post('/api/write/mainline', { inspiration })
+  mainlineLoading.value = false
+  if (res.code === 0) mainlineResult.value = res.data.mainline
+  else toast.error(res.msg)
+}
+
+async function saveMainline() {
+  const text = mainlineResult.value.trim()
+  if (!text) return
+  const res = await api.post('/api/notes', { content: text, kind: 'mainline' })
+  if (res.code === 0) { mainlineResult.value = ''; mainlineInput.value = ''; loadMyNotes() }
 }
 
 onMounted(async () => {
@@ -362,6 +497,24 @@ onMounted(async () => {
 }
 .ic-btn:hover { background: rgba(196,163,90,0.18); }
 .ic-btn.starred { color: #e0716b; border-color: rgba(224,113,107,0.4); background: rgba(224,113,107,0.08); }
+
+/* 我的灵感（P6-B2） */
+.my-area { display: flex; flex-direction: column; gap: 18px; }
+.my-card { padding: 16px 18px; }
+.my-card-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.my-title { font-family: var(--font-serif); font-weight: 600; font-size: 0.98rem; color: var(--text-primary); }
+.my-sub { color: var(--text-muted); font-size: 0.75rem; }
+.my-list { display: flex; flex-direction: column; gap: 6px; }
+.my-item { padding: 8px 10px; border-radius: 8px; background: var(--bg-glass); border: 1px solid rgba(196,163,90,0.1); }
+.my-text { margin: 0; font-size: 0.85rem; line-height: 1.7; white-space: pre-wrap; word-break: break-word; color: var(--text-primary); }
+.my-item-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; gap: 8px; }
+.my-time { color: var(--text-muted); font-size: 0.7rem; }
+.my-empty { font-size: 0.8rem; margin: 0; }
+.my-add-row { display: flex; gap: 8px; margin-top: 8px; }
+.my-input { flex: 1; background: var(--bg-glass); color: var(--text-primary); border: 1px solid rgba(196,163,90,0.2); border-radius: 8px; padding: 7px 10px; font-size: 0.85rem; }
+.my-textarea { resize: none; width: 100%; box-sizing: border-box; margin-bottom: 8px; }
+.my-result { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: rgba(196,163,90,0.08); border: 1px solid rgba(196,163,90,0.25); }
+.my-result-text { margin: 0 0 8px; font-size: 0.85rem; line-height: 1.8; white-space: pre-wrap; color: var(--text-primary); }
 
 .center { text-align: center; }
 .muted { color: var(--text-muted); font-size: 0.9rem; }
