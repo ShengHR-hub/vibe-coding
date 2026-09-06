@@ -74,17 +74,23 @@
       </div>
     </div>
   </div>
+
+  <!-- 闪念便签（右下角悬浮，Ctrl+Shift+N，与老手系统一致） -->
+  <NotesFloat />
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { api } from '../../api/index.js'
 import { useWritingStore } from '../../stores/writing.js'
 import { useToast } from '../../composables/useToast.js'
 import WorkshopPanel from './WorkshopPanel.vue'
+import NotesFloat from '../../components/NotesFloat.vue'
 
 const store = useWritingStore()
 const toast = useToast()
+const route = useRoute()
 const works = ref([])
 const chapters = ref([])
 const saving = ref(false)
@@ -185,6 +191,12 @@ function onKeydown(e) {
 onMounted(() => {
   loadWorks()
   window.addEventListener('keydown', onKeydown)
+  // 与老手系统一致：支持 /write/new?work=ID 直达已有作品（从作品列表「编辑」进入）
+  const qw = route.query.work
+  if (qw && !store.currentWorkId) {
+    store.currentWorkId = Number(qw)
+    openWork()
+  }
 })
 onUnmounted(() => {
   window.removeEventListener('keydown', onKeydown)
