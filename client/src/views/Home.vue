@@ -319,7 +319,7 @@
         <h2 class="sec-heading cta-heading">Ready to<br>Create?</h2>
         <p class="sec-subtitle">加入墨池，用 AI 与灵感<br>把每个故事写成作品</p>
         <div class="cta-buttons">
-          <router-link to="/write" class="cta-btn cta-primary pulse-glow">
+          <router-link to="/start" class="cta-btn cta-primary pulse-glow">
             <span>Start Writing</span>
             <span class="cta-arrow">&rarr;</span>
           </router-link>

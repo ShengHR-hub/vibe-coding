@@ -10,12 +10,12 @@
       :alpha="0.9"
     >
       <div class="nav-links">
-        <router-link to="/write" class="nav-item">写作</router-link>
-        <router-link to="/inspire" class="nav-item">灵感馆</router-link>
-        <router-link to="/explore" class="nav-item">广场</router-link>
-        <router-link to="/daily" class="nav-item">练习</router-link>
-        <router-link to="/rankings" class="nav-item">排行</router-link>
-        <router-link to="/challenges" class="nav-item">挑战</router-link>
+        <router-link to="/write" class="nav-item" :class="{ active: navActive === 'write' }">写作</router-link>
+        <router-link to="/inspire" class="nav-item" :class="{ active: navActive === 'inspire' }">灵感馆</router-link>
+        <router-link to="/explore" class="nav-item" :class="{ active: navActive === 'explore' }">广场</router-link>
+        <router-link to="/daily" class="nav-item" :class="{ active: navActive === 'daily' }">练习</router-link>
+        <router-link to="/rankings" class="nav-item" :class="{ active: navActive === 'rankings' }">排行</router-link>
+        <router-link to="/challenges" class="nav-item" :class="{ active: navActive === 'challenges' }">挑战</router-link>
       </div>
     </LiquidGlass>
   </nav>
@@ -33,9 +33,27 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 import LiquidGlass from './LiquidGlass.vue'
 import InkstoneLogo from './InkstoneLogo.vue'
 import UserMenu from './UserMenu.vue'
+
+const route = useRoute()
+
+// 手动高亮：vue-router 的 router-link-active 只认嵌套路由，
+// /write/new、/write/plain、/start 都是平级路由不会自动点亮「写作」，
+// 这里按路径前缀统一映射（P6-B6）
+const navActive = computed(() => {
+  const p = route.path
+  if (p === '/write' || p.startsWith('/write/') || p === '/start') return 'write'
+  if (p.startsWith('/inspire')) return 'inspire'
+  if (p.startsWith('/explore')) return 'explore'
+  if (p.startsWith('/daily')) return 'daily'
+  if (p.startsWith('/rankings')) return 'rankings'
+  if (p.startsWith('/challenges')) return 'challenges'
+  return ''
+})
 </script>
 
 <style scoped>
@@ -74,6 +92,7 @@ import UserMenu from './UserMenu.vue'
   color: var(--text-primary);
 }
 
+.nav-item.active,
 .nav-item.router-link-active {
   color: var(--accent-primary);
   background: rgba(196, 163, 90, 0.1);
