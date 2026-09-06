@@ -95,12 +95,13 @@ onUnmounted(() => window.removeEventListener('inkstone:trigger-ai', onTrigger))
 .f-input {
   flex: 1; min-width: 0; box-sizing: border-box;
   font-size: 0.8rem; color: var(--text-primary);
-  background: rgba(0, 0, 0, 0.18);
-  border: 1px solid rgba(196, 163, 90, 0.16);
-  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(196, 163, 90, 0.08);
+  border-radius: var(--radius-md);
   padding: 5px 8px; outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
-.f-input:focus { border-color: rgba(196, 163, 90, 0.4); }
+.f-input:focus { border-color: rgba(196, 163, 90, 0.3); box-shadow: 0 0 0 3px rgba(196, 163, 90, 0.04); }
 .rel-arrow { color: var(--accent-primary); font-size: 0.8rem; flex-shrink: 0; }
 .f-rel { flex: 1.4; }
 
@@ -129,6 +130,6 @@ onUnmounted(() => window.removeEventListener('inkstone:trigger-ai', onTrigger))
   font-size: 0.85rem; line-height: 1;
   transition: all 0.2s;
 }
-.rel-del:hover { color: #e0716b; background: rgba(224, 113, 107, 0.12); }
+.rel-del:hover { color: var(--accent-red); background: rgba(224, 85, 106, 0.12); }
 .list-empty { font-size: 0.78rem; color: var(--text-muted); line-height: 1.7; }
 </style>

@@ -861,8 +861,8 @@ onUnmounted(() => {
   flex-shrink: 0; margin: 0 6px;
 }
 .ch-status.is-formal {
-  background: #4caf7d; opacity: 1;
-  box-shadow: 0 0 6px rgba(76, 175, 125, 0.6);
+  background: var(--accent-green); opacity: 1;
+  box-shadow: 0 0 6px rgba(107, 207, 127, 0.6);
 }
 .ch-wc {
   font-size: 0.6rem; color: var(--text-muted);
@@ -954,13 +954,13 @@ onUnmounted(() => {
   white-space: nowrap;
 }
 .formal-toggle:hover {
-  color: #4caf7d;
-  border-color: rgba(76, 175, 125, 0.5);
+  color: var(--accent-green);
+  border-color: rgba(107, 207, 127, 0.5);
 }
 .formal-toggle.is-formal {
-  color: #4caf7d;
-  border: 1px solid rgba(76, 175, 125, 0.45);
-  background: rgba(76, 175, 125, 0.08);
+  color: var(--accent-green);
+  border: 1px solid rgba(107, 207, 127, 0.45);
+  background: rgba(107, 207, 127, 0.08);
 }
 
 /* 编辑器 */

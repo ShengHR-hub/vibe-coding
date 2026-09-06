@@ -115,12 +115,12 @@ watch([workId, () => writingStore.activeChapterId], () => load())
 .stat span { font-size: 0.68rem; color: var(--text-muted); }
 .problem-list { display: flex; flex-direction: column; gap: 6px; }
 .problem { display: flex; gap: 8px; padding: 8px 10px; background: rgba(224,113,107,0.06); border: 1px solid rgba(224,113,107,0.2); border-radius: var(--radius-sm); }
-.p-mark { color: #e0716b; font-weight: 700; font-size: 0.78rem; flex-shrink: 0; }
+.p-mark { color: var(--accent-red); font-weight: 700; font-size: 0.78rem; flex-shrink: 0; }
 .p-text { font-size: 0.84rem; color: var(--text-secondary); line-height: 1.6; }
-.ok { font-size: 0.86rem; color: #4caf7d; margin: 6px 0; }
+.ok { font-size: 0.86rem; color: var(--accent-green); margin: 6px 0; }
 .ai-block { margin: 12px 0 4px; }
 .report { margin-top: 10px; padding: 10px 12px; background: rgba(196,163,90,0.05); border: 1px solid rgba(196,163,90,0.12); border-radius: var(--radius-md); font-size: 0.86rem; color: var(--text-secondary); line-height: 1.85; }
-.err { font-size: 0.8rem; color: #e0716b; margin-top: 6px; }
+.err { font-size: 0.8rem; color: var(--accent-red); margin-top: 6px; }
 .check-block { margin-top: 14px; }
 .b-label { font-size: 0.74rem; color: var(--text-muted); margin: 0 0 6px; }
 .check-list { margin: 0; padding-left: 1.2rem; font-size: 0.84rem; color: var(--text-secondary); line-height: 2; }

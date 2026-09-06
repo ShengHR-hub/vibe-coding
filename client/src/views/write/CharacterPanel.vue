@@ -210,8 +210,8 @@ onUnmounted(() => window.removeEventListener('inkstone:trigger-ai', onTrigger))
   cursor: pointer; transition: all 0.2s;
 }
 .rc-btn:hover { color: var(--accent-primary); border-color: var(--accent-primary); }
-.rc-btn.rc-primary { color: #4caf7d; border-color: rgba(76, 175, 125, 0.4); background: rgba(76, 175, 125, 0.06); }
-.rc-btn.rc-danger:hover { color: #e0716b; border-color: rgba(224, 113, 107, 0.4); }
+.rc-btn.rc-primary { color: var(--accent-green); border-color: rgba(107, 207, 127, 0.4); background: rgba(107, 207, 127, 0.06); }
+.rc-btn.rc-danger:hover { color: var(--accent-red); border-color: rgba(224, 85, 106, 0.4); }
 .rc-body { display: flex; flex-direction: column; gap: 3px; }
 .rc-body p { font-size: 0.76rem; color: var(--text-secondary); line-height: 1.6; margin: 0; }
 .rc-body b { color: var(--accent-primary); font-weight: 600; margin-right: 6px; }
@@ -222,12 +222,13 @@ onUnmounted(() => window.removeEventListener('inkstone:trigger-ai', onTrigger))
 .f-input {
   width: 100%; box-sizing: border-box;
   font-size: 0.8rem; color: var(--text-primary);
-  background: rgba(0, 0, 0, 0.18);
-  border: 1px solid rgba(196, 163, 90, 0.16);
-  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(196, 163, 90, 0.08);
+  border-radius: var(--radius-md);
   padding: 5px 8px; outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
-.f-input:focus { border-color: rgba(196, 163, 90, 0.4); }
+.f-input:focus { border-color: rgba(196, 163, 90, 0.3); box-shadow: 0 0 0 3px rgba(196, 163, 90, 0.04); }
 .f-area { resize: vertical; font-family: inherit; line-height: 1.5; }
 .rc-edit-actions { display: flex; gap: 8px; margin-top: 8px; }
 .add-card-btn {
