@@ -66,3 +66,35 @@ def test_notes_validation(auth_client):
     assert auth_client.post('/api/notes', json={'content': '   '}).get_json()['code'] != 0
     long_text = '字' * 2001
     assert auth_client.post('/api/notes', json={'content': long_text}).get_json()['code'] != 0
+
+
+# ---------- P6-B2：note_kind（note/mainline） ----------
+
+def test_notes_kind_default_is_note(auth_client):
+    note_id = _mk_notes(auth_client, '普通便签')[0]
+    items = auth_client.get('/api/notes').get_json()['data']['items']
+    it = next(i for i in items if i['note_id'] == note_id)
+    assert it['kind'] == 'note'
+
+
+def test_notes_create_mainline_kind(auth_client):
+    r = auth_client.post('/api/notes', json={'content': '主线：少年追光，破除枷锁', 'kind': 'mainline'})
+    assert r.get_json()['code'] == 0
+    items = auth_client.get('/api/notes').get_json()['data']['items']
+    it = next(i for i in items if i['note_id'] == r.get_json()['data']['note_id'])
+    assert it['kind'] == 'mainline'
+    assert it['content'] == '主线：少年追光，破除枷锁'
+
+
+def test_notes_rejects_bad_kind(auth_client):
+    r = auth_client.post('/api/notes', json={'content': 'x', 'kind': 'hack'})
+    assert r.get_json()['code'] != 0
+
+
+def test_notes_kind_kept_on_update(auth_client):
+    note_id = _mk_notes(auth_client, '初始普通')[0]
+    auth_client.put(f'/api/notes/{note_id}', json={'content': '改成主线'})
+    items = auth_client.get('/api/notes').get_json()['data']['items']
+    it = next(i for i in items if i['note_id'] == note_id)
+    assert it['content'] == '改成主线'
+    assert it['kind'] == 'note'  # 更新不改变 kind
