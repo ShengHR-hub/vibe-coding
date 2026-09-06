@@ -19,12 +19,13 @@ def _get_own_note(note_id):
 @login_required
 def list_notes():
     rows = query(
-        'SELECT note_id, content, created_at, updated_at FROM user_notes '
+        'SELECT note_id, note_kind, content, created_at, updated_at FROM user_notes '
         'WHERE user_id = %s ORDER BY updated_at DESC',
         (session['user_id'],),
     )
     items = [{
         'note_id': r['note_id'],
+        'kind': r['note_kind'],
         'content': r['content'],
         'created_at': _fmt(r['created_at']),
         'updated_at': _fmt(r['updated_at']),
@@ -41,11 +42,14 @@ def create_note():
         return fail('内容不能为空')
     if len(content) > _MAX_LEN:
         return fail(f'内容过长（最多 {_MAX_LEN} 字）')
+    kind = (data.get('kind') or 'note').strip()
+    if kind not in ('note', 'mainline'):
+        return fail('无效的类型')
     note_id = execute(
-        'INSERT INTO user_notes (user_id, content) VALUES (%s, %s)',
-        (session['user_id'], content),
+        'INSERT INTO user_notes (user_id, note_kind, content) VALUES (%s, %s, %s)',
+        (session['user_id'], kind, content),
     )
-    return ok({'note_id': note_id}, msg='已保存便签')
+    return ok({'note_id': note_id, 'kind': kind}, msg='已保存便签')
 
 
 @notes_bp.put('/<int:note_id>')
