@@ -9,17 +9,17 @@
         <p class="ob-desc">写书第一步：先接住你心里那个"想写的东西"。选一条路开始——以后随时可从右上角「说明」重新进入。</p>
         <div class="ob-options">
           <button class="ob-opt" @click="choose('guide')">
-            <span class="ob-opt-ico">🧭</span>
+            <span class="ob-opt-ico">导</span>
             <span class="ob-opt-name">跟随引导（新手）</span>
-            <span class="ob-opt-sub">一步步完成灵感 → 主线 → 大纲 → 动笔</span>
+            <span class="ob-opt-sub">在写作台右侧一步步完成灵感 → 主线 → 大纲 → 动笔</span>
           </button>
           <button class="ob-opt" @click="choose('pro')">
-            <span class="ob-opt-ico">✍</span>
+            <span class="ob-opt-ico">写</span>
             <span class="ob-opt-name">直接开始（老手）</span>
             <span class="ob-opt-sub">用完整写作台：面板 + AI + 素材引用</span>
           </button>
           <button class="ob-opt" @click="choose('plain')">
-            <span class="ob-opt-ico">🌙</span>
+            <span class="ob-opt-ico">静</span>
             <span class="ob-opt-name">只想安静写</span>
             <span class="ob-opt-sub">纯净页面：只有写作、保存、导出</span>
           </button>
@@ -51,7 +51,7 @@ function choose(mode) {
   if (mode === 'plain') {
     router.push('/write/plain')
   } else if (mode === 'guide') {
-    router.push('/workshop')
+    router.push('/write?tool=workshop')
   }
   // pro：留在当前写作台
 }
