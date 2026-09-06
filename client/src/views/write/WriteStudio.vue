@@ -183,11 +183,10 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, onActivated, onDeactivated, watch, nextTick } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { useWritingStore } from '../../stores/writing.js'
 import { api } from '../../api/index.js'
 import gsap from 'gsap'
-import WorkshopPanel from './WorkshopPanel.vue'
 import ContinuePanel from './ContinuePanel.vue'
 import InspirePanel from './InspirePanel.vue'
 import OutlineTreePanel from './OutlineTreePanel.vue'
@@ -212,7 +211,6 @@ import { useToast } from '../../composables/useToast.js'
 const toast = useToast()
 const writingStore = useWritingStore()
 const route = useRoute()
-const router = useRouter()
 
 // ---- 成书工作流：三阶段 × 工具（P4-E1） ----
 const STAGES = [
@@ -223,7 +221,6 @@ const STAGES = [
 
 const tools = [
   // ① 定目标
-  { key: 'workshop', stage: 'plan', label: '创作工坊', icon: '工', comp: WorkshopPanel },
   { key: 'blueprint', stage: 'plan', label: '立项蓝图', icon: '🧭', comp: BlueprintPanel },
   { key: 'inspire', stage: 'plan', label: '选题灵感', icon: '☆', comp: InspirePanel },
   { key: 'outline', stage: 'plan', label: '大纲规划', icon: '≡', comp: OutlineTreePanel },
@@ -277,14 +274,6 @@ onMounted(() => {
   window.addEventListener('inkstone:goto-tool', onGotoTool)
   if (!localStorage.getItem('inkstone_mode')) {
     onboardingRef.value?.open()
-  }
-  // ?tool=xxx：直达指定工具（创作工坊引导入口）
-  const t = route.query.tool
-  if (t && tools.find(x => x.key === t)) {
-    const tool = tools.find(x => x.key === t)
-    activeStage.value = tool.stage
-    switchTool(tool.key)
-    router.replace({ query: {} })
   }
 })
 onUnmounted(() => window.removeEventListener('inkstone:goto-tool', onGotoTool))

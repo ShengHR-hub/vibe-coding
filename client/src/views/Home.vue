@@ -36,22 +36,16 @@
         <div class="hero-divider"></div>
         <p class="hero-desc">墨池是一个 AI 驱动的创作灵感平台，涵盖 AI 写作工作室、素材与诗词灵感、<br>作品管理、社区互动、挑战赛、角色扮演、数据洞察等创作功能模块。</p>
         <div class="hero-portals">
-          <router-link to="/write" class="portal-card portal-write">
+          <router-link to="/start" class="portal-card portal-write">
             <span class="portal-en">Writing</span>
             <span class="portal-title">开始写作</span>
-            <span class="portal-sub">AI 续写 · 灵感激发 · 角色塑造</span>
+            <span class="portal-sub">新手引导 · 完整写作台 · 纯净模式 — 三选一</span>
             <span class="portal-line"></span>
           </router-link>
           <router-link to="/inspire" class="portal-card portal-read">
             <span class="portal-en">Inspiration</span>
             <span class="portal-title">灵感馆</span>
             <span class="portal-sub">诗词 · 短句素材 · 引用到创作</span>
-            <span class="portal-line"></span>
-          </router-link>
-          <router-link to="/explore" class="portal-card portal-community">
-            <span class="portal-en">Community</span>
-            <span class="portal-title">社区广场</span>
-            <span class="portal-sub">发现作品 · 互动交流 · 排行榜</span>
             <span class="portal-line"></span>
           </router-link>
           <router-link to="/write/plain" class="portal-card portal-plain">
@@ -457,6 +451,11 @@ onMounted(async () => {
     const res = await api.get('/api/poems/featured?count=7')
     if (res.code === 0) featuredPoems.value = res.data.poems
   } catch {}
+
+  // 登录后进入首页自动弹使用说明（「今天不再弹」由 GuideModal 判断）
+  if (userStore.isLoggedIn) {
+    setTimeout(() => window.dispatchEvent(new CustomEvent('inkstone:open-guide')), 800)
+  }
 
   // 获取等级定义（从 API 而非硬编码）
   try {

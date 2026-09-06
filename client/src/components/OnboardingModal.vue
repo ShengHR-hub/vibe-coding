@@ -51,7 +51,7 @@ function choose(mode) {
   if (mode === 'plain') {
     router.push('/write/plain')
   } else if (mode === 'guide') {
-    router.push('/write?tool=workshop')
+    router.push('/write/new')
   }
   // pro：留在当前写作台
 }
