@@ -3,8 +3,8 @@ from flask import Blueprint, request, session, Response
 from database.db import query, execute
 from utils.helpers import ok, fail, login_required
 from utils.mimos import chat_completion, chat_completion_stream
-from utils.prompt_builder import build_rp_extract, build_rp_chat
-import json, uuid
+from utils.prompt_builder import build_rp_extract, build_rp_chat, build_character_cards
+import json, uuid, re
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +16,86 @@ rp_bp = Blueprint('rp', __name__)
 def list_characters(work_id):
     chars = query('SELECT * FROM rp_characters WHERE work_id = %s ORDER BY char_id', (work_id,))
     return ok({'characters': chars})
+
+
+@rp_bp.post('/<int:work_id>/characters/generate')
+@login_required
+def generate_characters(work_id):
+    """P6-C2：按灵感/主线 AI 生成结构化角色卡并入库（可重复调用→追加；刷新=删除后重生成）"""
+    work = query('SELECT work_id FROM works WHERE work_id = %s AND user_id = %s', (work_id, session['user_id']), one=True)
+    if not work:
+        return fail('作品不存在', code=404)
+
+    data = request.get_json() or {}
+    inspiration = (data.get('inspiration') or '').strip()
+    if not inspiration:
+        return fail('请先填写灵感/主线')
+    if len(inspiration) > 8000:
+        return fail('灵感过长')
+
+    # AI 生成（含配额）
+    try:
+        messages = build_character_cards(inspiration)
+        result = chat_completion(messages, temperature=0.8)
+    except Exception as e:
+        logger.error(f'generate characters failed: {e}')
+        return fail('角色生成失败，请稍后再试')
+
+    # 解析 JSON 数组
+    try:
+        m = re.search(r'\[.*\]', result, re.DOTALL)
+        cards = json.loads(m.group()) if m else json.loads(result)
+        if not isinstance(cards, list):
+            raise ValueError('not a list')
+    except (json.JSONDecodeError, ValueError):
+        return fail('AI 返回格式异常，请重试')
+
+    created = []
+    for c in cards[:8]:
+        name = (c.get('name') or '').strip()
+        if not name:
+            continue
+        char_id = execute(
+            'INSERT INTO rp_characters (work_id, name, description, personality, background, speaking_style) '
+            'VALUES (%s, %s, %s, %s, %s, %s)',
+            (work_id, name[:12],
+             (c.get('description') or '').strip()[:150],
+             (c.get('personality') or '').strip()[:150],
+             (c.get('background') or '').strip()[:150],
+             (c.get('speaking_style') or '').strip()[:150])
+        )
+        created.append({'char_id': char_id, 'name': name[:12]})
+
+    return ok({'characters': created, 'count': len(created)}, msg=f'已生成 {len(created)} 个角色卡')
+
+
+@rp_bp.put('/characters/<int:char_id>')
+@login_required
+def update_character(char_id):
+    """P6-C2：手改角色卡（仅本人作品下的角色）"""
+    char = query(
+        'SELECT rc.* FROM rp_characters rc JOIN works w ON rc.work_id = w.work_id '
+        'WHERE rc.char_id = %s AND w.user_id = %s',
+        (char_id, session['user_id']), one=True)
+    if not char:
+        return fail('角色不存在', code=404)
+
+    data = request.get_json() or {}
+    name = (data.get('name') or '').strip()
+    if not name:
+        return fail('角色名不能为空')
+
+    execute(
+        'UPDATE rp_characters SET name=%s, description=%s, personality=%s, background=%s, speaking_style=%s '
+        'WHERE char_id=%s',
+        (name[:12],
+         (data.get('description') or '').strip()[:150],
+         (data.get('personality') or '').strip()[:150],
+         (data.get('background') or '').strip()[:150],
+         (data.get('speaking_style') or '').strip()[:150],
+         char_id)
+    )
+    return ok(msg='角色已更新')
 
 
 @rp_bp.post('/<int:work_id>/characters')

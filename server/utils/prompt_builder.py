@@ -66,6 +66,18 @@ def build_character(story_context):
     ]
 
 
+def build_character_cards(inspiration):
+    """P6-C2：按灵感/主线生成结构化角色卡（JSON 数组，字段与 rp_characters 对齐，可直接入库）。"""
+    return [
+        {'role': 'system', 'content':
+         '你是一位角色设计师。根据用户给出的故事灵感/主线/世界观，设计 2-5 个主要角色卡。'
+         '只输出 JSON 数组，不要 markdown 代码块、不要多余文字，格式：'
+         '[{"name":"角色名","description":"一句话外貌/形象描述","personality":"性格特点（含优点缺点）","background":"背景故事简述","speaking_style":"说话风格/口头禅"}]'
+         'name 不超过 12 字；description/personality/background/speaking_style 各不超过 150 字。'},
+        {'role': 'user', 'content': f'故事灵感：\n{inspiration}\n\n请生成角色卡 JSON 数组。'}
+    ]
+
+
 def build_polish(text, mode='流畅', references=None):
     mode_map = {
         '流畅': '使文字更加流畅自然',
