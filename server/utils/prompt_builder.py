@@ -281,3 +281,94 @@ def build_rp_chat(character, history, user_msg):
         *history[-20:],
         {'role': 'user', 'content': user_msg}
     ]
+
+
+def build_mainline(inspiration, requirements=''):
+    """二期：从灵感/闪念生成整体主线大方向（谁+想要什么+拦着什么→目标与冲突弧）。"""
+    system = (
+        '你是一位资深故事架构师。用户会给你一些故事灵感（可能零散）。'
+        '请把它们整合为一条清晰的整体主线（Mainline）：'
+        '包含【核心命题】【主角】【核心目标】【核心障碍】【冲突弧概览】【预期结局与主题】六项。'
+        '语言精炼，每项 1-3 句，不做具体章节规划。'
+    )
+    user = f'灵感素材：\n{inspiration}'
+    if requirements:
+        user += f'\n\n用户补充要求：\n{requirements}'
+    user += '\n\n请输出整体主线。'
+    return [
+        {'role': 'system', 'content': system},
+        {'role': 'user', 'content': user},
+    ]
+
+
+def build_volume_outline(mainline, volume_count=3):
+    """二期：依据主线生成卷级故事曲线草稿（每卷 2-4 句目标/转折/走向）。"""
+    system = (
+        '你是一位资深故事架构师。根据用户给出的整体主线，生成卷级（Volumes）故事大纲草稿：'
+        '分若干卷，每卷包含【卷目标】【主要转折】【结尾钩子】。'
+        '卷级即可，不做章节级细化（章节到时边写边细化）。'
+    )
+    try:
+        count = max(2, min(int(volume_count), 6))
+    except (TypeError, ValueError):
+        count = 3
+    user = f'整体主线：\n{mainline}\n\n请分为 {count} 卷输出。'
+    return [
+        {'role': 'system', 'content': system},
+        {'role': 'user', 'content': user},
+    ]
+
+
+def build_chapter_plot(context, inspire_text, mainline='', chapter_no=0):
+    """二期：任务卡 AI 生成本章剧情要点（结合前情/设定/主线/灵感）。"""
+    system = (
+        '你是一位帮写作者推进进度的编辑。根据作品上下文与灵感，生成本章（第 N 章）的剧情要点：'
+        '包含【本章目标】【本章 Beats（3-6 条）】【本章钩子】【写完后建议提取的前情要点】。'
+        'Beats 是具体情节步骤，不是抽象主题。'
+    )
+    user = f'作品上下文：\n{context}'
+    if mainline:
+        user += f'\n\n整体主线：\n{mainline}'
+    if inspire_text:
+        user += f'\n\n灵感素材：\n{inspire_text}'
+    user += f'\n\n本章编号：第 {chapter_no} 章' if chapter_no else '\n\n本章编号：下一章'
+    user += '\n\n请输出本章剧情要点。'
+    return [
+        {'role': 'system', 'content': system},
+        {'role': 'user', 'content': user},
+    ]
+
+
+def build_extract_points(chapter_content, chapter_title=''):
+    """二期：用户写完一章后提取【本章要点】【本章钩子】【前情提要】。"""
+    system = (
+        '你是一位资深的编辑。给定一章已完成内容，提取三项供后续使用：'
+        '【本章要点】（3-5 条核心事件）、【本章钩子】（结尾留下的悬念/期待）、'
+        '【前情提要】（供下一章开头追述的一句话概述）。语言精炼。'
+    )
+    user = ''
+    if chapter_title:
+        user += f'章节标题：{chapter_title}\n\n'
+    user += f'本章内容：\n{chapter_content[:12000]}\n\n请输出三项提取。'
+    return [
+        {'role': 'system', 'content': system},
+        {'role': 'user', 'content': user},
+    ]
+
+
+def build_unstick(context, chapter_content, last_summary=''):
+    """二期：写作卡壳时，读本章实时内容 + 前几章摘要，生成"接下来写什么"。"""
+    system = (
+        '你是一位很有耐心的写作伙伴。用户写到这里卡住了。'
+        '请基于本章已写内容与作品上下文，给出【接下来可以写什么】的具体建议 2-4 条：'
+        '每条是一个可直接开写的情节方向（含承接上一段的衔接句示例）。'
+        '不要说教，不要列抽象道理，给能直接接着写的料。'
+    )
+    user = f'作品上下文：\n{context}'
+    if last_summary:
+        user += f'\n\n前情摘要：\n{last_summary}'
+    user += f'\n\n本章已写内容（截至卡壳处）：\n{chapter_content[:8000]}\n\n请给出接下来写什么的建议。'
+    return [
+        {'role': 'system', 'content': system},
+        {'role': 'user', 'content': user},
+    ]
