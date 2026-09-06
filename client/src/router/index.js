@@ -57,6 +57,11 @@ router.beforeEach(async (to) => {
   if (to.meta.auth && !userStore.isLoggedIn) {
     return '/login'
   }
+
+  // P6-B7：记住最近进入的写作系统——导航「写作」按此跳回（新手/老手/纯净）
+  if (to.path === '/write') localStorage.setItem('inkstone_write_mode', 'pro')
+  else if (to.path === '/write/new') localStorage.setItem('inkstone_write_mode', 'new')
+  else if (to.path === '/write/plain') localStorage.setItem('inkstone_write_mode', 'plain')
 })
 
 export default router

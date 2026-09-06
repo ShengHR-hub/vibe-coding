@@ -10,7 +10,7 @@
       :alpha="0.9"
     >
       <div class="nav-links">
-        <router-link to="/write" class="nav-item" :class="{ active: navActive === 'write' }">写作</router-link>
+        <a href="#" class="nav-item" :class="{ active: navActive === 'write' }" @click.prevent="goWrite">写作</a>
         <router-link to="/inspire" class="nav-item" :class="{ active: navActive === 'inspire' }">灵感馆</router-link>
         <router-link to="/explore" class="nav-item" :class="{ active: navActive === 'explore' }">广场</router-link>
         <router-link to="/daily" class="nav-item" :class="{ active: navActive === 'daily' }">练习</router-link>
@@ -34,12 +34,23 @@
 
 <script setup>
 import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import LiquidGlass from './LiquidGlass.vue'
 import InkstoneLogo from './InkstoneLogo.vue'
 import UserMenu from './UserMenu.vue'
 
 const route = useRoute()
+const router = useRouter()
+
+// P6-B7：导航「写作」按用户最近使用的写作系统跳回——
+// 路由守卫在进入 /write、/write/new、/write/plain 时已记忆 inkstone_write_mode
+function goWrite() {
+  const mode = localStorage.getItem('inkstone_write_mode') || ''
+  if (mode === 'new') router.push('/write/new')
+  else if (mode === 'plain') router.push('/write/plain')
+  else if (mode === 'pro') router.push('/write')
+  else router.push('/start')
+}
 
 // 手动高亮：vue-router 的 router-link-active 只认嵌套路由，
 // /write/new、/write/plain、/start 都是平级路由不会自动点亮「写作」，
