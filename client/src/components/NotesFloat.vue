@@ -1,7 +1,7 @@
 <template>
   <div class="nf-root">
     <button class="nf-fab" title="闪念便签 (Ctrl+Shift+N)" @click="toggle">
-      📝
+      记
     </button>
     <div v-if="open" class="nf-panel">
       <div class="nf-head">

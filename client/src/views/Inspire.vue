@@ -51,11 +51,11 @@
       <div v-else-if="activeTab === 'my'" class="my-area">
         <div class="my-card glass-card">
           <div class="my-card-head">
-            <span class="my-title">✨ 闪念便签</span>
-            <span class="my-sub">写作中随手记下的点子（写作台右下角 📝 也可记）</span>
+            <span class="my-title">闪念便签</span>
+            <span class="my-sub">写作中随手记下的点子（写作台右下角「记」也可记）</span>
           </div>
           <div class="my-list">
-            <p v-if="!notes.length" class="muted my-empty">还没有便签，去写作台点 📝 记一个闪念吧</p>
+            <p v-if="!notes.length" class="muted my-empty">还没有便签，去写作台点「记」记一个闪念吧</p>
             <div v-for="n in notes" :key="'n' + n.note_id" class="my-item">
               <p class="my-text">{{ n.content }}</p>
               <div class="my-item-foot">
@@ -72,7 +72,7 @@
 
         <div class="my-card glass-card">
           <div class="my-card-head">
-            <span class="my-title">🧭 AI 主线</span>
+            <span class="my-title">AI 主线</span>
             <span class="my-sub">让 AI 从灵感里帮你定整体大方向，随时生成/重新生成</span>
           </div>
           <textarea v-model="mainlineInput" class="my-input my-textarea" rows="2" placeholder="贴几条灵感/闪念，或直接描述你脑海里的故事…"></textarea>
@@ -101,7 +101,7 @@
 
         <div class="my-card glass-card">
           <div class="my-card-head">
-            <span class="my-title">💛 我的收藏</span>
+            <span class="my-title">我的收藏</span>
             <span class="my-sub">在诗词/素材里点 ♡ 收藏的内容</span>
           </div>
           <div class="my-list">

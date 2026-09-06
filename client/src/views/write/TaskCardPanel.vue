@@ -37,9 +37,9 @@
 
         <div class="ai-zone">
           <div class="ai-zone-head">
-            <span class="ai-zone-label">🤖 AI 搭把手</span>
-            <button class="btn btn-ghost btn-sm" @click="genPlot" :disabled="plotLoading">{{ plotLoading ? '生成中…' : '✨ 生成本章剧情' }}</button>
-            <button class="btn btn-ghost btn-sm" @click="extractPoints" :disabled="extractLoading || !writingStore.content.trim()">{{ extractLoading ? '提取中…' : '📋 写完提取要点' }}</button>
+            <span class="ai-zone-label">AI 搭把手</span>
+            <button class="btn btn-ghost btn-sm" @click="genPlot" :disabled="plotLoading">{{ plotLoading ? '生成中…' : '生成本章剧情' }}</button>
+            <button class="btn btn-ghost btn-sm" @click="extractPoints" :disabled="extractLoading || !writingStore.content.trim()">{{ extractLoading ? '提取中…' : '写完提取要点' }}</button>
           </div>
 
           <div v-if="aiResult" class="ai-result">
