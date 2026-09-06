@@ -10,6 +10,7 @@
           <router-link :to="`/profile/${userStore.user?.user_id}`" @click="closeMenu">我的主页</router-link>
           <router-link to="/works" @click="closeMenu">我的作品</router-link>
           <router-link to="/inspire" @click="closeMenu">灵感馆</router-link>
+          <a href="#" @click.prevent="openGuide">说明文档</a>
           <router-link to="/stats" @click="closeMenu">数据洞察</router-link>
           <router-link to="/notifications" @click="closeMenu">消息中心</router-link>
           <hr>
@@ -38,6 +39,11 @@ function toggleMenu() {
 
 function closeMenu() {
   menuOpen.value = false
+}
+
+function openGuide() {
+  menuOpen.value = false
+  window.dispatchEvent(new CustomEvent('inkstone:open-guide'))
 }
 
 function onDocumentClick() {

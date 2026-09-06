@@ -6,6 +6,7 @@
       <router-view />
     </main>
     <Toast />
+    <GuideModal />
   </div>
 </template>
 
@@ -14,6 +15,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import NavBar from './components/NavBar.vue'
 import Toast from './components/Toast.vue'
+import GuideModal from './components/GuideModal.vue'
 import SilkBackground from './components/SilkBackground.vue'
 import { useUserStore } from './stores/user.js'
 
