@@ -43,6 +43,7 @@
           >
             <span class="ch-num">{{ idx + 1 }}</span>
             <span class="ch-title">{{ ch.title || `第${idx + 1}章` }}</span>
+            <span class="ch-status" :class="ch.status === 'formal' ? 'is-formal' : ''" :title="ch.status === 'formal' ? '正式稿' : '草稿'"></span>
             <span class="ch-wc">{{ ch.word_count || 0 }}</span>
           </div>
           <button class="add-chapter-btn" @click="addChapter">+ 新增章节</button>
@@ -59,6 +60,14 @@
             @input="store.setActiveChapterTitle($event.target.value)"
             placeholder="章节标题"
           />
+          <button
+            class="formal-toggle"
+            :class="{ 'is-formal': activeChapterFormal }"
+            @click="onToggleFormal"
+            :title="activeChapterFormal ? '当前为正式稿，点击改回草稿' : '标记本章为正式稿（交付只导正式稿）'"
+          >
+            {{ activeChapterFormal ? '正式稿 ✓' : '标为正式稿' }}
+          </button>
         </div>
         <textarea
           ref="editorRef"
@@ -150,20 +159,27 @@ async function addChapter() {
   if (ch) chapters.value = [...store.chapters]
 }
 
-async function save() {
+async function save(status) {
   if (!store.currentWorkId || saving.value) return
   saving.value = true
   saveStatus.value = 'saving'
-  const res = await api.post('/api/works/save', {
+  const payload = {
     work_id: store.currentWorkId,
     title: store.title || '未命名作品',
     chapter_id: store.activeChapterId,
     chapter_title: store.getActiveChapterTitle() || '',
     content: store.content,
-  })
+  }
+  if (status === 'formal' || status === 'draft') payload.status = status
+  const res = await api.post('/api/works/save', payload)
   saving.value = false
   if (res.code === 0) {
     saveStatus.value = 'saved'
+    if (status === 'formal' || status === 'draft') {
+      const ch = store.chapters.find(c => c.chapter_id === store.activeChapterId)
+      if (ch) ch.status = status
+      chapters.value = [...store.chapters]
+    }
     toast.success('已保存')
   } else {
     saveStatus.value = 'unsaved'
@@ -171,10 +187,22 @@ async function save() {
   }
 }
 
+// P6-C1：当前激活章节是否为正式稿
+const activeChapterFormal = computed(() => {
+  const ch = store.chapters.find(c => c.chapter_id === store.activeChapterId)
+  return ch?.status === 'formal'
+})
+
+// P6-C1：切换章节草稿/正式稿状态（立即保存）
+async function onToggleFormal() {
+  if (!store.activeChapterId) return
+  await save(activeChapterFormal.value ? 'draft' : 'formal')
+}
+
 async function exportWork() {
   if (!store.currentWorkId) return
   await save()
-  await api.download(`/api/works/${store.currentWorkId}/export`, `${store.title || '作品'}.txt`)
+  await api.download(`/api/works/${store.currentWorkId}/export?formal=1`, `${store.title || '作品'}-正式稿.txt`)
 }
 
 function openGuide() {
@@ -377,6 +405,15 @@ onUnmounted(() => {
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .chapter-item.active .ch-title { color: var(--text-primary); }
+.ch-status {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--text-muted); opacity: 0.45;
+  flex-shrink: 0; margin: 0 6px;
+}
+.ch-status.is-formal {
+  background: #4caf7d; opacity: 1;
+  box-shadow: 0 0 6px rgba(76, 175, 125, 0.6);
+}
 .ch-wc {
   font-size: 0.6rem; color: var(--text-muted);
   font-variant-numeric: tabular-nums;
@@ -407,9 +444,12 @@ onUnmounted(() => {
 .chapter-title-bar {
   padding: 0.3rem 0;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 .chapter-title-input {
-  width: 100%;
+  flex: 1;
   font-family: var(--font-serif);
   font-size: 0.95rem; font-weight: 600;
   color: var(--text-primary);
@@ -420,6 +460,30 @@ onUnmounted(() => {
 }
 .chapter-title-input:focus { border-bottom-color: rgba(196, 163, 90, 0.3); }
 .chapter-title-input::placeholder { color: var(--text-muted); }
+
+/* P6-C1：草稿/正式稿切换按钮 */
+.formal-toggle {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed rgba(196, 163, 90, 0.25);
+  border-radius: 20px;
+  padding: 3px 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.formal-toggle:hover {
+  color: #4caf7d;
+  border-color: rgba(76, 175, 125, 0.5);
+}
+.formal-toggle.is-formal {
+  color: #4caf7d;
+  border: 1px solid rgba(76, 175, 125, 0.45);
+  background: rgba(76, 175, 125, 0.08);
+}
 
 .editor-panel {
   flex: 1; display: flex; flex-direction: column;

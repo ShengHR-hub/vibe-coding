@@ -143,3 +143,74 @@ class TestPublicWork:
         res = client.get(f'/api/works/public/{sample_work}')
         data = res.get_json()
         assert data['code'] == 404
+
+
+class TestChapterStatus:
+    """P6-C1：章节草稿/正式状态 + 导出只导正式稿"""
+
+    def _save_chapter(self, auth_client, work_id, title, content, status=None):
+        """保存第一章（默认内容更新不带状态）"""
+        res = auth_client.get(f'/api/works/{work_id}')
+        ch_id = res.get_json()['data']['chapters'][0]['chapter_id']
+        body = {
+            'work_id': work_id,
+            'title': '测试作品',
+            'chapter_id': ch_id,
+            'chapter_title': title,
+            'content': content,
+        }
+        if status:
+            body['status'] = status
+        return auth_client.post('/api/works/save', json=body)
+
+    def test_save_chapter_default_status_draft(self, auth_client, sample_work):
+        self._save_chapter(auth_client, sample_work, '第一章', '正文内容')
+        res = auth_client.get(f'/api/works/{sample_work}')
+        ch = res.get_json()['data']['chapters'][0]
+        assert ch['status'] == 'draft'
+
+    def test_save_chapter_mark_formal(self, auth_client, sample_work):
+        self._save_chapter(auth_client, sample_work, '第一章', '正文内容', status='formal')
+        res = auth_client.get(f'/api/works/{sample_work}')
+        ch = res.get_json()['data']['chapters'][0]
+        assert ch['status'] == 'formal'
+
+    def test_save_chapter_invalid_status(self, auth_client, sample_work):
+        res = self._save_chapter(auth_client, sample_work, '第一章', '正文', status='done')
+        assert res.get_json()['code'] == 1
+        assert '状态' in res.get_json()['msg']
+
+    def test_save_chapter_without_status_keeps_formal(self, auth_client, sample_work):
+        # 先标正式，再用不带 status 的接口保存（保存正文不应把状态打回草稿）
+        res = self._save_chapter(auth_client, sample_work, '第一章', '正文A', status='formal')
+        assert res.get_json()['code'] == 0
+        self._save_chapter(auth_client, sample_work, '第一章', '正文B')
+        res = auth_client.get(f'/api/works/{sample_work}')
+        assert res.get_json()['data']['chapters'][0]['status'] == 'formal'
+
+    def test_export_default_includes_all(self, auth_client, sample_work):
+        self._save_chapter(auth_client, sample_work, '第一章', '正文内容')
+        res = auth_client.get(f'/api/works/{sample_work}/export')
+        assert res.status_code == 200
+        assert '正文内容' in res.get_data(as_text=True)
+
+    def test_export_formal_only(self, auth_client, sample_work):
+        # 当前所有章节都标正式 → 导出包含正文
+        self._save_chapter(auth_client, sample_work, '第一章', '正式稿内容', status='formal')
+        res = auth_client.get(f'/api/works/{sample_work}/export?formal=1')
+        assert res.status_code == 200
+        text = res.get_data(as_text=True)
+        assert '正式稿内容' in text
+
+    def test_export_formal_excludes_draft(self, auth_client, sample_work):
+        # 章节保持草稿 → formal 导出不含其正文
+        self._save_chapter(auth_client, sample_work, '第一章', '草稿内容')
+        res = auth_client.get(f'/api/works/{sample_work}/export?formal=1')
+        text = res.get_data(as_text=True)
+        assert '草稿内容' not in text
+
+    def test_export_formal_requires_login(self, app, auth_client, sample_work):
+        # 未登录用户访问导出端点 → 401（独立未登录客户端，避免 session 串号）
+        anon = app.test_client()
+        res = anon.get(f'/api/works/{sample_work}/export?formal=1')
+        assert res.get_json()['code'] == 401

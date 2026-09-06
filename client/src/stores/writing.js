@@ -102,6 +102,7 @@ export const useWritingStore = defineStore('writing', () => {
         title: res.data.title,
         word_count: 0,
         content: '',
+        status: 'draft',
       }
       chapters.value.push(newCh)
       await switchChapter(newCh.chapter_id)

@@ -6,12 +6,14 @@
         <div class="cli" :class="{ done: hasBlueprint }"><span>{{ hasBlueprint ? '✓' : '○' }}</span> 已立项（一句话命题/读者/字数）</div>
         <div class="cli" :class="{ done: hasOutline }"><span>{{ hasOutline ? '✓' : '○' }}</span> 大纲已就位（{{ outlineCount }} 章）</div>
         <div class="cli" :class="{ done: allDrafted }"><span>{{ allDrafted ? '✓' : '○' }}</span> 正文已写（{{ draftChapters }}/{{ chapterCount }} 章 ≥200 字）</div>
+        <div class="cli" :class="{ done: allFormal }"><span>{{ allFormal ? '✓' : '○' }}</span> 全部标为正式稿（{{ formalChapters }}/{{ chapterCount }} 章）</div>
         <div class="cli" :class="{ done: noTodo }"><span>{{ noTodo ? '✓' : '○' }}</span> [TODO] 已清零（{{ todoCount }} 处）</div>
       </div>
 
       <button class="btn btn-primary btn-full" @click="exportBook" :disabled="exporting">
-        {{ exporting ? '导出中…' : '⬇ 一键导出整书' }}
+        {{ exporting ? '导出中…' : '⬇ 一键导出正式稿' }}
       </button>
+      <p class="formal-hint" v-if="formalChapters < chapterCount">仅导出已标为「正式稿」的章节（当前 {{ formalChapters }}/{{ chapterCount }} 章），草稿不进入交付稿。</p>
 
       <div class="later">
         <p class="b-label">交付增强（下一阶段）</p>
@@ -42,6 +44,10 @@ const outlineCount = computed(() => flatChapterCount(plan.value?.outline))
 const chapterCount = computed(() => writingStore.chapters.length)
 const draftChapters = computed(() => writingStore.chapters.filter(c => (c.content || '').replace(/\s/g, '').length >= 200).length)
 const allDrafted = computed(() => chapterCount.value > 0 && draftChapters.value === chapterCount.value)
+
+// P6-C1：正式稿统计 + 全部正式判定（交付只导正式稿）
+const formalChapters = computed(() => writingStore.chapters.filter(c => c.status === 'formal').length)
+const allFormal = computed(() => chapterCount.value > 0 && formalChapters.value === chapterCount.value)
 const todoCount = computed(() => {
   let n = 0
   for (const c of writingStore.chapters) {
@@ -70,7 +76,8 @@ async function load() {
 
 async function exportBook() {
   exporting.value = true
-  const res = await api.download(`/api/works/${workId.value}/export`, '作品.txt')
+  // P6-C1：交付只导正式稿（草稿章节不进入交付）
+  const res = await api.download(`/api/works/${workId.value}/export?formal=1`, '作品-正式稿.txt')
   exporting.value = false
   if (res.code !== 0 && res.msg) toast.error(res.msg)
 }
@@ -87,6 +94,10 @@ watch(workId, () => load())
 .cli { font-size: 0.85rem; color: var(--text-muted); }
 .cli.done { color: var(--text-secondary); }
 .cli span { margin-right: 6px; color: var(--accent-primary); }
+.formal-hint {
+  font-size: 0.76rem; color: var(--text-muted); line-height: 1.7;
+  margin: 8px 0 0;
+}
 .later { margin-top: 14px; border-top: 1px dashed rgba(196,163,90,0.15); padding-top: 10px; }
 .b-label { font-size: 0.74rem; color: var(--text-muted); margin: 0 0 4px; }
 .later-text { font-size: 0.8rem; color: var(--text-secondary); line-height: 1.8; margin: 0; }

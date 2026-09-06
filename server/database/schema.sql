@@ -51,6 +51,7 @@ CREATE TABLE chapters (
     chapter_no INT NOT NULL,
     title VARCHAR(200) DEFAULT '',
     content LONGTEXT,
+    status ENUM('draft', 'formal') NOT NULL DEFAULT 'draft',
     word_count INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

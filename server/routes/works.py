@@ -95,8 +95,15 @@ def save_work():
         # 更新章节内容
         if chapter_id:
             wc = len(re.sub(r'\s', '', content)) if content else 0
-            execute('UPDATE chapters SET content = %s, title = %s, word_count = %s WHERE chapter_id = %s AND work_id = %s',
-                    (content, chapter_title, wc, chapter_id, work_id))
+            status = (data.get('status') or '').strip()
+            if status and status not in ('draft', 'formal'):
+                return fail('无效的章节状态')
+            if status:
+                execute('UPDATE chapters SET content = %s, title = %s, word_count = %s, status = %s WHERE chapter_id = %s AND work_id = %s',
+                        (content, chapter_title, wc, status, chapter_id, work_id))
+            else:
+                execute('UPDATE chapters SET content = %s, title = %s, word_count = %s WHERE chapter_id = %s AND work_id = %s',
+                        (content, chapter_title, wc, chapter_id, work_id))
             # 更新总字数
             total_wc = query('SELECT COALESCE(SUM(word_count), 0) as wc FROM chapters WHERE work_id = %s', (work_id,), one=True)['wc']
             execute('UPDATE works SET word_count = %s WHERE work_id = %s', (total_wc, work_id))
@@ -177,9 +184,15 @@ def export_work(work_id):
     if work['status'] != 'published' and not is_owner:
         return fail('作品不存在', code=404)
 
+    # P6-C1：?formal=1 只导正式稿（status='formal' 的章节）
+    only_formal = request.args.get('formal') == '1'
+    where_sql = 'WHERE work_id = %s'
+    params = [work_id]
+    if only_formal:
+        where_sql += " AND status = 'formal'"
     chapters = query(
-        'SELECT title, content, chapter_no FROM chapters WHERE work_id = %s ORDER BY chapter_no',
-        (work_id,)
+        f'SELECT title, content, chapter_no FROM chapters {where_sql} ORDER BY chapter_no',
+        params
     )
 
     type_name = TYPE_NAMES.get(work['type'], work['type'])

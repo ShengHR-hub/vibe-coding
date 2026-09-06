@@ -59,6 +59,7 @@
           >
             <span class="ch-num">{{ idx + 1 }}</span>
             <span class="ch-title">{{ ch.title || `第${idx + 1}章` }}</span>
+            <span class="ch-status" :class="ch.status === 'formal' ? 'is-formal' : ''" :title="ch.status === 'formal' ? '正式稿' : '草稿'"></span>
             <span class="ch-wc">{{ ch.word_count || 0 }}</span>
           </div>
           <button class="add-chapter-btn" @click="onAddChapter">+ 新增章节</button>
@@ -81,6 +82,14 @@
             @blur="onChapterTitleBlur"
             placeholder="章节标题"
           />
+          <button
+            class="formal-toggle"
+            :class="{ 'is-formal': activeChapterFormal }"
+            @click="onToggleFormal"
+            :title="activeChapterFormal ? '当前为正式稿，点击改回草稿' : '标记本章为正式稿（交付只导正式稿）'"
+          >
+            {{ activeChapterFormal ? '正式稿 ✓' : '标为正式稿' }}
+          </button>
         </div>
         <textarea
           ref="editorRef"
@@ -504,7 +513,7 @@ function onTitleBlur() {
   saveDraft()
 }
 
-async function saveDraft() {
+async function saveDraft(status) {
   if (saveStatus.value === 'saving') return
   saveStatus.value = 'saving'
   try {
@@ -515,6 +524,7 @@ async function saveDraft() {
       chapter_id: writingStore.activeChapterId || null,
       chapter_title: writingStore.getActiveChapterTitle() || '',
     }
+    if (status === 'formal' || status === 'draft') payload.status = status
     const res = await api.post('/api/works/save', payload)
     if (res.code === 0) {
       writingStore.currentWorkId = res.data?.work_id || writingStore.currentWorkId
@@ -523,7 +533,10 @@ async function saveDraft() {
       // 更新当前章节的字数
       if (writingStore.activeChapterId) {
         const ch = writingStore.chapters.find(c => c.chapter_id === writingStore.activeChapterId)
-        if (ch) ch.word_count = writingStore.content.replace(/\s/g, '').length
+        if (ch) {
+          ch.word_count = writingStore.content.replace(/\s/g, '').length
+          if (status === 'formal' || status === 'draft') ch.status = status
+        }
       }
       saveStatus.value = 'saved'
     } else {
@@ -533,6 +546,18 @@ async function saveDraft() {
     saveStatus.value = 'unsaved'
   }
   if (saveTimer) clearTimeout(saveTimer)
+}
+
+// P6-C1：当前激活章节是否为正式稿
+const activeChapterFormal = computed(() => {
+  const ch = writingStore.chapters.find(c => c.chapter_id === writingStore.activeChapterId)
+  return ch?.status === 'formal'
+})
+
+// P6-C1：切换章节草稿/正式稿状态（立即保存）
+async function onToggleFormal() {
+  if (!writingStore.activeChapterId) return
+  await saveDraft(activeChapterFormal.value ? 'draft' : 'formal')
 }
 
 // ---- 响应式 ----
@@ -830,6 +855,15 @@ onUnmounted(() => {
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .chapter-item.active .ch-title { color: var(--text-primary); }
+.ch-status {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--text-muted); opacity: 0.45;
+  flex-shrink: 0; margin: 0 6px;
+}
+.ch-status.is-formal {
+  background: #4caf7d; opacity: 1;
+  box-shadow: 0 0 6px rgba(76, 175, 125, 0.6);
+}
 .ch-wc {
   font-size: 0.6rem; color: var(--text-muted);
   font-variant-numeric: tabular-nums;
@@ -886,9 +920,12 @@ onUnmounted(() => {
 .chapter-title-bar {
   padding: 0.3rem 0;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 .chapter-title-input {
-  width: 100%;
+  flex: 1;
   font-family: var(--font-serif);
   font-size: 0.95rem; font-weight: 600;
   color: var(--text-primary);
@@ -901,6 +938,30 @@ onUnmounted(() => {
   border-bottom-color: rgba(196, 163, 90, 0.3);
 }
 .chapter-title-input::placeholder { color: var(--text-muted); }
+
+/* P6-C1：草稿/正式稿切换按钮 */
+.formal-toggle {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed rgba(196, 163, 90, 0.25);
+  border-radius: 20px;
+  padding: 3px 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.formal-toggle:hover {
+  color: #4caf7d;
+  border-color: rgba(76, 175, 125, 0.5);
+}
+.formal-toggle.is-formal {
+  color: #4caf7d;
+  border: 1px solid rgba(76, 175, 125, 0.45);
+  background: rgba(76, 175, 125, 0.08);
+}
 
 /* 编辑器 */
 .editor-panel {
