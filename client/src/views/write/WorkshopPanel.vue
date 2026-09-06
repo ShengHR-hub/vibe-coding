@@ -78,6 +78,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { api } from '../../api/index.js'
 import { useWritingStore } from '../../stores/writing.js'
 import { useToast } from '../../composables/useToast.js'
+import { outlineToText, parseOutlineTree, hasVolumeMark } from '../../utils/outlineTree.js'
 
 const writingStore = useWritingStore()
 const toast = useToast()
@@ -101,7 +102,7 @@ const saving = ref(false)
 const savingOutline = ref(false)
 const savingProto = ref(false)
 
-const outlineParsed = computed(() => (outlineText.value || '').split('\n').some(l => /第?\s*\d+\s*卷|卷[一二三四五六七八九十]/.test(l)))
+const outlineParsed = computed(() => hasVolumeMark(outlineText.value))
 
 async function createBook() {
   if (creating.value) return
@@ -127,38 +128,7 @@ async function loadPlanning() {
   if (n.code === 0) notes.value = (n.data.items || []).filter(i => i.kind === 'note')
 }
 
-/** 大纲树 → 可编辑文本（part.title 行 + 卷内子行） */
-function outlineToText(tree) {
-  const lines = []
-  for (const part of tree || []) {
-    lines.push(part.title || '')
-    for (const ch of part.children || []) {
-      lines.push((ch.title ? ch.title + '：' : '') + (ch.beats || ch.hook || ''))
-    }
-  }
-  return lines.join('\n').trim()
-}
-
-/** 可编辑文本 → 大纲树（同 P6-B3） */
-function parseOutlineTree(text) {
-  const lines = (text || '').split('\n').map(l => l.trim()).filter(Boolean)
-  const parts = []
-  let cur = null
-  for (const line of lines) {
-    if (/第?\s*\d+\s*卷|卷[一二三四五六七八九十]/.test(line) && line.length <= 30) {
-      cur = { kind: 'part', title: line.replace(/^[【\[]|[\】\]]$/g, '').slice(0, 60), children: [] }
-      parts.push(cur)
-    } else if (cur) {
-      const sep = line.indexOf('：')
-      const title = sep > 0 ? line.slice(0, sep).slice(0, 40) : ''
-      const beats = sep > 0 ? line.slice(sep + 1) : line
-      cur.children.push({ kind: 'chapter', title, beats: beats.slice(0, 200), hook: '' })
-    } else {
-      parts.push({ kind: 'part', title: line.slice(0, 60), children: [] })
-    }
-  }
-  return parts.length ? parts : [{ kind: 'part', title: '全卷', children: [] }]
-}
+/** 大纲树 ↔ 文本互转（纯函数见 utils/outlineTree.js，可单测） */
 
 async function genMainline() {
   if (!inspiration.value.trim()) { toast.info('先写点灵感，AI 才好给你主线草稿'); return }

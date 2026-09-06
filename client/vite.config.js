@@ -10,6 +10,12 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     }
   },
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    include: ['src/**/*.test.js'],
+    exclude: ['src/utils/render.test.js'], // node:test 风格，由 npm run test:util 跑
+  },
   server: {
     port: 5173,
     // Windows 上原子写入（临时文件+rename）会触发 watcher EBUSY 崩溃，忽略这些临时模式

@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '../stores/user.js'
+import { rememberWriteMode } from '../utils/writeMode.js'
 
 const routes = [
   { path: '/', name: 'Home', component: () => import('../views/Home.vue'), meta: { noNav: true } },
@@ -59,9 +60,7 @@ router.beforeEach(async (to) => {
   }
 
   // P6-B7：记住最近进入的写作系统——导航「写作」按此跳回（新手/老手/纯净）
-  if (to.path === '/write') localStorage.setItem('inkstone_write_mode', 'pro')
-  else if (to.path === '/write/new') localStorage.setItem('inkstone_write_mode', 'new')
-  else if (to.path === '/write/plain') localStorage.setItem('inkstone_write_mode', 'plain')
+  rememberWriteMode(to.path)
 })
 
 export default router

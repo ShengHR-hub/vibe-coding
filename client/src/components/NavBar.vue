@@ -38,6 +38,7 @@ import { useRoute, useRouter } from 'vue-router'
 import LiquidGlass from './LiquidGlass.vue'
 import InkstoneLogo from './InkstoneLogo.vue'
 import UserMenu from './UserMenu.vue'
+import { resolveWriteTarget, readWriteMode, computeNavActive } from '../utils/writeMode.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -45,26 +46,13 @@ const router = useRouter()
 // P6-B7：导航「写作」按用户最近使用的写作系统跳回——
 // 路由守卫在进入 /write、/write/new、/write/plain 时已记忆 inkstone_write_mode
 function goWrite() {
-  const mode = localStorage.getItem('inkstone_write_mode') || ''
-  if (mode === 'new') router.push('/write/new')
-  else if (mode === 'plain') router.push('/write/plain')
-  else if (mode === 'pro') router.push('/write')
-  else router.push('/start')
+  router.push(resolveWriteTarget(readWriteMode()))
 }
 
 // 手动高亮：vue-router 的 router-link-active 只认嵌套路由，
 // /write/new、/write/plain、/start 都是平级路由不会自动点亮「写作」，
-// 这里按路径前缀统一映射（P6-B6）
-const navActive = computed(() => {
-  const p = route.path
-  if (p === '/write' || p.startsWith('/write/') || p === '/start') return 'write'
-  if (p.startsWith('/inspire')) return 'inspire'
-  if (p.startsWith('/explore')) return 'explore'
-  if (p.startsWith('/daily')) return 'daily'
-  if (p.startsWith('/rankings')) return 'rankings'
-  if (p.startsWith('/challenges')) return 'challenges'
-  return ''
-})
+// 这里按路径前缀统一映射（P6-B6，逻辑见 utils/writeMode.js 可单测）
+const navActive = computed(() => computeNavActive(route.path))
 </script>
 
 <style scoped>

@@ -43,27 +43,20 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
+import { GUIDE_KEY, localTodayStr, guideDismissedToday, shouldAutoOpen } from '../utils/guide.js'
 
 const visible = ref(false)
 const todayOnly = ref(false)
-const GUIDE_KEY = 'inkstone_guide_dismiss'
-
-function todayStr() {
-  const d = new Date()
-  const mm = String(d.getMonth() + 1).padStart(2, '0')
-  const dd = String(d.getDate()).padStart(2, '0')
-  return `${d.getFullYear()}-${mm}-${dd}`
-}
 
 function open(auto = false) {
   // 自动弹出时检查「今天不再弹」；手动打开（头像菜单）始终弹
-  if (auto && localStorage.getItem(GUIDE_KEY) === todayStr()) return
+  if (!shouldAutoOpen(auto, guideDismissedToday(localStorage, new Date()))) return
   visible.value = true
 }
 
 function close() {
   visible.value = false
-  if (todayOnly.value) localStorage.setItem(GUIDE_KEY, todayStr())
+  if (todayOnly.value) localStorage.setItem(GUIDE_KEY, localTodayStr())
   todayOnly.value = false
 }
 
