@@ -95,6 +95,10 @@
         <button class="float-find-btn" title="按意境找句" @click="openFindLines('')">
           <span class="ffb-ico">✦</span>找句
         </button>
+        <!-- 卡壳了：让 AI 给续写方向 -->
+        <button class="float-unstick-btn" title="写不下去了？让 AI 给你接下去的方向" @click="openUnstick" :disabled="unstickLoading || !writingStore.content.trim()">
+          <span class="ffb-ico">😮‍💨</span>{{ unstickLoading ? 'AI 思考中…' : '卡壳了' }}
+        </button>
         <!-- 找句模态层 -->
         <div v-if="findOpen" class="modal-overlay" @click.self="closeFindLines">
           <div class="modal find-modal">
@@ -103,6 +107,21 @@
               <button class="find-modal-close" @click="closeFindLines">✕</button>
             </div>
             <FindLinesPanel :initial-intent="findIntent" />
+          </div>
+        </div>
+        <!-- 卡壳了模态 -->
+        <div v-if="unstickOpen" class="modal-overlay" @click.self="closeUnstick">
+          <div class="modal unstick-modal">
+            <div class="find-modal-head">
+              <h3 class="find-modal-title">😮‍💨 卡壳了？接下来可以写…</h3>
+              <button class="find-modal-close" @click="closeUnstick">✕</button>
+            </div>
+            <p v-if="unstickResult" class="unstick-text">{{ unstickResult }}</p>
+            <p v-else class="unstick-loading">AI 正在读你写到哪里、前情是什么，稍等…</p>
+            <div class="unstick-actions">
+              <button class="btn btn-ghost btn-sm" @click="genUnstick" :disabled="unstickLoading || !writingStore.content.trim()">⟳ 换一批方向</button>
+              <button class="btn btn-primary btn-sm" @click="closeUnstick">回到编辑</button>
+            </div>
           </div>
         </div>
         <!-- 专注模式退出提示 -->
@@ -409,6 +428,35 @@ function openFindLines(prefill = '') {
 }
 function closeFindLines() {
   findOpen.value = false
+}
+
+// ---- P6-B4：卡壳了 ----
+const unstickOpen = ref(false)
+const unstickLoading = ref(false)
+const unstickResult = ref('')
+
+function openUnstick() {
+  if (!writingStore.content.trim()) return
+  unstickOpen.value = true
+  unstickResult.value = ''
+  genUnstick()
+}
+
+function closeUnstick() {
+  if (unstickLoading.value) return
+  unstickOpen.value = false
+}
+
+async function genUnstick() {
+  unstickLoading.value = true
+  unstickResult.value = ''
+  const res = await api.post('/api/write/unstick', {
+    content: writingStore.content.trim(),
+    work_id: writingStore.currentWorkId,
+  })
+  unstickLoading.value = false
+  if (res.code === 0) unstickResult.value = res.data.suggestions
+  else { toast.error(res.msg); unstickOpen.value = false }
 }
 
 function onEditorKeydown(e) {
@@ -1049,6 +1097,25 @@ onUnmounted(() => {
 .float-find-btn:hover { background: rgba(196, 163, 90, 0.2); }
 .ffb-ico { font-size: 0.85rem; }
 .focus-mode .float-find-btn { display: none; }
+
+/* ====== 卡壳了（P6-B4） ====== */
+.float-unstick-btn {
+  position: absolute; right: 100px; top: 12px;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 14px; font-size: 0.8rem;
+  border-radius: var(--radius-full);
+  background: rgba(196, 163, 90, 0.1);
+  border: 1px solid rgba(196, 163, 90, 0.3);
+  color: var(--accent-primary); cursor: pointer;
+  transition: all 0.2s; z-index: 20;
+}
+.float-unstick-btn:hover:not(:disabled) { background: rgba(196, 163, 90, 0.2); }
+.float-unstick-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.focus-mode .float-unstick-btn { display: none; }
+.unstick-modal { width: min(520px, 92vw); }
+.unstick-text { font-size: 0.88rem; line-height: 1.9; color: var(--text-secondary); white-space: pre-wrap; margin: 0 0 10px; }
+.unstick-loading { font-size: 0.82rem; color: var(--text-muted); margin: 0 0 10px; }
+.unstick-actions { display: flex; justify-content: flex-end; gap: 8px; }
 
 /* ====== 找句模态层 ====== */
 .find-modal { width: min(640px, 92vw); max-height: 82vh; overflow-y: auto; }
